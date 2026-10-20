@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM Data Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .login-bar { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .login-bar .suffix { width: 220px; }
+  .login-bar input { padding: 6px 10px; }
+  .login-bar button { padding: 6px 12px; }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who b { color: var(--text); }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  .login-bar a { font-size: 12px; color: var(--muted); }
+  #pwSetup { display: none; align-items: center; gap: 6px; }
+  #pwSetup input { width: 170px; }
+  .login-msg { max-width: 1200px; margin: 12px auto 0; padding: 0 16px; }
+  .login-msg .status { margin: 0; }
+  nav.tabs { max-width: 1200px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  nav.tabs button { white-space: nowrap; }
+  nav.tabs button { background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; font-weight: 600; padding: 9px 16px; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
+  nav.tabs button:hover:not(:disabled) { background: var(--card); color: var(--text); }
+  nav.tabs button.active { background: var(--card); color: var(--primary); border-color: var(--line); }
+  nav.tabs button .step { background: var(--muted); }
+  nav.tabs button.active .step { background: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card + .card:not(.panel) { margin-top: 16px; }
+  .hint-locked { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .suffix { position: relative; }
+  .suffix input { padding-right: 82px; }
+  .suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); font-weight: 500; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  .full { width: 100%; margin-top: 14px; }
+  .status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.err { background: var(--err-bg); color: var(--err); white-space: pre-wrap; }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .disabled-block { opacity: .5; pointer-events: none; }
+  .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 12px; display: none; }
+  .progress.show { display: block; }
+  .progress div { height: 100%; width: 0; background: var(--primary); transition: width .3s; }
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar h2 { margin: 0; margin-right: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border-radius: 0; font-weight: 500; padding: 5px 10px; }
+  .seg button.active { background: var(--primary); color: #fff; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { min-width: 860px; }
+  td:nth-child(2), td:nth-child(3) { min-width: 160px; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.code { font-weight: 700; white-space: nowrap; }
+  td .sub { color: var(--muted); font-size: 12px; }
+  tr.new td { background: var(--ok-bg); }
+  tr.fail td { background: var(--err-bg); color: var(--err); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; resize: vertical; min-height: 64px; }
+  .warn-box { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 12.5px; background: var(--warn-bg); color: var(--warn); border-left: 3px solid var(--warn); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+  .pill.err { background: var(--err-bg); color: var(--err); }
+  .pill.none { color: var(--muted); }
+  .pill + .pill { margin-left: 4px; }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button + button { margin-left: 4px; }
+  .result-list { margin: 6px 0 0; padding-left: 18px; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<style>
+  /* Bổ sung riêng cho CRM Data Tool */
+  .sample-box { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; font-size: 13px; }
+  .sample-box .title { font-weight: 700; }
+  .sample-box ul { margin: 6px 0 0; padding-left: 18px; }
+  .sample-box .sub { color: var(--muted); font-size: 12px; }
+  .sample-box table { min-width: 0; font-size: 12.5px; margin-top: 6px; }
+  .sample-box th, .sample-box td { padding: 3px 4px; }
+  .sample-box td.num { text-align: right; white-space: nowrap; }
+  .steps { list-style: none; margin: 12px 0 0; padding: 0; font-size: 13px; display: none; }
+  .steps.show { display: block; }
+  .steps li { padding: 3px 0; color: var(--muted); }
+  .steps li.run { color: var(--warn); font-weight: 600; }
+  .steps li.ok { color: var(--ok); }
+  .steps li.err { color: var(--err); }
+  .steps li .ic { display: inline-block; width: 18px; }
+  td a.link { color: var(--primary); text-decoration: none; }
+  td a.link:hover { text-decoration: underline; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .check input { width: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CRM Data Tool</h1>
+  <span class="badge" id="envBadge">…</span>
+  <div class="login-bar">
+    <span class="who" id="who"><span class="dot"></span>Chưa đăng nhập</span>
+    <div class="suffix">
+      <input id="user" placeholder="Tài khoản, vd: stag_hoangnv75" autocomplete="username" aria-label="Tài khoản">
+      <span id="domainHint">@fpt.com</span>
+    </div>
+    <div id="pwSetup">
+      <input id="password" type="password" autocomplete="off" placeholder="Mật khẩu CRM" aria-label="Mật khẩu CRM">
+      <button id="btnSavePw" class="ghost">Lưu mật khẩu</button>
+    </div>
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnRelogin" class="ghost" title="Bỏ phiên đã lưu, đăng nhập lại">Đăng nhập lại</button>
+    <a href="#" id="pwEditLink" title="Mật khẩu lưu trong file .env của máy này">Đổi mật khẩu</a>
+  </div>
+</header>
+<div class="login-msg"><div class="status" id="loginStatus"></div></div>
+
+<nav class="tabs">
+  <button data-tab="flow" class="active"><span class="step">★</span> Chạy cả luồng</button>
+  <button data-tab="opp"><span class="step">1</span> Tạo cơ hội</button>
+  <button data-tab="quote"><span class="step">2</span> Tạo báo giá</button>
+  <button data-tab="select"><span class="step">3</span> Đánh dấu version</button>
+  <button data-tab="order"><span class="step">4</span> Tạo đơn hàng</button>
+</nav>
+
+<main>
+  <section>
+    <div class="card disabled-block" id="sampleCard">
+      <h2>Cơ hội mẫu</h2>
+      <div class="row">
+        <input id="sample" placeholder="Mã CH, link hoặc id cơ hội mẫu">
+        <button class="ghost" id="btnLoadSample" style="flex:0 0 auto">Tải mẫu</button>
+      </div>
+      <div class="hint">Tool copy <b>sản phẩm/dịch vụ, AM, người duyệt, kênh</b> và <b>các dòng báo giá</b> (version KH chọn) từ cơ hội này. Khách hàng: tiềm năng <b>mới</b> mỗi cơ hội.</div>
+      <div class="sample-box" id="sampleBox" style="display:none"></div>
+    </div>
+
+    <div class="card panel active disabled-block" data-panel="flow" style="margin-top:16px">
+      <h2>Chạy cả luồng</h2>
+      <div class="row">
+        <div>
+          <label for="flowUntil">Chạy đến bước</label>
+          <select id="flowUntil">
+            <option value="order">4. Tạo đơn hàng</option>
+            <option value="select">3. Đánh dấu version</option>
+            <option value="quote">2. Tạo báo giá</option>
+            <option value="opp">1. Tạo cơ hội</option>
+          </select>
+        </div>
+        <div style="max-width:110px">
+          <label for="flowCount">Số lượng</label>
+          <input id="flowCount" type="number" min="1" max="20" value="1">
+        </div>
+      </div>
+      <div class="hint">Tạo cơ hội → Tạo báo giá → Đánh dấu version KH chọn → <b>chờ chính sách "Đã ban hành"</b> (thường 2–5 phút, tối đa <span id="waitMin">10</span> phút) → Tạo đơn hàng (KH chính thức mới, HĐ dịch vụ, địa chỉ HCM).</div>
+      <button class="full" id="btnFlow">Chạy</button>
+      <div class="progress" id="flowProgress"><div></div></div>
+      <ul class="steps" id="flowSteps"></ul>
+      <div class="status" id="flowStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" data-panel="opp" style="margin-top:16px">
+      <h2>Tạo cơ hội</h2>
+      <label for="oppCount">Số lượng</label>
+      <input id="oppCount" type="number" min="1" max="50" value="1">
+      <div class="hint">Giống cơ hội mẫu: sản phẩm/dịch vụ, AM, người phê duyệt, kênh, doanh thu, % thành công · KH tiềm năng mới (tên + SĐT liên hệ ngẫu nhiên) · Dự kiến chốt +30 ngày.</div>
+      <button class="full" id="btnOpp">Tạo cơ hội</button>
+      <div class="progress" id="oppProgress"><div></div></div>
+      <div class="status" id="oppStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" data-panel="quote" style="margin-top:16px">
+      <h2>Tạo báo giá</h2>
+      <label for="quoteCodes">Mã cơ hội (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="quoteCodes" rows="2" placeholder="vd: CH2610190003"></textarea>
+      <div class="warn-box">Dòng báo giá lấy theo <b>báo giá mẫu</b> (giá niêm yết, số lượng, VAT), hiệu lực 30 ngày, trả tháng, thời hạn TT 15 ngày. Cơ hội đã có báo giá thì giữ nguyên.<br>Lưu ý CRM: tổng SL phí khởi tạo phải = tổng SL thuê bao, và đơn hàng phải có ≥1 SPDV thuộc FPT Play SME (gói nội dung).</div>
+      <button class="full" id="btnQuote">Tạo báo giá</button>
+      <div class="status" id="quoteStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" data-panel="select" style="margin-top:16px">
+      <h2>Đánh dấu version KH chọn</h2>
+      <label for="selectCodes">Mã cơ hội có báo giá (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="selectCodes" rows="2" placeholder="vd: CH2610190003"></textarea>
+      <div class="warn-box">Đánh dấu <b>version mới nhất</b> là version KH chọn. Sau đó CRM cấp <b>Id chính sách</b> ("Đang được ban hành") – chờ <b>"Đã ban hành"</b> (2–5 phút) mới tạo đơn hàng được.</div>
+      <button class="full" id="btnSelect">Đánh dấu version</button>
+      <div class="status" id="selectStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" data-panel="order" style="margin-top:16px">
+      <h2>Tạo đơn hàng</h2>
+      <label for="orderCodes">Mã cơ hội đã đánh dấu version (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="orderCodes" rows="2" placeholder="vd: CH2610190003"></textarea>
+      <label class="check"><input type="checkbox" id="orderWait" checked> Tự chờ chính sách "Đã ban hành" (tối đa <span class="waitMin2">10</span> phút)</label>
+      <div class="warn-box">Tool tự: tạo <b>hồ sơ KH chính thức mới</b> (tên công ty + MST ngẫu nhiên, TP.HCM / P. An Phú; KH đã có thì dùng lại) → <b>Hợp đồng dịch vụ</b>, tiền mặt, hiệu lực 1 năm → 1 địa chỉ triển khai (nhà phố) đủ các dòng báo giá. Lần đầu tải danh sách đường mất ~30–40 giây.</div>
+      <button class="full" id="btnOrder">Tạo đơn hàng</button>
+      <div class="status" id="orderStatus"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2>Kết quả</h2>
+      <div class="seg">
+        <button id="tabSession" class="active">Lần này</button>
+        <button id="tabHistory">Lịch sử</button>
+      </div>
+      <button class="ghost small" id="btnRefreshStatus" title="Tải lại trạng thái từ CRM">↻ Trạng thái</button>
+      <button class="ghost small" id="btnCopyAll" title="Copy tất cả mã cơ hội đang hiển thị">Copy mã</button>
+      <a id="crmLink" target="_blank" rel="noopener"><button class="ghost small">Mở CRM ↗</button></a>
+    </div>
+    <div class="status" id="tableStatus" style="margin:0 0 10px"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mã CH</th><th>Tên cơ hội</th><th>Báo giá</th><th>Đơn hàng</th><th>Thời gian</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty">Chưa có dữ liệu</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+// rows: dòng bảng (oppId, code, name…) · status[oppId]: trạng thái luồng từ CRM
+const state = { cfg: null, user: null, sessionRows: [], view: 'session', status: {}, sampleOk: false };
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function setStatus(el, kind, html) {
+  el.className = 'status show ' + kind;
+  el.innerHTML = html;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = (n) => Number(n || 0).toLocaleString('vi-VN');
+const parseCodes = (text) => [...new Set(text.split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean).map((c) => /^ch\d+$/i.test(c) ? c.toUpperCase() : c))];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function init() {
+  state.cfg = await api('GET', '/api/config');
+  $('envBadge').textContent = state.cfg.env;
+  $('domainHint').textContent = '@' + state.cfg.emailDomain;
+  $('user').value = store.get('user') || state.cfg.defaultUser || '';
+  $('sample').value = store.get('sample') || state.cfg.sample;
+  $('crmLink').href = state.cfg.webUrl + '/opportunity';
+  $('waitMin').textContent = state.cfg.orderWaitMinutes;
+  document.querySelectorAll('.waitMin2').forEach((e) => (e.textContent = state.cfg.orderWaitMinutes));
+  showPwSetup(!state.cfg.passwordConfigured);
+  showTab(store.get('tab') || 'flow');
+  $('user').focus();
+}
+
+// Tab chức năng: mỗi tab 1 form riêng, bảng Kết quả dùng chung
+function showTab(tab) {
+  if (!document.querySelector(`[data-panel="${tab}"]`)) tab = 'flow';
+  document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
+  store.set('tab', tab);
+}
+
+function showPwSetup(show) {
+  $('pwSetup').style.display = show ? 'flex' : 'none';
+  $('pwEditLink').style.display = show ? 'none' : '';
+  if (show) {
+    $('password').focus();
+    setStatus($('loginStatus'), 'info', 'Máy này chưa có mật khẩu CRM. Nhập mật khẩu tài khoản stag rồi bấm "Lưu mật khẩu" (lưu trong file .env của máy này).');
+  }
+}
+
+async function savePassword() {
+  try {
+    await api('POST', '/api/settings', { password: $('password').value });
+    state.cfg.passwordConfigured = true;
+    $('password').value = '';
+    showPwSetup(false);
+    setStatus($('loginStatus'), 'ok', 'Đã lưu mật khẩu. Giờ nhập tài khoản và bấm Đăng nhập.');
+  } catch (err) {
+    setStatus($('loginStatus'), 'err', esc(err.message));
+  }
+}
+
+async function login(force) {
+  if (!state.cfg.passwordConfigured) return showPwSetup(true);
+  const user = $('user').value.trim();
+  if (!user) return setStatus($('loginStatus'), 'err', 'Nhập tài khoản trước');
+  $('btnLogin').disabled = $('btnRelogin').disabled = true;
+  setStatus($('loginStatus'), 'info', '<span class="spinner"></span>Đang đăng nhập CRM…');
+  try {
+    const me = await api('POST', '/api/login', { user, force });
+    state.user = user;
+    store.set('user', user);
+    $('who').className = 'who on';
+    $('who').title = me.department || '';
+    $('who').innerHTML = `<span class="dot"></span><b>${esc(me.fullName || user)}</b> (${esc(me.email)})`;
+    $('loginStatus').className = 'status';
+    state.status = {};
+    document.querySelectorAll('.disabled-block').forEach((e) => e.classList.remove('disabled-block'));
+    loadStatuses(currentRows);
+    await loadSample(false);
+  } catch (err) {
+    setStatus($('loginStatus'), 'err', esc(err.message));
+  } finally {
+    $('btnLogin').disabled = $('btnRelogin').disabled = false;
+  }
+}
+
+// Tải + xem trước cơ hội mẫu
+async function loadSample(reload) {
+  const sample = $('sample').value.trim() || state.cfg.sample;
+  const box = $('sampleBox');
+  box.style.display = 'block';
+  box.innerHTML = '<span class="spinner"></span>Đang tải cơ hội mẫu…';
+  state.sampleOk = false;
+  try {
+    const t = await api('GET', `/api/template?user=${encodeURIComponent(state.user)}&sample=${encodeURIComponent(sample)}${reload ? '&reload=1' : ''}`);
+    store.set('sample', sample);
+    state.sampleOk = true;
+    box.innerHTML = `<div class="title">${esc(t.sample.code)} · ${esc(t.sample.name)}</div>
+      <div class="sub">AM ${esc(t.amName || '')} (${esc(t.am || '')}) · Duyệt: ${esc(t.approver || '')} · ${esc(t.channel || '')}</div>
+      <ul>${t.services.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
+      <div class="sub" style="margin-top:6px">Báo giá mẫu ${esc(t.sample.quoteCode)} – ${esc(t.sample.versionName)}:</div>
+      <table><tbody>${t.items.map((i) => `<tr><td>${esc(i.name)} <span class="sub">(${esc(i.type)})</span></td><td class="num">${i.quantity} × ${money(i.price)}</td></tr>`).join('')}
+      <tr><td><b>Tổng (chưa VAT)</b></td><td class="num"><b>${money(t.total)}</b></td></tr></tbody></table>`;
+  } catch (err) {
+    box.innerHTML = `<span style="color:var(--err)">${esc(err.message)}</span>`;
+  }
+}
+
+const sampleParam = () => $('sample').value.trim() || state.cfg.sample;
+
+// ---------- Bảng kết quả ----------
+let currentRows = [];
+function upsertRow(row) {
+  const i = state.sessionRows.findIndex((r) => r.oppId === row.oppId);
+  if (i >= 0) state.sessionRows[i] = { ...state.sessionRows[i], ...row };
+  else state.sessionRows.unshift({ ...row, _new: true });
+}
+
+function applyState(st) {
+  if (!st?.oppId) return;
+  state.status[st.oppId] = st;
+  if (!state.sessionRows.some((r) => r.oppId === st.oppId) && state.view === 'session') {
+    upsertRow({ oppId: st.oppId, code: st.code, name: st.name, createdAt: '' });
+  }
+}
+
+function renderRows(rows = state.view === 'session' ? state.sessionRows : currentRows) {
+  currentRows = rows;
+  if (!rows.length) { $('rows').innerHTML = '<tr><td colspan="7" class="empty">Chưa có dữ liệu</td></tr>'; return; }
+  const web = state.cfg.webUrl;
+  $('rows').innerHTML = rows.map((r) => {
+    if (r._error) return `<tr class="fail"><td class="code">Lỗi</td><td colspan="3">${esc(r._error)}</td><td>${esc(r.createdAt)}</td><td></td><td></td></tr>`;
+    const st = state.status[r.oppId] || {};
+    const quote = st.quote ? `<a class="link" target="_blank" rel="noopener" href="${web}/quote/${st.quote.id}">${esc(st.quote.code)}</a>
+        <div class="sub">${esc(st.version?.name || st.quote.selectedVersion || '')}${st.version?.policyId ? ' · CS ' + esc(st.version.policyId) : ''}</div>` : '<span class="sub">–</span>';
+    const order = st.order ? `<a class="link" target="_blank" rel="noopener" href="${web}/order/${st.order.id}"><b>${esc(st.order.code || 'Đơn hàng')}</b></a>` : '<span class="sub">–</span>';
+    return `<tr class="${r._new && state.view === 'session' ? 'new' : ''}">
+      <td class="code"><a class="link" target="_blank" rel="noopener" href="${web}/opportunity/${esc(r.oppId)}">${esc(r.code || st.code)}</a></td>
+      <td>${esc(r.name || st.name)}<div class="sub">${esc(r.contact || st.customer || '')}</div></td>
+      <td>${quote}</td>
+      <td>${order}</td>
+      <td class="sub">${esc(r.createdAt)}<div>${esc(r.createdBy || '')}</div></td>
+      <td>${statusPill(r.oppId)}</td>
+      <td class="actions">${rowAction(r.oppId)}<button class="ghost small" data-copy="${esc(r.code || st.code)}">Copy</button></td>
+    </tr>`;
+  }).join('');
+}
+
+const PILL = { quote: 'none', select: 'wait', issuing: 'wait', order: 'ok', done: 'ok', blocked: 'err' };
+function statusPill(oppId) {
+  const st = state.status[oppId];
+  if (!state.user) return '<span class="pill none" title="Đăng nhập để xem trạng thái">–</span>';
+  if (!st || st.loading) return `<span class="pill none"><span class="spinner"></span>${esc(st?.loadingText || '')}</span>`;
+  if (st.error) return `<span class="pill err" title="${esc(st.error)}">Lỗi</span>`;
+  return `<span class="pill ${PILL[st.step] || 'none'}">${esc(st.label)}</span>`;
+}
+
+// Nút bước kế tiếp theo trạng thái
+function rowAction(oppId) {
+  const st = state.status[oppId];
+  if (!st || !state.user || st.loading || st.error) return '';
+  const b = (act, text, title = '') => `<button class="small" data-act="${act}" data-opp="${esc(oppId)}" title="${esc(title)}">${text}</button>`;
+  if (st.step === 'quote') return b('quote', 'Tạo BG', 'Tạo báo giá theo báo giá mẫu');
+  if (st.step === 'select') return b('select', 'Đánh dấu', 'Đánh dấu version mới nhất là version KH chọn');
+  if (st.step === 'issuing') return b('order', 'Chờ & tạo ĐH', 'Chờ chính sách "Đã ban hành" rồi tạo đơn hàng');
+  if (st.step === 'order') return b('order', 'Tạo ĐH', 'Tạo đơn hàng');
+  return '';
+}
+
+async function loadStatuses(rows, force = false) {
+  if (!state.user) return;
+  const ids = [...new Set(rows.filter((r) => r.oppId && (force || !state.status[r.oppId])).map((r) => r.oppId))];
+  if (!ids.length) return;
+  ids.forEach((id) => (state.status[id] = { loading: true }));
+  renderRows();
+  try {
+    const list = await api('POST', '/api/status', { user: state.user, opps: ids });
+    for (const st of list) state.status[st.oppId] = st;
+  } catch (err) {
+    ids.forEach((id) => (state.status[id] = { error: err.message }));
+  }
+  renderRows();
+}
+
+async function showView(view) {
+  state.view = view;
+  $('tabSession').classList.toggle('active', view === 'session');
+  $('tabHistory').classList.toggle('active', view === 'history');
+  if (view === 'history') renderRows(await api('GET', '/api/history'));
+  else renderRows(state.sessionRows);
+  loadStatuses(currentRows);
+}
+
+// ---------- Các bước (dùng chung cho tab, nút trên bảng và "Chạy cả luồng") ----------
+const fmtWait = (ms) => `${String(Math.floor(ms / 60000)).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
+
+function markLoading(oppId, text) {
+  if (oppId) state.status[oppId] = { ...(state.status[oppId] || {}), loading: true, loadingText: text };
+  renderRows();
+}
+
+async function stepCreateOpp() {
+  const row = await api('POST', '/api/opportunities', { user: state.user, sample: sampleParam() });
+  upsertRow(row);
+  applyState(row.state);
+  renderRows();
+  return row;
+}
+
+async function stepQuote(opp) {
+  markLoading(state.status[opp] ? opp : null, 'Tạo BG');
+  try {
+    const r = await api('POST', '/api/quotes', { user: state.user, opp, sample: sampleParam() });
+    applyState(r.state);
+    return { ok: true, state: r.state, message: `${r.state.code}: ${r.existed ? 'đã có' : 'đã tạo'} báo giá ${r.quoteCode}` };
+  } catch (err) {
+    if (state.status[opp]) state.status[opp].loading = false;
+    return { ok: false, message: `${opp}: ${err.message}` };
+  } finally { renderRows(); }
+}
+
+async function stepSelect(opp) {
+  markLoading(state.status[opp] ? opp : null, 'Đánh dấu');
+  try {
+    const r = await api('POST', '/api/quotes/select', { user: state.user, opp });
+    applyState(r.state);
+    return { ok: true, state: r.state, message: `${r.state.code}: ${r.already ? 'đã đánh dấu' : 'đã đánh dấu'} ${r.version} – ${r.state.label}` };
+  } catch (err) {
+    if (state.status[opp]) state.status[opp].loading = false;
+    return { ok: false, message: `${opp}: ${err.message}` };
+  } finally { renderRows(); }
+}
+
+// Chờ chính sách ban hành (mỗi request chờ tối đa 45s) -> onWait(ms) để hiện thời gian chờ
+async function stepWait(opp, onWait) {
+  const limit = state.cfg.orderWaitMinutes * 60000, start = Date.now();
+  for (;;) {
+    const st = await api('POST', '/api/quotes/wait', { user: state.user, opp, seconds: 45 });
+    applyState(st);
+    renderRows();
+    if (st.step !== 'issuing') return st;
+    const waited = Date.now() - start;
+    if (waited >= limit) return st;
+    onWait?.(waited, st);
+  }
+}
+
+async function stepOrder(opp, { wait = true, onWait } = {}) {
+  try {
+    if (wait) {
+      const st = await stepWait(opp, (ms, s) => { markLoading(s.oppId, 'Chờ ' + fmtWait(ms)); onWait?.(ms, s); });
+      if (st.step === 'issuing') return { ok: false, message: `${st.code}: chính sách vẫn "${st.label}" sau ${state.cfg.orderWaitMinutes} phút – thử lại sau (nút "Chờ & tạo ĐH")` };
+      if (st.step === 'done') return { ok: true, state: st, message: `${st.code}: đã có đơn hàng ${st.order?.code}` };
+      markLoading(st.oppId, 'Tạo ĐH');
+    } else markLoading(state.status[opp] ? opp : null, 'Tạo ĐH');
+    const r = await api('POST', '/api/orders', { user: state.user, opp });
+    applyState(r.state);
+    return { ok: true, state: r.state, message: `${r.state.code}: ${r.existed ? 'đã có' : 'đã tạo'} đơn hàng ${r.state.order?.code ?? ''}${r.orderStatus ? ' (' + r.orderStatus + ')' : ''}${r.customer?.partyName && !r.existed ? ' · KH ' + r.customer.partyName + ' · MST ' + r.customer.taxCode : ''}` };
+  } catch (err) {
+    if (state.status[opp]) state.status[opp].loading = false;
+    return { ok: false, message: `${opp}: ${err.message}` };
+  } finally { renderRows(); }
+}
+
+// ---------- Tab: Chạy cả luồng ----------
+const FLOW_STEPS = [['opp', 'Tạo cơ hội'], ['quote', 'Tạo báo giá'], ['select', 'Đánh dấu version KH chọn'], ['wait', 'Chờ chính sách "Đã ban hành"'], ['order', 'Tạo đơn hàng']];
+
+function renderSteps(prog) {
+  $('flowSteps').className = 'steps show';
+  $('flowSteps').innerHTML = prog.map((s) => `<li class="${s.st || ''}"><span class="ic">${{ ok: '✔', err: '✖', run: '⏳' }[s.st] || '○'}</span>${esc(s.label)}${s.note ? ' – ' + s.note : ''}</li>`).join('');
+}
+
+async function runFlow() {
+  if (!state.sampleOk) return setStatus($('flowStatus'), 'err', 'Tải cơ hội mẫu trước (khung "Cơ hội mẫu")');
+  const until = $('flowUntil').value;
+  const count = Math.min(20, Math.max(1, parseInt($('flowCount').value, 10) || 1));
+  const stopAt = { opp: 1, quote: 2, select: 3, order: 5 }[until];
+  $('btnFlow').disabled = true;
+  $('flowProgress').classList.add('show');
+  showView('session');
+  const results = [];
+  for (let n = 1; n <= count; n++) {
+    const prog = FLOW_STEPS.slice(0, stopAt).map(([key, label]) => ({ key, label }));
+    const set = (key, st, note = '') => { const s = prog.find((x) => x.key === key); if (s) { s.st = st; s.note = note; } renderSteps(prog); };
+    setStatus($('flowStatus'), 'info', `<span class="spinner"></span>Đang chạy ${n}/${count}…`);
+    let opp, line = '';
+    try {
+      set('opp', 'run');
+      const row = await stepCreateOpp();
+      opp = row.oppId;
+      set('opp', 'ok', esc(row.code));
+      line = row.code;
+      for (const [key, fn] of [['quote', stepQuote], ['select', stepSelect]]) {
+        if (!prog.some((s) => s.key === key)) break;
+        set(key, 'run');
+        const r = await fn(opp);
+        if (!r.ok) { set(key, 'err', esc(r.message)); throw new Error(r.message); }
+        set(key, 'ok', esc(key === 'quote' ? r.state.quote?.code : r.state.label));
+      }
+      if (stopAt === 5) {
+        set('wait', 'run');
+        const r = await stepOrder(opp, { onWait: (ms, s) => set('wait', 'run', `${esc(s.label)} · ${fmtWait(ms)}`) });
+        if (!r.ok) {
+          const waiting = /vẫn/.test(r.message);
+          set(waiting ? 'wait' : 'order', 'err', esc(r.message));
+          if (!waiting) set('wait', 'ok');
+          throw new Error(r.message);
+        }
+        set('wait', 'ok');
+        set('order', 'ok', `<b>${esc(r.state.order?.code ?? '')}</b>`);
+        line += ' → ' + (r.state.order?.code ?? 'đơn hàng');
+      }
+      results.push({ ok: true, message: line });
+    } catch (err) {
+      if (!opp) set('opp', 'err', esc(err.message));
+      results.push({ ok: false, message: (line ? line + ': ' : '') + err.message });
+    }
+    $('flowProgress').firstElementChild.style.width = (n / count * 100) + '%';
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($('flowStatus'), ok === count ? 'ok' : 'err',
+    `<b>Hoàn tất ${ok}/${count}</b><ul class="result-list">` + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>');
+  $('btnFlow').disabled = false;
+  setTimeout(() => { $('flowProgress').classList.remove('show'); $('flowProgress').firstElementChild.style.width = 0; }, 1200);
+}
+
+// ---------- Tab: Tạo cơ hội ----------
+async function createOpps() {
+  if (!state.sampleOk) return setStatus($('oppStatus'), 'err', 'Tải cơ hội mẫu trước (khung "Cơ hội mẫu")');
+  const count = Math.min(50, Math.max(1, parseInt($('oppCount').value, 10) || 1));
+  $('btnOpp').disabled = true;
+  $('oppProgress').classList.add('show');
+  showView('session');
+  let ok = 0;
+  for (let i = 1; i <= count; i++) {
+    setStatus($('oppStatus'), 'info', `<span class="spinner"></span>Đang tạo ${i}/${count}…`);
+    try {
+      await stepCreateOpp();
+      ok++;
+    } catch (err) {
+      state.sessionRows.unshift({ _error: err.message, createdAt: new Date().toLocaleString('vi-VN') });
+      renderRows();
+    }
+    $('oppProgress').firstElementChild.style.width = (i / count * 100) + '%';
+  }
+  setStatus($('oppStatus'), ok === count ? 'ok' : 'err', `Hoàn tất: ${ok}/${count} cơ hội tạo thành công`);
+  $('btnOpp').disabled = false;
+  setTimeout(() => { $('oppProgress').classList.remove('show'); $('oppProgress').firstElementChild.style.width = 0; }, 1200);
+}
+
+// ---------- Tab: nhập mã (Tạo BG / Đánh dấu / Tạo ĐH) ----------
+async function runCodes(textareaId, statusId, btnId, verb, fn) {
+  const codes = parseCodes($(textareaId).value);
+  if (!codes.length) return setStatus($(statusId), 'err', 'Nhập mã cơ hội');
+  $(btnId).disabled = true;
+  showView('session');
+  const results = [];
+  for (const [i, code] of codes.entries()) {
+    setStatus($(statusId), 'info', `<span class="spinner"></span>Đang ${verb} ${i + 1}/${codes.length}: ${esc(code)}…`);
+    results.push(await fn(code, (ms, s) => setStatus($(statusId), 'info', `<span class="spinner"></span>${esc(s.code)}: chờ chính sách "${esc(s.label)}" · ${fmtWait(ms)}`)));
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($(statusId), ok === codes.length ? 'ok' : 'err',
+    codes.length > 1
+      ? `<b>Thành công ${ok}/${codes.length}</b><ul class="result-list">` + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>'
+      : esc(results[0].message));
+  $(btnId).disabled = false;
+}
+
+// Nút trên bảng
+async function rowActionClick(btn) {
+  const { act, opp } = btn.dataset;
+  btn.disabled = true;
+  const code = state.status[opp]?.code || opp;
+  const text = { quote: 'Đang tạo báo giá', select: 'Đang đánh dấu version', order: 'Đang tạo đơn hàng' }[act];
+  setStatus($('tableStatus'), 'info', `<span class="spinner"></span>${text} ${esc(code)}…`);
+  const r = act === 'quote' ? await stepQuote(opp)
+    : act === 'select' ? await stepSelect(opp)
+    : await stepOrder(opp, { onWait: (ms, s) => setStatus($('tableStatus'), 'info', `<span class="spinner"></span>${esc(code)}: chờ chính sách "${esc(s.label)}" · ${fmtWait(ms)}`) });
+  setStatus($('tableStatus'), r.ok ? 'ok' : 'err', esc(r.message));
+}
+
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); } catch { return; }
+  const old = btn.textContent; btn.textContent = 'Đã copy'; setTimeout(() => (btn.textContent = old), 1000);
+}
+
+$('btnLogin').onclick = () => login(false);
+$('btnRelogin').onclick = () => login(true);
+$('btnSavePw').onclick = savePassword;
+$('password').addEventListener('keydown', (e) => e.key === 'Enter' && savePassword());
+$('pwEditLink').onclick = (e) => { e.preventDefault(); showPwSetup(true); };
+$('user').addEventListener('keydown', (e) => e.key === 'Enter' && login(false));
+document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+$('btnLoadSample').onclick = () => loadSample(true);
+$('sample').addEventListener('keydown', (e) => e.key === 'Enter' && loadSample(true));
+$('btnFlow').onclick = runFlow;
+$('btnOpp').onclick = createOpps;
+$('btnQuote').onclick = () => runCodes('quoteCodes', 'quoteStatus', 'btnQuote', 'tạo báo giá', (c) => stepQuote(c));
+$('btnSelect').onclick = () => runCodes('selectCodes', 'selectStatus', 'btnSelect', 'đánh dấu version', (c) => stepSelect(c));
+$('btnOrder').onclick = () => runCodes('orderCodes', 'orderStatus', 'btnOrder', 'tạo đơn hàng', (c, onWait) => stepOrder(c, { wait: $('orderWait').checked, onWait }));
+$('tabSession').onclick = () => showView('session');
+$('tabHistory').onclick = () => showView('history');
+$('btnRefreshStatus').onclick = () => loadStatuses(currentRows, true);
+$('btnCopyAll').onclick = (e) => copy(currentRows.map((r) => r.code || state.status[r.oppId]?.code).filter(Boolean).join('\n'), e.currentTarget);
+$('rows').onclick = (e) => {
+  const c = e.target.closest('[data-copy]');
+  if (c) return copy(c.dataset.copy, c);
+  const a = e.target.closest('[data-act]');
+  if (a && !a.disabled) rowActionClick(a);
+};
+init().catch((err) => setStatus($('loginStatus'), 'err', 'Không kết nối được server: ' + esc(err.message)));
+</script>
+</body>
+</html>

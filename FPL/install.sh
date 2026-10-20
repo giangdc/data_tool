@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Cài đặt FPT Play Order Tool trên máy Ubuntu/Linux: tạo icon Desktop + menu, rồi mở tool.
+# Chạy: bash install.sh   (hoặc chuột phải -> Run as a Program)
+set -eu
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$APP_DIR"
+chmod +x scripts/*.sh runtime/node/bin/node 2>/dev/null || true
+
+if [ ! -x runtime/node/bin/node ] && ! command -v node >/dev/null; then
+  echo "✖ Không tìm thấy Node.js. Dùng bản đóng gói (có thư mục runtime/) hoặc cài Node >= 20.12."
+  exit 1
+fi
+
+bash scripts/install-launcher.sh
+echo "✔ Cài đặt xong. Lần sau bấm icon 'FPT Play Order Tool' để mở."
+bash scripts/launch-ui.sh start

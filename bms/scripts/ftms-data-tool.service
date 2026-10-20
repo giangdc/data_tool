@@ -1,0 +1,18 @@
+# systemd unit mẫu – xem DEPLOY-SERVER.md. Sửa User / đường dẫn rồi copy vào /etc/systemd/system/
+[Unit]
+Description=FTMS Data Tool (web UI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ftmstool
+WorkingDirectory=/opt/ftms-data-tool
+ExecStart=/opt/ftms-data-tool/runtime/node/bin/node src/server.js --no-open
+Restart=on-failure
+RestartSec=5
+# Nếu server đi Internet qua proxy thì bỏ comment:
+# Environment=HTTPS_PROXY=http://proxy:port
+
+[Install]
+WantedBy=multi-user.target

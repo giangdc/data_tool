@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPT Play Order Tool</title>
+<link rel="icon" href="/icon.svg">
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef;
+    --primary: #e8590c; --primary-hover: #c94c08; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff; --accent: #e8590c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+      --primary: #ff7a33; --primary-hover: #ff9257; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--primary); }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  header h1 img { width: 24px; height: 24px; }
+  header .site { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  nav.tabs { max-width: 1440px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  nav.tabs button { white-space: nowrap; background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; font-weight: 600; padding: 9px 16px; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
+  nav.tabs button:hover:not(:disabled) { background: var(--card); color: var(--text); }
+  nav.tabs button.active { background: var(--card); color: var(--primary); border-color: var(--line); }
+  nav.tabs button .step { background: var(--muted); }
+  nav.tabs button.active .step { background: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  main { max-width: 1440px; margin: 0 auto; padding: 16px 16px 40px; }
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 16px; align-items: start; }
+  @media (max-width: 1100px) { .steps { grid-template-columns: 1fr; gap: 16px; } }
+  .step-card { position: relative; }
+  .step-card > h2 { padding-bottom: 10px; border-bottom: 2px solid var(--primary); }
+  @media (min-width: 1101px) { .step-card:not(:last-child)::after { content: '›'; position: absolute; right: -19px; top: 8px; font-size: 26px; line-height: 1; color: var(--muted); } }
+  .results { margin-top: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h3 { font-size: 13px; margin: 16px 0 2px; padding-top: 12px; border-top: 1px dashed var(--line); color: var(--text); }
+  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  label .req { color: var(--err); }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  .row { display: flex; gap: 8px; align-items: end; }
+  .row > * { flex: 1; min-width: 0; }
+  .row > .shrink { flex: 0 0 auto; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); font-weight: 500; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  .full { width: 100%; margin-top: 14px; }
+  .status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.err { background: var(--err-bg); color: var(--err); white-space: pre-wrap; }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .disabled-block { opacity: .5; pointer-events: none; }
+  .pkg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--primary) 6%, var(--card)); display: none; align-items: center; gap: 12px; }
+  .pkg.show { display: flex; }
+  .pkg img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+  .pkg b { font-size: 15px; }
+  .acct { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; }
+  .acct b { font-size: 14px; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .total b { font-size: 20px; color: var(--primary); }
+  .opt { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text); font-size: 14px; cursor: pointer; padding: 10px 12px; border-top: 1px solid var(--line); }
+  .opt input { width: auto; margin: 0; }
+  .opts { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
+  .opts > .opt:first-child { border-top: 0; }
+  .opt .name { flex: 1; min-width: 0; }
+  .opt .price { color: var(--primary); font-weight: 600; white-space: nowrap; }
+  .opt .sub { display: block; color: var(--muted); font-size: 12px; }
+  .opt img { width: 32px; height: 22px; object-fit: contain; }
+  .opts .hint { padding: 8px 12px; margin: 0; }
+  .pay-box { margin-top: 12px; padding: 12px; border-radius: 8px; border: 1px solid var(--line); display: none; text-align: center; }
+  .pay-box.show { display: block; }
+  .pay-box img { width: 220px; max-width: 100%; background: #fff; padding: 8px; border-radius: 8px; }
+  .check { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-weight: 500; cursor: pointer; color: var(--text); }
+  .check input { width: auto; margin: 0; }
+  .check[hidden] { display: none; }
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar h2 { margin: 0; margin-right: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border-radius: 0; font-weight: 500; padding: 5px 10px; }
+  .seg button.active { background: var(--primary); color: #fff; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #resultTable { min-width: 760px; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.code { font-weight: 700; white-space: nowrap; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td .sub { color: var(--muted); font-size: 12px; }
+  tr.new td { background: var(--ok-bg); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+  .pill.err { background: var(--err-bg); color: var(--err); }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button + button { margin-left: 4px; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(760px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
+  dialog::backdrop { background: rgba(10, 14, 22, .45); }
+  .dlg-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .dlg-head h2 { margin: 0; font-size: 16px; margin-right: auto; }
+  .dlg-body { padding: 14px 18px 18px; max-height: 75vh; overflow: auto; }
+  .kv { display: grid; grid-template-columns: 170px 1fr; gap: 6px 12px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-word; }
+  .sec { margin-top: 16px; }
+  .sec h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  ol.steps-log { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); text-align: left; }
+</style>
+</head>
+<body>
+<header>
+  <h1><img src="/icon.svg" alt="">FPT Play Order Tool</h1>
+  <span class="badge" id="envBadge">…</span>
+  <span class="site" id="siteLink"></span>
+</header>
+
+<nav class="tabs">
+  <button data-tab="create" class="active"><span class="step">1</span> Mua gói</button>
+  <button data-tab="lookup"><span class="step">2</span> Xem giao dịch</button>
+</nav>
+
+<main>
+  <div class="panel active" data-panel="create">
+    <div class="card">
+      <h2>Mua gói từ link</h2>
+      <label for="url">Link gói dịch vụ <span class="req">*</span> <span class="hint" id="urlHint"></span></label>
+      <div class="row">
+        <input id="url" placeholder="vd: https://dev.fptplay.vn/dich-vu/v-vip2?from_source=main" autocomplete="off">
+        <button class="ghost shrink" id="btnDefaultUrl" title="Lần sau mở tool sẽ tự tải link này">☆ Đặt mặc định</button>
+        <button class="shrink" id="btnLoad">Tải gói</button>
+      </div>
+      <div class="pkg" id="pkgBox"></div>
+      <div class="status" id="loadStatus"></div>
+    </div>
+
+    <div id="orderForm" class="steps">
+      <div class="card step-card">
+        <h2><span class="step">1</span> Tài khoản FPT Play</h2>
+        <label for="phone">Số điện thoại <span class="req">*</span> <span class="hint" id="phoneHint"></span></label>
+        <div class="row">
+          <input id="phone" inputmode="numeric" maxlength="10" autocomplete="off">
+          <button class="ghost shrink" id="btnDefaultPhone" title="Lần sau mở tool sẽ tự điền số này">☆ Đặt mặc định</button>
+        </div>
+        <div class="hint">Tool tự đăng nhập bằng OTP mặc định môi trường dev (<code>FPL_OTP</code> trong .env), token lưu trên máy. OTP mặc định chỉ dùng được cho SĐT test đã cấu hình.</div>
+        <div class="acct" id="acctBox">Chưa đăng nhập</div>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost small shrink" id="btnRelogin" title="Bỏ token đã lưu, đăng nhập lại bằng OTP">↻ Đăng nhập lại</button>
+        </div>
+        <div class="status" id="acctStatus"></div>
+      </div>
+
+      <div class="card step-card">
+        <h2><span class="step">2</span> Kỳ hạn</h2>
+        <div class="hint" id="planNote"></div>
+        <div class="opts" id="offerList"><div class="hint">Tải gói để lấy danh sách</div></div>
+        <h3>Mã giảm giá</h3>
+        <div class="row">
+          <input id="coupon" placeholder="Nhập mã (không bắt buộc)" autocomplete="off">
+          <button class="ghost shrink" id="btnCoupon">Áp dụng</button>
+        </div>
+        <div class="status" id="couponStatus"></div>
+      </div>
+
+      <div class="card step-card">
+        <h2><span class="step">3</span> Thanh toán</h2>
+        <div class="opts" id="methodList"><div class="hint">–</div></div>
+        <label class="check" id="autoPayBox" hidden><input type="checkbox" id="autoPay"> Tự thanh toán bằng thẻ test <span class="hint" id="autoPayHint"></span></label>
+        <div class="total"><span>Tổng thanh toán</span><b id="totalText">–</b></div>
+        <div class="hint" id="renewHint"></div>
+        <button class="full" id="btnCreate" disabled>Mua gói</button>
+        <div class="status" id="createStatus"></div>
+        <div class="pay-box" id="payBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card panel" data-panel="lookup">
+    <h2>Xem giao dịch</h2>
+    <label for="lookupCode">Mã giao dịch (trans_id, do tool tạo)</label>
+    <div class="row">
+      <input id="lookupCode" placeholder="vd: 1792404081-38297814" autocomplete="off">
+      <button class="shrink" id="btnLookup">Xem</button>
+    </div>
+    <div class="hint">Hoặc bấm <b>Chi tiết</b> ở bảng Kết quả.</div>
+    <div class="status" id="lookupStatus"></div>
+  </div>
+
+  <section class="card results">
+    <div class="toolbar">
+      <h2>Kết quả</h2>
+      <div class="seg">
+        <button id="tabSession" class="active">Lần này</button>
+        <button id="tabHistory">Lịch sử</button>
+      </div>
+      <button class="ghost small" id="btnRefreshStatus" title="Tải lại trạng thái giao dịch từ FPT Play">↻ Trạng thái</button>
+      <button class="ghost small" id="btnCopyAll" title="Copy tất cả mã giao dịch đang hiển thị">Copy mã</button>
+    </div>
+    <div class="status" id="tableStatus" style="margin:0 0 10px"></div>
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead><tr><th>Mã giao dịch</th><th>Gói</th><th>Tài khoản</th><th>PTTT</th><th class="num">Số tiền</th><th>Thời gian</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="8" class="empty">Chưa có dữ liệu</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="detailDlg">
+  <div class="dlg-head">
+    <h2 id="dlgTitle">Giao dịch</h2>
+    <button class="ghost small" id="dlgRefresh">↻ Tải lại</button>
+    <button class="ghost small" id="dlgClose">Đóng</button>
+  </div>
+  <div class="dlg-body" id="dlgBody"></div>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+const state = { cfg: null, prep: null, sessionRows: [], view: 'session', status: {}, detailCode: null, paying: new Set() };
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+function setStatus(el, kind, html) { el.className = 'status show ' + kind; el.innerHTML = html; }
+const clearStatus = (el) => { el.className = 'status'; el.innerHTML = ''; };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const vnd = (n) => (n === null || n === undefined || n === '' ? '–' : Number(n).toLocaleString('vi-VN') + 'đ');
+
+async function init() {
+  state.cfg = await api('GET', '/api/config');
+  const d = state.cfg.defaults;
+  $('envBadge').textContent = state.cfg.env;
+  $('siteLink').innerHTML = `<a href="${esc(state.cfg.webUrl)}" target="_blank" rel="noopener">${esc(state.cfg.webUrl.replace(/^https?:\/\//, ''))} ↗</a>`;
+  $('url').value = d.url;
+  $('phone').value = d.phone;
+  showDefaults();
+  showTab(store.get('tab') || 'create');
+  if (!state.cfg.otp) setStatus($('acctStatus'), 'err', 'Chưa có FPL_OTP trong .env → không đăng nhập được. Điền OTP mặc định rồi tắt/mở lại tool.');
+  if ($('url').value) loadPackage();
+}
+
+function showDefaults() {
+  const d = state.cfg.defaults;
+  const same = (id, v) => $(id).value.trim() === v;
+  $('phoneHint').textContent = `· mặc định ${d.phone}`;
+  $('btnDefaultPhone').disabled = same('phone', d.phone);
+  $('urlHint').textContent = `· mặc định ${d.url.replace(/^https?:\/\/[^/]+/, '')}`;
+  $('btnDefaultUrl').disabled = same('url', d.url);
+}
+async function setDefault(key, statusEl) {
+  const value = $(key).value.trim();
+  try {
+    state.cfg.defaults = await api('POST', '/api/settings/defaults', { [key]: value });
+    showDefaults();
+    setStatus(statusEl, 'ok', `✔ Đã đặt mặc định ${key === 'phone' ? 'SĐT' : 'link gói'}: ${esc(value)}`);
+  } catch (err) {
+    setStatus(statusEl, 'err', esc(err.message));
+  }
+}
+
+function showTab(tab) {
+  if (!document.querySelector(`[data-panel="${tab}"]`)) tab = 'create';
+  document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
+  store.set('tab', tab);
+}
+
+// ---- Tải gói: đăng nhập SĐT (OTP mặc định) -> kỳ hạn + PTTT ----
+async function loadPackage({ force = false } = {}) {
+  const url = $('url').value.trim();
+  const phone = $('phone').value.trim();
+  if (!url) return setStatus($('loadStatus'), 'err', 'Nhập link gói (vd https://dev.fptplay.vn/dich-vu/v-vip2)');
+  if (!/^0\d{9}$/.test(phone)) return setStatus($('acctStatus'), 'err', 'Số điện thoại cần 10 số, bắt đầu bằng 0');
+  $('btnLoad').disabled = true;
+  $('btnCreate').disabled = true;
+  $('pkgBox').className = 'pkg';
+  $('payBox').className = 'pay-box';
+  clearStatus($('createStatus')); clearStatus($('couponStatus')); clearStatus($('acctStatus'));
+  $('orderForm').classList.add('disabled-block');
+  setStatus($('loadStatus'), 'info', '<span class="spinner"></span>Đang đăng nhập & tải gói…');
+  try {
+    if (force) await api('POST', '/api/session', { phone, force: true });
+    const r = await api('POST', '/api/prepare', { url, phone });
+    state.prep = r;
+    $('pkgBox').innerHTML = `${r.plan.icon ? `<img src="${esc(r.plan.icon)}" alt="">` : ''}<div><b>${esc(r.plan.name)}</b> <span class="hint">(${esc(r.plan.planType)})</span><div class="hint">${esc(r.plan.note)}</div></div>`;
+    $('pkgBox').className = 'pkg show';
+    $('acctBox').innerHTML = `<b>${esc(r.account.phoneMask)}</b> · user ${esc(r.account.userId)}<div class="hint">${r.account.benefit ? 'Đang có: ' + esc(r.account.benefit) : 'Chưa có gói'}</div>`;
+    renderOffers();
+    if (r.blocked) setStatus($('loadStatus'), 'err', '⛔ ' + esc(r.blocked));
+    else clearStatus($('loadStatus'));
+  } catch (err) {
+    setStatus($('loadStatus'), 'err', esc(err.message));
+    $('acctBox').textContent = 'Chưa đăng nhập';
+    $('offerList').innerHTML = '<div class="hint">–</div>';
+    $('methodList').innerHTML = '<div class="hint">–</div>';
+  } finally {
+    $('btnLoad').disabled = false;
+    $('orderForm').classList.remove('disabled-block');
+  }
+}
+
+const currentOffer = () => state.prep?.offers.find((o) => o.planId === document.querySelector('input[name="offer"]:checked')?.value);
+const currentMethod = () => currentOffer()?.methods.find((m) => m.code === document.querySelector('input[name="method"]:checked')?.value);
+
+function renderOffers() {
+  const r = state.prep;
+  $('planNote').textContent = r.plan.vatNote || '';
+  $('offerList').innerHTML = r.offers.length ? r.offers.map((o, i) => `
+    <label class="opt"><input type="radio" name="offer" value="${esc(o.planId)}" ${i === 0 ? 'checked' : ''}>
+      <span class="name">${esc(o.label)} <span class="sub">plan_id ${esc(o.planId)}${o.promotionNote ? ' · ' + esc(o.promotionNote) : ''}</span></span>
+      <span class="price">${esc(o.priceText)}${o.originalPrice ? ` <s class="sub">${esc(o.originalPrice)}</s>` : ''}</span></label>`).join('')
+    : '<div class="hint">Không có kỳ hạn nào</div>';
+  renderMethods();
+}
+
+function renderMethods() {
+  const o = currentOffer();
+  const list = o?.methods || [];
+  $('methodList').innerHTML = list.length ? list.map((m, i) => `
+    <label class="opt"><input type="radio" name="method" value="${esc(m.code)}" ${i === 0 ? 'checked' : ''}>
+      ${m.icon ? `<img src="${esc(m.icon)}" alt="">` : ''}
+      <span class="name">${esc(m.name)} <span class="sub">${esc(m.code)}${m.note ? ' · ' + esc(m.note) : ''}${m.autoPay ? ' · tự thanh toán được' : ''}</span></span></label>`).join('')
+    : '<div class="hint">–</div>';
+  $('totalText').textContent = o ? o.priceText : '–';
+  showMethod();
+}
+
+function showMethod() {
+  const m = currentMethod();
+  const card = m && state.cfg.cards[m.code] !== undefined;
+  $('autoPayBox').hidden = !card;
+  if (card) {
+    const n = state.cfg.cards[m.code];
+    $('autoPay').disabled = !n;
+    $('autoPay').checked = n > 0 && store.get('autoPay') !== '0';
+    $('autoPayHint').textContent = n ? `(${n} thẻ trong .env – mở Chrome tự nhập)` : `(chưa có CARD_${m.code}_* trong .env)`;
+  }
+  $('renewHint').textContent = m?.autoRenew ? `Gói tự động gia hạn${m.nextPaymentDate ? ' · kỳ tiếp theo ' + m.nextPaymentDate : ''}` : '';
+  $('btnCreate').disabled = !m || !!state.prep?.blocked;
+}
+
+async function applyCoupon() {
+  const coupon = $('coupon').value.trim();
+  const o = currentOffer();
+  if (!coupon || !o) return clearStatus($('couponStatus'));
+  setStatus($('couponStatus'), 'info', '<span class="spinner"></span>Đang kiểm tra mã…');
+  try {
+    const r = await api('POST', '/api/coupon', { phone: state.prep.phone, planId: o.planId, coupon });
+    setStatus($('couponStatus'), r.ok ? 'ok' : 'err', esc((r.ok ? '✔ ' : '') + (r.message || (r.ok ? 'Mã hợp lệ' : 'Mã không hợp lệ'))) + (r.ok && r.price ? ` · còn ${esc(r.price)}` : ''));
+    if (r.ok && r.price) $('totalText').textContent = r.price;
+  } catch (err) {
+    setStatus($('couponStatus'), 'err', esc(err.message));
+  }
+}
+
+// ---- Mua gói: tạo giao dịch -> (tự) thanh toán ----
+async function createOrder() {
+  const o = currentOffer(), m = currentMethod();
+  if (!o || !m) return;
+  $('btnCreate').disabled = true;
+  $('payBox').className = 'pay-box';
+  setStatus($('createStatus'), 'info', '<span class="spinner"></span>Đang tạo giao dịch…');
+  try {
+    const r = await api('POST', '/api/orders', { url: $('url').value.trim(), phone: state.prep.phone, planId: o.planId, paymentCode: m.code, coupon: $('coupon').value.trim() });
+    const s = r.summary;
+    state.sessionRows.unshift(s);
+    state.status[s.code] = { status: s.status, label: s.statusLabel, canAutoPay: r.canAutoPay };
+    setStatus($('createStatus'), 'ok', `✔ Đã tạo giao dịch <b>${esc(s.code)}</b> · ${esc(s.planName)} · ${esc(s.offerLabel)} · ${esc(s.paymentName)}`);
+    renderRows(s.code);
+    if (r.payment.type === 'redirect' && r.canAutoPay && !$('autoPayBox').hidden && $('autoPay').checked) await autoPay(s.code, $('payBox'));
+    else renderPayBox($('payBox'), s.code, r.payment, r.canAutoPay);
+  } catch (err) {
+    setStatus($('createStatus'), 'err', esc(err.message));
+  } finally {
+    $('btnCreate').disabled = false;
+  }
+}
+
+function renderPayBox(box, code, payment, canAutoPay) {
+  box.className = 'pay-box show';
+  if (payment.type === 'redirect') {
+    box.innerHTML = `<div>Giao dịch <b>${esc(code)}</b> chờ thanh toán</div>
+      <div class="row" style="justify-content:center;margin-top:10px;flex-wrap:wrap">
+        <a class="shrink" href="${esc(payment.url)}" target="_blank" rel="noopener"><button class="ghost">Mở trang thanh toán ↗</button></a>
+        ${canAutoPay ? `<button class="shrink" data-autopay="${esc(code)}">💳 Tự thanh toán</button>` : ''}
+        <button class="ghost shrink" data-check="${esc(code)}">↻ Kiểm tra thanh toán</button>
+      </div><div class="hint">Link cổng hết hạn sau ~15 phút. Hết hạn thì 💳 Tự thanh toán sẽ tạo giao dịch mới.</div>`;
+  } else if (payment.type === 'qr') {
+    box.innerHTML = `<div>Quét QR để thanh toán <b>${esc(code)}</b></div>${payment.qrImage ? `<img src="${esc(payment.qrImage)}" alt="QR">` : '<div class="hint">(không có ảnh QR)</div>'}
+      <div><button class="ghost" data-check="${esc(code)}">↻ Kiểm tra thanh toán</button></div>`;
+  } else {
+    box.innerHTML = `<div>Giao dịch <b>${esc(code)}</b> không có link thanh toán</div>`;
+  }
+}
+
+async function autoPay(code, box) {
+  if (state.paying.has(code)) return;
+  state.paying.add(code);
+  if (box) { box.className = 'pay-box show'; box.innerHTML = `<span class="spinner"></span>Đang tự thanh toán <b>${esc(code)}</b> – Chrome sẽ mở trên máy, đừng thao tác trên cửa sổ đó (~20–60s)…`; }
+  renderRows();
+  try {
+    const r = await api('POST', '/api/orders/pay', { code });
+    const ok = r.result === 'success';
+    // Thẻ lỗi -> tool tạo giao dịch mới: thêm các mã mới vào bảng
+    for (const c of r.codes.slice(1)) if (!state.sessionRows.some((x) => x.code === c)) state.sessionRows.unshift({ ...(state.sessionRows.find((x) => x.code === code) || {}), code: c });
+    state.status[r.code] = { status: r.status?.status, label: r.status?.label, paid: r.status?.paid, payResult: r.result };
+    const row = state.sessionRows.find((x) => x.code === r.code);
+    if (row) Object.assign(row, { payResult: r.result, ...(r.status?.amount !== undefined && { paidAmount: r.status.amount }) });
+    const html = `<div class="status show ${ok ? 'ok' : 'err'}" style="margin:0 0 8px">${ok ? '✔' : '✖'} ${esc(r.code)} · thẻ ${esc(r.card)} · ${esc(r.message)}<br>Trạng thái FPT Play: <b>${esc(r.status?.label || '?')}</b> (${esc(r.status?.status || '')})</div>
+      <ol class="steps-log">${r.steps.map((s) => `<li>${esc(s.at)}s · ${esc(s.text)}</li>`).join('')}</ol>`;
+    if (box) box.innerHTML = html;
+    return r;
+  } catch (err) {
+    if (box) box.innerHTML = `<div class="status show err" style="margin:0">${esc(err.message)}</div>`;
+    else setStatus($('tableStatus'), 'err', esc(err.message));
+  } finally {
+    state.paying.delete(code);
+    renderRows();
+    if (state.detailCode) openDetail(state.detailCode);
+  }
+}
+
+async function checkOne(code, box) {
+  const [st] = await api('POST', '/api/orders/status', { codes: [code] });
+  state.status[code] = st;
+  renderRows();
+  if (box) {
+    const old = box.querySelector('.check-result');
+    old?.remove();
+    box.insertAdjacentHTML('beforeend', `<div class="status show ${st.paid ? 'ok' : st.error ? 'err' : 'info'} check-result">${esc(st.error || `${st.label} (${st.status})`)}</div>`);
+  }
+}
+
+// ---- Bảng kết quả ----
+const pillOf = (st) => {
+  if (!st) return '<span class="pill">–</span>';
+  if (st.error) return `<span class="pill err" title="${esc(st.error)}">Lỗi</span>`;
+  const s = String(st.status || '').toUpperCase();
+  const cls = /SUCCESS|COMPLETED|SUCCEEDED/.test(s) ? 'ok' : /FAIL|CANCEL|EXPIRED/.test(s) ? 'err' : 'wait';
+  return `<span class="pill ${cls}">${esc(st.label || s)}</span>`;
+};
+async function getRows() {
+  if (state.view === 'session') return state.sessionRows;
+  return api('GET', '/api/history');
+}
+async function renderRows(highlight) {
+  const rows = await getRows();
+  if (!rows.length) { $('rows').innerHTML = '<tr><td colspan="8" class="empty">Chưa có dữ liệu</td></tr>'; return; }
+  $('rows').innerHTML = rows.map((s) => {
+    const st = state.status[s.code] || (s.status ? { status: s.status, label: s.statusLabel } : null);
+    const paying = state.paying.has(s.code);
+    const paid = /SUCCESS|COMPLETED|SUCCEEDED/i.test(st?.status || '');
+    const canPay = !paid && state.cfg.cards[s.paymentCode] > 0;
+    return `<tr class="${s.code === highlight ? 'new' : ''}">
+      <td class="code">${esc(s.code)}</td>
+      <td>${esc(s.planName)}<div class="sub">${esc(s.offerLabel)} · ${esc(s.planType)}</div></td>
+      <td>${esc(s.phone)}</td>
+      <td>${esc(s.paymentName)}${s.coupon ? `<div class="sub">mã ${esc(s.coupon)}</div>` : ''}</td>
+      <td class="num">${vnd(s.paidAmount ?? s.total)}</td>
+      <td>${esc(s.paidAt || s.createdAt)}</td>
+      <td>${paying ? '<span class="pill wait"><span class="spinner"></span>Đang thanh toán</span>' : pillOf(st)}</td>
+      <td class="actions">${canPay ? `<button class="small" data-autopay="${esc(s.code)}" ${paying ? 'disabled' : ''}>💳 Tự thanh toán</button>` : ''}<button class="ghost small" data-detail="${esc(s.code)}">Chi tiết</button></td>
+    </tr>`;
+  }).join('');
+}
+async function refreshStatuses() {
+  const rows = await getRows();
+  const codes = rows.map((r) => r.code).slice(0, 50);
+  if (!codes.length) return;
+  setStatus($('tableStatus'), 'info', '<span class="spinner"></span>Đang tải trạng thái…');
+  try {
+    for (const st of await api('POST', '/api/orders/status', { codes })) state.status[st.code] = st;
+    clearStatus($('tableStatus'));
+    renderRows();
+  } catch (err) {
+    setStatus($('tableStatus'), 'err', esc(err.message));
+  }
+}
+
+// ---- Chi tiết ----
+async function openDetail(code) {
+  state.detailCode = code;
+  $('dlgTitle').textContent = 'Giao dịch ' + code;
+  if (!$('detailDlg').open) $('detailDlg').showModal();
+  $('dlgBody').innerHTML = '<span class="spinner"></span>Đang tải…';
+  try {
+    const r = await api('POST', '/api/orders/detail', { code });
+    const s = r.summary, st = r.status;
+    state.status[code] = st;
+    const kv = (rows) => `<dl class="kv">${rows.filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    $('dlgBody').innerHTML = `
+      ${kv([
+        ['Mã giao dịch', `<b>${esc(s.code)}</b>`], ['Trạng thái', pillOf(st) + (st.description ? `<div class="hint">${esc(st.description)}</div>` : '')],
+        ['Tài khoản', esc(s.phone)], ['Gói', `${esc(s.planName)} (${esc(s.planType)}, plan_id ${esc(s.planId)})`], ['Kỳ hạn', esc(s.offerLabel)],
+        ['Giá niêm yết', vnd(s.total)], ['Số tiền giao dịch', st.amount !== undefined ? vnd(st.amount) : ''], ['Mã giảm giá', esc(s.coupon)],
+        ['PTTT', `${esc(s.paymentName)} (${esc(s.paymentCode)})${s.autoRenew ? ' · tự gia hạn' : ''}`],
+        ['Tạo lúc', esc(s.createdAt)], ['Tự thanh toán', s.payResult ? `${esc(s.payResult)} · ${esc(s.paidAt || '')}` : ''],
+      ])}
+      <div class="sec"><h4>Gói ${esc(s.planType)} trên tài khoản</h4>
+        ${r.owned.length ? `<table><tr><th>Gói</th><th>Hết hạn</th><th></th></tr>${r.owned.map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.expiredDate?.slice(0, 10))}</td><td>${esc(x.message)}</td></tr>`).join('')}</table>` : '<div class="hint">Chưa có (thanh toán xong gói mới lên)</div>'}
+        ${r.subscriptions.length ? `<div class="hint" style="margin-top:8px">Tự gia hạn: ${r.subscriptions.map((x) => `${esc(x.planName)} · ${esc(x.method)} · kỳ sau ${esc(x.nextPaymentDate)}`).join('; ')}</div>` : ''}
+      </div>
+      <div class="pay-box" id="dlgPay"></div>`;
+    if (!st.paid && r.payment?.type === 'redirect') renderPayBox($('dlgPay'), code, r.payment, r.canAutoPay);
+    renderRows();
+  } catch (err) {
+    $('dlgBody').innerHTML = `<div class="status show err">${esc(err.message)}</div>`;
+  }
+}
+
+// ---- Sự kiện ----
+document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$('btnLoad').addEventListener('click', () => loadPackage());
+$('url').addEventListener('keydown', (e) => e.key === 'Enter' && loadPackage());
+$('url').addEventListener('input', showDefaults);
+$('phone').addEventListener('input', showDefaults);
+$('phone').addEventListener('change', () => /^0\d{9}$/.test($('phone').value.trim()) && loadPackage());
+$('btnDefaultUrl').addEventListener('click', () => setDefault('url', $('loadStatus')));
+$('btnDefaultPhone').addEventListener('click', () => setDefault('phone', $('acctStatus')));
+$('btnRelogin').addEventListener('click', () => loadPackage({ force: true }));
+$('offerList').addEventListener('change', () => { renderMethods(); clearStatus($('couponStatus')); });
+$('methodList').addEventListener('change', showMethod);
+$('autoPay').addEventListener('change', () => store.set('autoPay', $('autoPay').checked ? '1' : '0'));
+$('btnCoupon').addEventListener('click', applyCoupon);
+$('btnCreate').addEventListener('click', createOrder);
+$('btnLookup').addEventListener('click', () => { const c = $('lookupCode').value.trim(); if (c) openDetail(c); });
+$('lookupCode').addEventListener('keydown', (e) => e.key === 'Enter' && $('btnLookup').click());
+$('tabSession').addEventListener('click', () => { state.view = 'session'; $('tabSession').classList.add('active'); $('tabHistory').classList.remove('active'); renderRows(); });
+$('tabHistory').addEventListener('click', () => { state.view = 'history'; $('tabHistory').classList.add('active'); $('tabSession').classList.remove('active'); renderRows(); });
+$('btnRefreshStatus').addEventListener('click', refreshStatuses);
+$('btnCopyAll').addEventListener('click', async () => {
+  const codes = (await getRows()).map((r) => r.code).join('\n');
+  try { await navigator.clipboard.writeText(codes); setStatus($('tableStatus'), 'ok', 'Đã copy mã giao dịch'); } catch { setStatus($('tableStatus'), 'err', 'Không copy được'); }
+});
+$('dlgClose').addEventListener('click', () => { $('detailDlg').close(); state.detailCode = null; });
+$('dlgRefresh').addEventListener('click', () => state.detailCode && openDetail(state.detailCode));
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-autopay],[data-check],[data-detail]');
+  if (!t) return;
+  if (t.dataset.detail) return openDetail(t.dataset.detail);
+  const box = t.closest('.pay-box');
+  if (t.dataset.autopay) return autoPay(t.dataset.autopay, box);
+  if (t.dataset.check) return checkOne(t.dataset.check, box).catch((err) => box && box.insertAdjacentHTML('beforeend', `<div class="status show err">${esc(err.message)}</div>`));
+});
+
+init().catch((err) => setStatus($('loadStatus'), 'err', esc(err.message)));
+</script>
+</body>
+</html>

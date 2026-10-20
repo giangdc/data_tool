@@ -1,0 +1,24 @@
+{
+  "name": "fpl-order-tool",
+  "version": "1.0.0",
+  "description": "Tool hỗ trợ QC mua nhanh gói FPT Play test (dev.fptplay.vn): nhập link gói -> đăng nhập OTP mặc định -> tạo giao dịch -> tự thanh toán thẻ test -> xem trạng thái",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "fpl-order": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "ui": "node src/server.js",
+    "login": "node src/cli.js login",
+    "plans": "node src/cli.js plans",
+    "create": "node src/cli.js create",
+    "pay": "node src/cli.js pay",
+    "status": "node src/cli.js status",
+    "detail": "node src/cli.js detail",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  }
+}

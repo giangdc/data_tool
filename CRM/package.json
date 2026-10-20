@@ -1,0 +1,26 @@
+{
+  "name": "crm-data-tool",
+  "version": "1.0.0",
+  "description": "Tool hỗ trợ QC tạo nhanh dữ liệu test trên CRM stag (tạo cơ hội → báo giá → đánh dấu version → đơn hàng)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "crm-data": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "login": "node src/cli.js login",
+    "sample": "node src/cli.js sample",
+    "run-flow": "node src/cli.js run",
+    "create-opp": "node src/cli.js create-opp",
+    "quote": "node src/cli.js quote",
+    "select": "node src/cli.js select",
+    "order": "node src/cli.js order",
+    "status": "node src/cli.js status",
+    "ui": "node src/server.js",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  }
+}

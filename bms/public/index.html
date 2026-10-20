@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FTMS Data Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .login-bar { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .login-bar .suffix { width: 220px; }
+  .login-bar input { padding: 6px 10px; }
+  .login-bar button { padding: 6px 12px; }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who b { color: var(--text); }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  .login-bar a { font-size: 12px; color: var(--muted); }
+  #otpSetup { display: none; align-items: center; gap: 6px; }
+  #otpSetup input { width: 170px; }
+  .login-msg { max-width: 1200px; margin: 12px auto 0; padding: 0 16px; }
+  .login-msg .status { margin: 0; }
+  nav.tabs { max-width: 1200px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  nav.tabs button { white-space: nowrap; }
+  nav.tabs button { background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; font-weight: 600; padding: 9px 16px; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
+  nav.tabs button:hover:not(:disabled) { background: var(--card); color: var(--text); }
+  nav.tabs button.active { background: var(--card); color: var(--primary); border-color: var(--line); }
+  nav.tabs button .step { background: var(--muted); }
+  nav.tabs button.active .step { background: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card + .card:not(.panel) { margin-top: 16px; }
+  .hint-locked { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .suffix { position: relative; }
+  .suffix input { padding-right: 82px; }
+  .suffix span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); font-weight: 500; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  .full { width: 100%; margin-top: 14px; }
+  .status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.err { background: var(--err-bg); color: var(--err); white-space: pre-wrap; }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .disabled-block { opacity: .5; pointer-events: none; }
+  .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 12px; display: none; }
+  .progress.show { display: block; }
+  .progress div { height: 100%; width: 0; background: var(--primary); transition: width .3s; }
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar h2 { margin: 0; margin-right: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border-radius: 0; font-weight: 500; padding: 5px 10px; }
+  .seg button.active { background: var(--primary); color: #fff; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { min-width: 860px; }
+  td:nth-child(2), td:nth-child(3) { min-width: 160px; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.code { font-weight: 700; white-space: nowrap; }
+  td .sub { color: var(--muted); font-size: 12px; }
+  tr.new td { background: var(--ok-bg); }
+  tr.fail td { background: var(--err-bg); color: var(--err); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; resize: vertical; min-height: 64px; }
+  .warn-box { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 12.5px; background: var(--warn-bg); color: var(--warn); border-left: 3px solid var(--warn); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+  .pill.err { background: var(--err-bg); color: var(--err); }
+  .pill.none { color: var(--muted); }
+  .pill + .pill { margin-left: 4px; }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button + button { margin-left: 4px; }
+  .result-list { margin: 6px 0 0; padding-left: 18px; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>FTMS Data Tool</h1>
+  <span class="badge" id="envBadge">…</span>
+  <div class="login-bar">
+    <span class="who" id="who"><span class="dot"></span>Chưa đăng nhập</span>
+    <div class="suffix">
+      <input id="user" placeholder="Tài khoản, vd: giangdc2" autocomplete="username" aria-label="Tài khoản">
+      <span id="domainHint">@fpt.com</span>
+    </div>
+    <div id="otpSetup">
+      <input id="otp" type="password" autocomplete="off" placeholder="OTP dùng chung" aria-label="OTP dùng chung">
+      <button id="btnSaveOtp" class="ghost">Lưu OTP</button>
+    </div>
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnRelogin" class="ghost" title="Bỏ phiên đã lưu, đăng nhập lại">Đăng nhập lại</button>
+    <a href="#" id="otpEditLink" title="OTP dùng chung lưu trong file .env của máy này">Đổi OTP</a>
+  </div>
+</header>
+<div class="login-msg"><div class="status" id="loginStatus"></div></div>
+
+<nav class="tabs">
+  <button data-tab="opp" class="active"><span class="step">1</span> Tạo cơ hội</button>
+  <button data-tab="approve"><span class="step">2</span> Duyệt cơ hội</button>
+  <button data-tab="survey"><span class="step">3</span> Khảo sát</button>
+  <button data-tab="contract"><span class="step">4</span> Tạo yêu cầu HĐ</button>
+  <button data-tab="contractApprove"><span class="step">5</span> Duyệt yêu cầu HĐ</button>
+</nav>
+
+<main>
+  <section>
+    <div class="card panel active disabled-block" id="oppCard" data-panel="opp">
+      <h2>BMS – Tạo cơ hội</h2>
+      <label for="group">Nhóm dịch vụ</label>
+      <select id="group"><option value="">— Đăng nhập để tải danh sách —</option></select>
+      <label for="type">Loại dịch vụ</label>
+      <select id="type"><option value="">— Chọn nhóm dịch vụ trước —</option></select>
+      <div class="row">
+        <div>
+          <label for="am">AM phụ trách</label>
+          <input id="am" list="amList" placeholder="Gõ để tìm sale…" autocomplete="off">
+          <datalist id="amList"></datalist>
+        </div>
+        <div style="max-width:110px">
+          <label for="count">Số lượng</label>
+          <input id="count" type="number" min="1" max="50" value="1">
+        </div>
+      </div>
+      <label for="tpp">TPP đánh giá</label>
+      <select id="tpp"><option value="">— Chọn AM trước —</option></select>
+      <label for="bgd">BGĐ phê duyệt</label>
+      <select id="bgd"><option value="">— Chọn AM trước —</option></select>
+      <div class="hint">TPP/BGĐ được chọn sẵn ngẫu nhiên theo AM, có thể chọn lại · Khách hàng: <b>tạo mới</b> mỗi cơ hội · Còn lại: ngẫu nhiên hợp lệ</div>
+      <button class="full" id="btnCreate">Tạo cơ hội</button>
+      <div class="progress" id="progress"><div></div></div>
+      <div class="status" id="createStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" id="approveCard" data-panel="approve">
+      <h2>BMS – Duyệt cơ hội</h2>
+      <label for="approveCodes">Mã cơ hội (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="approveCodes" rows="2" placeholder="vd: CH00086386"></textarea>
+      <div class="warn-box">⚠ Duyệt bằng <b>tài khoản đang đăng nhập</b> (<b id="approverName">—</b>). Tài khoản phải có quyền duyệt: TPP/BGĐ của cơ hội hoặc <b>admin</b> (vd: chuyennt5). Sale thường sẽ báo "không có quyền".<br>Tool đánh giá <b>Đạt</b> tất cả tiêu chí rồi phê duyệt.</div>
+      <button class="full" id="btnApprove">Duyệt CH</button>
+      <div class="status" id="approveStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" id="surveyCard" data-panel="survey">
+      <h2>BMS + SM – Khảo sát dịch vụ</h2>
+      <label for="surveyCodes">Mã cơ hội đã duyệt cần khảo sát (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="surveyCodes" rows="2" placeholder="vd: CH00086403"></textarea>
+      <div class="warn-box">⚠ Chỉ cần với dịch vụ <b>Kênh truyền (LeasedLine)</b> – BMS báo "cần khảo sát trước khi lên yêu cầu Hợp đồng". Chạy bằng <b>tài khoản đang đăng nhập</b> (<b id="surveyUserName">—</b>), nên dùng <b>admin</b> (vd: chuyennt5) vì cần quyền trên tool SM.<br>Tool tự: tạo <b>Công việc khảo sát</b> trên BMS → tạo <b>phiếu khảo sát</b> trên SM (1 địa chỉ ONNET ở HCM) → nhập kết quả Thuê bao / Access / Core → chốt <b>Thành công</b>. Kết quả: công việc "Khảo sát thành công", tạo HĐ được.</div>
+      <button class="full" id="btnSurvey">Tạo KS</button>
+      <div class="status" id="surveyStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" id="contractCard" data-panel="contract">
+      <h2>BMS – Tạo yêu cầu HĐ</h2>
+      <label for="contractCodes">Mã cơ hội đã duyệt (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="contractCodes" rows="2" placeholder="vd: CH00086386"></textarea>
+      <div class="warn-box">⚠ Tạo bằng <b>tài khoản đang đăng nhập</b> (<b id="contractUserName">—</b>) – nên dùng <b>AM</b> của cơ hội hoặc admin.<br>Tool tự: ghi chú các giai đoạn chưa xong → tạo <b>báo giá 1đ</b> (kèm file PDF mẫu, không cần duyệt giá) → gửi YC HĐ (cước 1đ, liên hệ = người đại diện KH). Kết quả: <b>Chờ BGĐ duyệt</b>.<br>Dịch vụ LeasedLine: phải <b>khảo sát</b> trước; tool tự lấy địa chỉ đã khảo sát + khai cước trên SM.</div>
+      <button class="full" id="btnContract">Tạo HĐ</button>
+      <div class="status" id="contractStatus"></div>
+    </div>
+
+    <div class="card panel disabled-block" id="contractApproveCard" data-panel="contractApprove">
+      <h2>BMS – BGĐ duyệt yêu cầu HĐ</h2>
+      <label for="contractApproveCodes">Mã cơ hội có YC HĐ "Chờ BGĐ duyệt" (nhiều mã: cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+      <textarea id="contractApproveCodes" rows="2" placeholder="vd: CH00086386"></textarea>
+      <div class="warn-box">⚠ Duyệt bằng <b>tài khoản đang đăng nhập</b> (<b id="contractApproverName">—</b>). Tài khoản phải là <b>BGĐ được chọn</b> khi tạo cơ hội hoặc <b>admin</b> (vd: chuyennt5). Sale/AM sẽ báo "không có quyền".<br>Duyệt xong BMS cấp <b>số HĐ</b> + mã đăng ký (CMR…) và chuyển sang CM: <b>Chờ DEM duyệt</b> (chờ vài giây).</div>
+      <button class="full" id="btnContractApprove">Duyệt HĐ</button>
+      <div class="status" id="contractApproveStatus"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2>Kết quả</h2>
+      <div class="seg">
+        <button id="tabSession" class="active">Lần này</button>
+        <button id="tabHistory">Lịch sử</button>
+      </div>
+      <button class="ghost small" id="btnRefreshStatus" title="Tải lại trạng thái duyệt từ BMS">↻ Trạng thái</button>
+      <button class="ghost small" id="btnCopyAll" title="Copy tất cả mã cơ hội đang hiển thị">Copy mã</button>
+      <a id="bmsLink" target="_blank" rel="noopener"><button class="ghost small">Mở BMS ↗</button></a>
+    </div>
+    <div class="status" id="tableStatus" style="margin:0 0 10px"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mã CH</th><th>Tên cơ hội / Dịch vụ</th><th>Khách hàng</th><th>AM · TPP · BGĐ</th><th>Thời gian</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="empty">Chưa có dữ liệu</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+const state = { cfg: null, user: null, services: [], sessionRows: [], view: 'session', status: {} };
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function setStatus(el, kind, html) {
+  el.className = 'status show ' + kind;
+  el.innerHTML = html;
+}
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function init() {
+  state.cfg = await api('GET', '/api/config');
+  $('envBadge').textContent = state.cfg.env;
+  $('domainHint').textContent = '@' + state.cfg.emailDomain;
+  $('am').value = store.get('am') || state.cfg.defaultAm;
+  $('user').value = store.get('user') || state.cfg.defaultUser || '';
+  $('bmsLink').href = state.cfg.env === 'stag' ? 'https://ftms-stag.fpt.net/bmsv2/opportunity?tab=pending' : '#';
+  showOtpSetup(!state.cfg.otpConfigured);
+  showTab(store.get('tab') || 'opp');
+  $('user').focus();
+}
+
+// Tab chức năng: mỗi tab 1 form riêng, bảng Kết quả dùng chung
+function showTab(tab) {
+  if (!document.querySelector(`[data-panel="${tab}"]`)) tab = 'opp';
+  document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
+  store.set('tab', tab);
+}
+
+function showOtpSetup(show) {
+  const locked = state.cfg.settingsLocked;
+  $('otpSetup').style.display = show && !locked ? 'flex' : 'none';
+  $('otpEditLink').style.display = show || locked ? 'none' : '';
+  if (show && locked) return setStatus($('loginStatus'), 'err', 'Server chưa cấu hình OTP – báo quản trị điền FTMS_OTP trong .env rồi khởi động lại.');
+  if (show) $('otp').focus();
+  if (show) setStatus($('loginStatus'), 'info', 'Máy này chưa có OTP. Nhập OTP dùng chung rồi bấm "Lưu OTP".');
+}
+
+async function saveOtp() {
+  try {
+    await api('POST', '/api/settings', { otp: $('otp').value });
+    state.cfg.otpConfigured = true;
+    $('otp').value = '';
+    showOtpSetup(false);
+    setStatus($('loginStatus'), 'ok', 'Đã lưu OTP. Giờ nhập tài khoản và bấm Đăng nhập.');
+  } catch (err) {
+    setStatus($('loginStatus'), 'err', esc(err.message));
+  }
+}
+
+async function login(force) {
+  if (!state.cfg.otpConfigured) return showOtpSetup(true);
+  const user = $('user').value.trim();
+  if (!user) return setStatus($('loginStatus'), 'err', 'Nhập tài khoản trước');
+  $('btnLogin').disabled = $('btnRelogin').disabled = true;
+  setStatus($('loginStatus'), 'info', '<span class="spinner"></span>Đang đăng nhập SSO + OTP… (10–20 giây)');
+  try {
+    const me = await api('POST', '/api/login', { user, force });
+    state.user = user;
+    store.set('user', user);
+    $('who').className = 'who on';
+    $('who').title = me.department || '';
+    $('who').innerHTML = `<span class="dot"></span><b>${esc(me.fullName || user)}</b> (${esc(me.userName || user)})`;
+    $('loginStatus').className = 'status';
+    state.status = {};
+    $('approverName').textContent = me.userName || user;
+    $('approveCard').classList.remove('disabled-block');
+    $('surveyUserName').textContent = me.userName || user;
+    $('surveyCard').classList.remove('disabled-block');
+    $('contractUserName').textContent = me.userName || user;
+    $('contractCard').classList.remove('disabled-block');
+    $('contractApproverName').textContent = me.userName || user;
+    $('contractApproveCard').classList.remove('disabled-block');
+    loadStatuses(currentRows);
+    await Promise.all([loadServices(), loadSales(), loadApprovers()]);
+    $('oppCard').classList.remove('disabled-block');
+  } catch (err) {
+    setStatus($('loginStatus'), 'err', esc(err.message));
+  } finally {
+    $('btnLogin').disabled = $('btnRelogin').disabled = false;
+  }
+}
+
+async function loadServices() {
+  state.services = await api('GET', '/api/services?user=' + encodeURIComponent(state.user));
+  const last = store.get('groupId');
+  $('group').innerHTML = '<option value="">— Chọn nhóm dịch vụ —</option>' +
+    state.services.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+  if (state.services.some((g) => String(g.id) === last)) { $('group').value = last; fillTypes(store.get('typeId')); }
+}
+
+async function loadSales() {
+  const sales = await api('GET', '/api/sales?user=' + encodeURIComponent(state.user));
+  $('amList').innerHTML = sales.map((s) => `<option value="${esc(s.userName)}">${esc(s.fullName)} · ${esc(s.department || '')}</option>`).join('');
+}
+
+// Nạp TPP/BGĐ theo AM, chọn sẵn 1 người ngẫu nhiên
+let approverReq = 0;
+async function loadApprovers() {
+  const am = $('am').value.trim();
+  const req = ++approverReq;
+  const fill = (el, html) => { el.innerHTML = html; };
+  if (!am) { fill($('tpp'), '<option value="">— Chọn AM trước —</option>'); fill($('bgd'), '<option value="">— Chọn AM trước —</option>'); return; }
+  fill($('tpp'), '<option value="">Đang tải…</option>'); fill($('bgd'), '<option value="">Đang tải…</option>');
+  try {
+    const r = await api('GET', `/api/approvers?user=${encodeURIComponent(state.user)}&am=${encodeURIComponent(am)}`);
+    if (req !== approverReq) return; // AM đã đổi trong lúc chờ
+    $('am').value = r.am.userName;
+    for (const [id, list] of [['tpp', r.tpp], ['bgd', r.bgd]]) {
+      if (!list.length) { fill($(id), '<option value="">— AM không có người phù hợp —</option>'); continue; }
+      fill($(id), list.map((u) => `<option value="${esc(u.userName)}">${esc(u.userName)} — ${esc(u.fullName)}${u.position ? ' (' + esc(u.position) + ')' : ''}</option>`).join(''));
+      $(id).selectedIndex = Math.floor(Math.random() * list.length);
+    }
+    setStatus($('createStatus'), 'ok', `AM: <b>${esc(r.am.fullName)}</b> (${esc(r.am.userName)})`);
+  } catch (err) {
+    if (req !== approverReq) return;
+    fill($('tpp'), '<option value="">— Lỗi tải danh sách —</option>'); fill($('bgd'), '<option value="">— Lỗi tải danh sách —</option>');
+    setStatus($('createStatus'), 'err', esc(err.message));
+  }
+}
+
+function fillTypes(selectedTypeId) {
+  const g = state.services.find((x) => String(x.id) === $('group').value);
+  $('type').innerHTML = g
+    ? '<option value="">— Chọn loại dịch vụ —</option>' + g.types.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('')
+    : '<option value="">— Chọn nhóm dịch vụ trước —</option>';
+  if (g && g.types.some((t) => String(t.id) === selectedTypeId)) $('type').value = selectedTypeId;
+}
+
+async function createBatch() {
+  const groupId = $('group').value, typeId = $('type').value, am = $('am').value.trim();
+  const tpp = $('tpp').value, bgd = $('bgd').value;
+  const count = Math.min(50, Math.max(1, parseInt($('count').value, 10) || 1));
+  if (!groupId || !typeId) return setStatus($('createStatus'), 'err', 'Chọn Nhóm dịch vụ và Loại dịch vụ');
+  if (!am) return setStatus($('createStatus'), 'err', 'Nhập AM phụ trách');
+  if (!tpp || !bgd) return setStatus($('createStatus'), 'err', 'Chọn TPP đánh giá và BGĐ phê duyệt');
+  store.set('groupId', groupId); store.set('typeId', typeId); store.set('am', am);
+
+  $('btnCreate').disabled = true;
+  $('progress').classList.add('show');
+  showView('session');
+  let ok = 0;
+  for (let i = 1; i <= count; i++) {
+    setStatus($('createStatus'), 'info', `<span class="spinner"></span>Đang tạo ${i}/${count}…`);
+    try {
+      const row = await api('POST', '/api/opportunities', { user: state.user, groupId, typeId, am, tpp, bgd });
+      state.sessionRows.unshift({ ...row, _new: true });
+      state.status[row.code] = { label: 'Chờ TPP đánh giá', waiting: true };
+      ok++;
+    } catch (err) {
+      state.sessionRows.unshift({ _error: err.message, createdAt: new Date().toLocaleString('vi-VN') });
+    }
+    $('progress').firstElementChild.style.width = (i / count * 100) + '%';
+    renderRows();
+  }
+  setStatus($('createStatus'), ok === count ? 'ok' : 'err', `Hoàn tất: ${ok}/${count} cơ hội tạo thành công`);
+  $('btnCreate').disabled = false;
+  setTimeout(() => { $('progress').classList.remove('show'); $('progress').firstElementChild.style.width = 0; }, 1200);
+}
+
+let currentRows = [];
+function renderRows(rows = state.view === 'session' ? state.sessionRows : currentRows) {
+  currentRows = rows;
+  if (!rows.length) { $('rows').innerHTML = '<tr><td colspan="7" class="empty">Chưa có dữ liệu</td></tr>'; return; }
+  $('rows').innerHTML = rows.map((r) => r._error
+    ? `<tr class="fail"><td class="code">Lỗi</td><td colspan="3">${esc(r._error)}</td><td>${esc(r.createdAt)}</td><td></td><td></td></tr>`
+    : `<tr class="${r._new && state.view === 'session' ? 'new' : ''}">
+        <td class="code">${esc(r.code)}</td>
+        <td>${esc(r.name)}<div class="sub">${esc(r.serviceGroup)} / ${esc(r.serviceType)}</div></td>
+        <td>${esc(r.customerName)}<div class="sub">MST ${esc(r.taxCode)}</div></td>
+        <td>${esc(r.am)}<div class="sub">TPP ${esc(r.tpp)} · BGĐ ${esc(r.bgd)}</div></td>
+        <td class="sub">${esc(r.createdAt)}<div>${esc(r.createdBy || '')}</div></td>
+        <td>${statusPill(r.code)}</td>
+        <td class="actions">${rowAction(r.code)}<button class="ghost small" data-copy="${esc(r.code)}">Copy</button></td>
+      </tr>`).join('');
+}
+
+function statusPill(code) {
+  const st = state.status[code];
+  if (!state.user) return '<span class="pill none" title="Đăng nhập để xem trạng thái">–</span>';
+  if (!st || st.loading) return '<span class="pill none"><span class="spinner"></span></span>';
+  if (st.error) return `<span class="pill err" title="${esc(st.error)}">Lỗi</span>`;
+  const ct = st.contract;
+  const contractPill = !ct ? ''
+    : ct.loading ? '<span class="pill none"><span class="spinner"></span>HĐ</span>'
+    : ct.error ? `<span class="pill err" title="${esc(ct.error)}">HĐ: lỗi</span>`
+    : ct.requested ? `<span class="pill wait" title="Yêu cầu hợp đồng${ct.regCode ? ' · mã ĐK ' + esc(ct.regCode) : ''}">HĐ: ${esc(ct.label)}</span>` : '';
+  const contractNo = ct?.contractNo ? `<div class="sub">Số HĐ <b>${esc(ct.contractNo)}</b></div>` : '';
+  // Khảo sát chỉ hiện khi dịch vụ cần KS (LeasedLine) và chưa gửi YC HĐ
+  const sv = st.survey;
+  const surveyPill = !sv || ct?.requested ? ''
+    : sv.loading ? '<span class="pill none"><span class="spinner"></span>KS</span>'
+    : sv.error ? `<span class="pill err" title="${esc(sv.error)}">KS: lỗi</span>`
+    : sv.required ? `<span class="pill ${sv.done ? 'ok' : 'wait'}" title="Khảo sát dịch vụ${sv.workId ? ' · công việc ' + esc(sv.workId) : ''}">KS: ${esc(sv.done ? 'thành công' : sv.label)}</span>` : '';
+  return `<span class="pill ${st.approved ? 'ok' : st.waiting ? 'wait' : 'none'}">${esc(st.label)}</span>${surveyPill}${contractPill}${contractNo}`;
+}
+
+// Nút thao tác theo trạng thái: chờ duyệt -> Duyệt; đã duyệt + chưa có YC HĐ -> Tạo HĐ
+function rowAction(code) {
+  const st = state.status[code];
+  if (!st || !state.user) return '';
+  if (st.waiting) return `<button class="small" data-approve="${esc(code)}" title="Duyệt cơ hội (TPP đánh giá / BGĐ phê duyệt)">Duyệt CH</button>`;
+  if (st.approved && st.contract && !st.contract.requested && !st.contract.error && !st.contract.loading) {
+    // Dịch vụ cần khảo sát (LeasedLine) mà chưa xong -> Tạo KS trước
+    if (st.survey?.loading) return '';
+    if (st.survey?.required && !st.survey.done)
+      return `<button class="small" data-survey="${esc(code)}" title="Khảo sát dịch vụ trước khi lên HĐ (BMS + SM)">Tạo KS</button>`;
+    return `<button class="small" data-contract="${esc(code)}">Tạo HĐ</button>`;
+  }
+  if (st.approved && st.contract?.waitingBgd && !st.contract.loading)
+    return `<button class="small" data-contract-approve="${esc(code)}" title="BGĐ duyệt yêu cầu HĐ">BGĐ duyệt</button>`;
+  return '';
+}
+
+// Tải trạng thái duyệt từ BMS cho các dòng đang hiển thị (chỉ mã chưa có, force = tải lại tất cả)
+async function loadStatuses(rows, force = false) {
+  if (!state.user) return;
+  const codes = [...new Set(rows.filter((r) => r.code && (force || !state.status[r.code])).map((r) => r.code))];
+  if (!codes.length) return;
+  codes.forEach((c) => (state.status[c] = { loading: true }));
+  renderRows();
+  try {
+    const list = await api('POST', '/api/opportunities/status', { user: state.user, codes });
+    for (const st of list) state.status[st.code] = st;
+  } catch (err) {
+    codes.forEach((c) => (state.status[c] = { error: err.message }));
+  }
+  renderRows();
+}
+
+async function showView(view) {
+  state.view = view;
+  $('tabSession').classList.toggle('active', view === 'session');
+  $('tabHistory').classList.toggle('active', view === 'history');
+  if (view === 'history') renderRows(await api('GET', '/api/history'));
+  else renderRows(state.sessionRows);
+  loadStatuses(currentRows);
+}
+
+// Duyệt 1 mã bằng tài khoản đang đăng nhập -> { ok, message }
+async function approveOne(code) {
+  try {
+    const r = await api('POST', '/api/approve', { user: state.user, code });
+    state.status[r.code] = r.state;
+    if (r.state.approved) setTimeout(() => loadStatuses([{ code: r.code }], true), 0);
+    return { ok: true, message: `${r.code}: duyệt thành công (${r.steps.join(' → ')})` };
+  } catch (err) {
+    return { ok: false, message: err.message };
+  } finally {
+    renderRows();
+  }
+}
+
+async function approveFromRow(btn) {
+  const code = btn.dataset.approve;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Duyệt CH';
+  setStatus($('tableStatus'), 'info', `<span class="spinner"></span>Đang duyệt ${esc(code)} bằng tài khoản ${esc(state.user)}…`);
+  const r = await approveOne(code);
+  setStatus($('tableStatus'), r.ok ? 'ok' : 'err', esc(r.message));
+}
+
+async function approveFromInput() {
+  const codes = [...new Set($('approveCodes').value.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean))];
+  if (!codes.length) return setStatus($('approveStatus'), 'err', 'Nhập mã cơ hội cần duyệt');
+  $('btnApprove').disabled = true;
+  const results = [];
+  for (const [i, code] of codes.entries()) {
+    setStatus($('approveStatus'), 'info', `<span class="spinner"></span>Đang duyệt ${i + 1}/${codes.length}: ${esc(code)}…`);
+    results.push(await approveOne(code));
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($('approveStatus'), ok === codes.length ? 'ok' : 'err',
+    (codes.length > 1 ? `<b>Duyệt thành công ${ok}/${codes.length}</b>` : '') +
+    (codes.length > 1 ? '<ul class="result-list">' + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>' : esc(results[0].message)));
+  $('btnApprove').disabled = false;
+}
+
+// Khảo sát dịch vụ cho 1 mã bằng tài khoản đang đăng nhập -> { ok, message }
+async function surveyOne(code) {
+  const st = state.status[code];
+  if (st) st.survey = { ...(st.survey || {}), loading: true };
+  renderRows();
+  try {
+    const r = await api('POST', '/api/surveys', { user: state.user, code });
+    if (state.status[r.code]) state.status[r.code].survey = r.state;
+    return { ok: true, message: `${r.code}: ${r.state.label} – phiếu ${r.registrationCode} (${r.steps.join(' → ') || 'đã có sẵn'})` };
+  } catch (err) {
+    if (st) st.survey = { ...st.survey, loading: false };
+    return { ok: false, message: err.message };
+  } finally {
+    renderRows();
+  }
+}
+
+async function surveyFromRow(btn) {
+  const code = btn.dataset.survey;
+  btn.disabled = true;
+  setStatus($('tableStatus'), 'info', `<span class="spinner"></span>Đang khảo sát ${esc(code)} bằng tài khoản ${esc(state.user)}… (BMS công việc KS → SM phiếu KS → Thành công, lần đầu đăng nhập SM ~10 giây)`);
+  const r = await surveyOne(code);
+  setStatus($('tableStatus'), r.ok ? 'ok' : 'err', esc(r.message));
+}
+
+async function surveyFromInput() {
+  const codes = [...new Set($('surveyCodes').value.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean))];
+  if (!codes.length) return setStatus($('surveyStatus'), 'err', 'Nhập mã cơ hội cần khảo sát');
+  $('btnSurvey').disabled = true;
+  const results = [];
+  for (const [i, code] of codes.entries()) {
+    setStatus($('surveyStatus'), 'info', `<span class="spinner"></span>Đang khảo sát ${i + 1}/${codes.length}: ${esc(code)}…`);
+    results.push(await surveyOne(code));
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($('surveyStatus'), ok === codes.length ? 'ok' : 'err',
+    codes.length > 1
+      ? `<b>Khảo sát thành công ${ok}/${codes.length}</b><ul class="result-list">` + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>'
+      : esc(results[0].message));
+  $('btnSurvey').disabled = false;
+}
+
+// Tạo YC HĐ cho 1 mã bằng tài khoản đang đăng nhập -> { ok, message }
+async function contractOne(code) {
+  const st = state.status[code];
+  if (st?.contract) st.contract = { ...st.contract, loading: true };
+  renderRows();
+  try {
+    const r = await api('POST', '/api/contracts', { user: state.user, code });
+    state.status[r.code] = { ...(state.status[r.code] || { approved: true, label: 'Đã duyệt' }), contract: r.state };
+    return { ok: true, message: `${r.code}: đã tạo YC HĐ – ${r.state.label} (${r.steps.join(' → ')})` };
+  } catch (err) {
+    if (st?.contract) st.contract = { ...st.contract, loading: false };
+    return { ok: false, message: err.message };
+  } finally {
+    renderRows();
+  }
+}
+
+async function contractFromRow(btn) {
+  const code = btn.dataset.contract;
+  btn.disabled = true;
+  setStatus($('tableStatus'), 'info', `<span class="spinner"></span>Đang tạo YC HĐ cho ${esc(code)} bằng tài khoản ${esc(state.user)}… (ghi chú giai đoạn → báo giá 1đ → gửi YC HĐ)`);
+  const r = await contractOne(code);
+  setStatus($('tableStatus'), r.ok ? 'ok' : 'err', esc(r.message));
+}
+
+async function contractFromInput() {
+  const codes = [...new Set($('contractCodes').value.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean))];
+  if (!codes.length) return setStatus($('contractStatus'), 'err', 'Nhập mã cơ hội cần tạo HĐ');
+  $('btnContract').disabled = true;
+  const results = [];
+  for (const [i, code] of codes.entries()) {
+    setStatus($('contractStatus'), 'info', `<span class="spinner"></span>Đang tạo YC HĐ ${i + 1}/${codes.length}: ${esc(code)}…`);
+    results.push(await contractOne(code));
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($('contractStatus'), ok === codes.length ? 'ok' : 'err',
+    codes.length > 1
+      ? `<b>Tạo YC HĐ thành công ${ok}/${codes.length}</b><ul class="result-list">` + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>'
+      : esc(results[0].message));
+  $('btnContract').disabled = false;
+}
+
+// BGĐ duyệt YC HĐ cho 1 mã bằng tài khoản đang đăng nhập -> { ok, message }
+async function contractApproveOne(code) {
+  const st = state.status[code];
+  if (st?.contract) st.contract = { ...st.contract, loading: true };
+  renderRows();
+  try {
+    const r = await api('POST', '/api/contracts/approve', { user: state.user, code });
+    state.status[r.code] = { ...(state.status[r.code] || { approved: true, label: 'Đã duyệt' }), contract: r.state };
+    return { ok: true, message: `${r.code}: BGĐ đã duyệt YC HĐ – ${r.state.label}${r.state.contractNo ? ` · số HĐ ${r.state.contractNo}` : ''}${r.state.regCode ? ` · mã ĐK ${r.state.regCode}` : ''}` };
+  } catch (err) {
+    if (st?.contract) st.contract = { ...st.contract, loading: false };
+    return { ok: false, message: err.message };
+  } finally {
+    renderRows();
+  }
+}
+
+async function contractApproveFromRow(btn) {
+  const code = btn.dataset.contractApprove;
+  btn.disabled = true;
+  setStatus($('tableStatus'), 'info', `<span class="spinner"></span>Đang duyệt YC HĐ ${esc(code)} bằng tài khoản ${esc(state.user)}…`);
+  const r = await contractApproveOne(code);
+  setStatus($('tableStatus'), r.ok ? 'ok' : 'err', esc(r.message));
+}
+
+async function contractApproveFromInput() {
+  const codes = [...new Set($('contractApproveCodes').value.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean))];
+  if (!codes.length) return setStatus($('contractApproveStatus'), 'err', 'Nhập mã cơ hội cần duyệt YC HĐ');
+  $('btnContractApprove').disabled = true;
+  const results = [];
+  for (const [i, code] of codes.entries()) {
+    setStatus($('contractApproveStatus'), 'info', `<span class="spinner"></span>Đang duyệt YC HĐ ${i + 1}/${codes.length}: ${esc(code)}…`);
+    results.push(await contractApproveOne(code));
+  }
+  const ok = results.filter((r) => r.ok).length;
+  setStatus($('contractApproveStatus'), ok === codes.length ? 'ok' : 'err',
+    codes.length > 1
+      ? `<b>Duyệt YC HĐ thành công ${ok}/${codes.length}</b><ul class="result-list">` + results.map((r) => `<li>${r.ok ? '✔' : '✖'} ${esc(r.message)}</li>`).join('') + '</ul>'
+      : esc(results[0].message));
+  $('btnContractApprove').disabled = false;
+}
+
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); } catch { return; }
+  const old = btn.textContent; btn.textContent = 'Đã copy'; setTimeout(() => (btn.textContent = old), 1000);
+}
+
+$('btnLogin').onclick = () => login(false);
+$('btnSaveOtp').onclick = saveOtp;
+$('otp').addEventListener('keydown', (e) => e.key === 'Enter' && saveOtp());
+document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+$('otpEditLink').onclick = (e) => { e.preventDefault(); showOtpSetup(true); };
+$('btnRelogin').onclick = () => login(true);
+$('user').addEventListener('keydown', (e) => e.key === 'Enter' && login(false));
+$('group').onchange = () => fillTypes();
+$('am').addEventListener('change', loadApprovers);
+$('btnCreate').onclick = createBatch;
+$('tabSession').onclick = () => showView('session');
+$('tabHistory').onclick = () => showView('history');
+$('btnCopyAll').onclick = (e) => copy(currentRows.filter((r) => r.code).map((r) => r.code).join('\n'), e.currentTarget);
+$('rows').onclick = (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (b) return copy(b.dataset.copy, b);
+  const a = e.target.closest('[data-approve]');
+  if (a && !a.disabled) return approveFromRow(a);
+  const sv = e.target.closest('[data-survey]');
+  if (sv && !sv.disabled) return surveyFromRow(sv);
+  const c = e.target.closest('[data-contract]');
+  if (c && !c.disabled) return contractFromRow(c);
+  const ca = e.target.closest('[data-contract-approve]');
+  if (ca && !ca.disabled) contractApproveFromRow(ca);
+};
+$('btnContractApprove').onclick = contractApproveFromInput;
+$('btnContract').onclick = contractFromInput;
+$('btnSurvey').onclick = surveyFromInput;
+$('btnApprove').onclick = approveFromInput;
+$('btnRefreshStatus').onclick = () => loadStatuses(currentRows, true);
+init().catch((err) => setStatus($('loginStatus'), 'err', 'Không kết nối được server: ' + esc(err.message)));
+</script>
+</body>
+</html>
