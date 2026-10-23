@@ -1,0 +1,21 @@
+{
+  "name": "bill-detail-tool",
+  "version": "1.0.0",
+  "description": "Tra cứu chi tiết hóa đơn theo số hợp đồng (thay màn Liệt kê cước của inside.fpt.net) bằng cách gọi thẳng API mvc.inside.fpt.net",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "bill-detail": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "login": "node src/cli.js login",
+    "bills": "node src/cli.js bills",
+    "detail": "node src/cli.js detail",
+    "ui": "node src/server.js",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  }
+}

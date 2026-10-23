@@ -404,7 +404,8 @@ const currentAddress = () => ({
 const addressMissing = (a) => (a.houseType === 'apartment' ? (!a.floor ? 'Số tầng' : !a.room ? 'Số phòng' : '') : !a.addressNo ? 'Số nhà' : '');
 const currentSelection = () => ({
   offerKey: document.querySelector('input[name="offer"]:checked')?.value,
-  extras: [...document.querySelectorAll('input[name="extra"]:checked')].map((x) => x.value),
+  // "Hình thức lắp đặt" (gói camera): Tự lắp đặt = gửi sku gói giao hàng như 1 bổ sung, Hỗ trợ lắp đặt = không gửi
+  extras: [...document.querySelectorAll('input[name="extra"]:checked, input[name="install"]:checked')].map((x) => x.value).filter(Boolean),
 });
 
 // ---- Bước 1: tải gói (tạo sẵn checkout, lấy PTTT + giá) ----
@@ -420,7 +421,7 @@ async function loadPackage() {
   try {
     const r = await api('POST', '/api/prepare', { url, address: currentAddress() });
     state.prep = r;
-    $('pkgBox').innerHTML = `<b>${esc(r.product.name)}</b> <span class="sub">· ${esc(r.product.type || '')} · mã <code>${esc(r.product.code)}</code></span>
+    $('pkgBox').innerHTML = `<b>${esc(r.product.name)}</b> <span class="sub">· ${esc(r.product.type || '')} · mã <code>${esc(r.product.code)}</code>${r.product.source === 'FCP' ? ' · catalog <b>FCP</b>' : ''}</span>
       <div>Giá cước: <span class="price">${esc(r.product.priceText || '–')}</span></div>`;
     $('pkgBox').className = 'pkg show';
     renderOptions(r);
@@ -453,10 +454,19 @@ function renderOptions(r) {
     : `<div class="hint">${ok ? 'Gói không có lựa chọn' : 'Không có chính sách ở địa chỉ này'}</div>`;
 
   // Dịch vụ/thiết bị bổ sung: mặc định không chọn (server giữ các mục đã tick)
-  $('extraList').innerHTML = r.extras.length
-    ? r.extras.map((e) => `<label class="opt"><input type="checkbox" name="extra" value="${esc(e.skuId)}" ${r.selectedExtras.includes(String(e.skuId)) ? 'checked' : ''}>
+  // Gói camera: gói giao hàng = "Tôi muốn tự lắp đặt" -> hiện thành 2 lựa chọn Hình thức lắp đặt (như web), mặc định Hỗ trợ lắp đặt
+  const delivery = r.extras.find((e) => e.delivery);
+  const selfInstall = delivery && r.selectedExtras.includes(String(delivery.skuId));
+  const installHtml = delivery ? `<div class="grp">Hình thức lắp đặt</div>
+    <label class="opt"><input type="radio" name="install" value="" ${selfInstall ? '' : 'checked'}>
+      <span class="name">Hỗ trợ lắp đặt<span class="sub">Kỹ thuật FPT đến lắp · tính phí triển khai ${esc(delivery.installFeeCount)} thiết bị</span></span><span class="price">${esc(delivery.installFeeText)}</span></label>
+    <label class="opt"><input type="radio" name="install" value="${esc(delivery.skuId)}" ${selfInstall ? 'checked' : ''}>
+      <span class="name">Tôi muốn tự lắp đặt<span class="sub">FPT giao hàng (${esc(delivery.name.replace(/^.*\((.*)\)$/, '$1'))}), không tính phí triển khai · không có Thanh toán tại nhà</span></span><span class="price">${esc(delivery.priceText)}</span></label>` : '';
+  const others = r.extras.filter((e) => !e.delivery);
+  $('extraList').innerHTML = installHtml + (others.length
+    ? (delivery ? '<div class="grp">Dịch vụ/Thiết bị bổ sung</div>' : '') + others.map((e) => `<label class="opt"><input type="checkbox" name="extra" value="${esc(e.skuId)}" ${r.selectedExtras.includes(String(e.skuId)) ? 'checked' : ''}>
         <span class="name">${esc(e.name)}</span><span class="price">${esc(e.priceText)}</span></label>`).join('')
-    : '<div class="hint">Không có dịch vụ/thiết bị bổ sung</div>';
+    : delivery ? '' : '<div class="hint">Không có dịch vụ/thiết bị bổ sung</div>');
   $('giftHint').textContent = r.gifts?.length ? `Quà tặng kèm theo lựa chọn (web tự chọn): ${r.gifts.join(', ')}` : '';
 
   fillPayments(r.methods, ok);

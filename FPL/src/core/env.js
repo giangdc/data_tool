@@ -67,6 +67,18 @@ export const config = {
 
 for (const [k, v] of Object.entries(readSettings())) if (SETTABLE.includes(k) && v) config.defaults[k] = v;
 
+/** Ghi/cập nhật 1 biến trong .env (giữ nguyên các dòng khác) và áp dụng ngay. */
+export function saveEnvValue(key, value) {
+  // Máy mới chưa có .env -> lấy .env.example làm khung để người dùng thấy đủ tùy chọn
+  const base = existsSync(envFile) ? envFile : path.join(ROOT_DIR, '.env.example');
+  const lines = existsSync(base) ? readFileSync(base, 'utf8').split('\n') : [];
+  const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
+  if (idx >= 0) lines[idx] = `${key}=${value}`;
+  else lines.push(`${key}=${value}`);
+  writeFileSync(envFile, lines.join('\n').replace(/\n*$/, '\n'), { mode: 0o600 });
+  process.env[key] = value;
+}
+
 /** OTP mặc định của môi trường dev (FPL_OTP trong .env) – không trả ra trình duyệt / không log */
 export const defaultOtp = () => process.env.FPL_OTP?.trim() || '';
 

@@ -73,6 +73,11 @@ const routes = {
   'POST /api/login': async ({ body }) => {
     const user = requireUser(body.user);
     const s = await connect(user, Boolean(body.force));
+    // Nhớ tài khoản vào .env của máy này -> lần sau mở tool tự đăng nhập
+    if (user !== config.defaultUser) {
+      saveEnvValue('CRM_USER', user);
+      config.defaultUser = user;
+    }
     const p = s.profile || {};
     return { user, email: s.email, fullName: p.fullName ?? p.name ?? p.displayName, department: p.organization?.displayName ?? p.departmentName };
   },
@@ -162,6 +167,10 @@ const routes = {
 };
 
 async function readBody(req) {
+  // Chỉ nhận JSON: trang web lạ không gửi được application/json sang localhost (bị CORS chặn)
+  if (!String(req.headers['content-type']).startsWith('application/json')) {
+    throw Object.assign(new Error('Chỉ nhận dữ liệu JSON'), { status: 415 });
+  }
   let raw = '';
   for await (const chunk of req) {
     raw += chunk;

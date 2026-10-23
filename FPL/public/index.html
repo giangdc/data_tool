@@ -52,6 +52,7 @@
   .row { display: flex; gap: 8px; align-items: end; }
   .row > * { flex: 1; min-width: 0; }
   .row > .shrink { flex: 0 0 auto; }
+  .hidden { display: none !important; }
   button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   button:hover:not(:disabled) { background: var(--primary-hover); }
   button:disabled { opacity: .55; cursor: not-allowed; }
@@ -158,10 +159,15 @@
           <input id="phone" inputmode="numeric" maxlength="10" autocomplete="off">
           <button class="ghost shrink" id="btnDefaultPhone" title="Lần sau mở tool sẽ tự điền số này">☆ Đặt mặc định</button>
         </div>
-        <div class="hint">Tool tự đăng nhập bằng OTP mặc định môi trường dev (<code>FPL_OTP</code> trong .env), token lưu trên máy. OTP mặc định chỉ dùng được cho SĐT test đã cấu hình.</div>
+        <div class="hint">Tool tự đăng nhập bằng OTP mặc định môi trường dev (lưu trong file .env của máy này), token lưu trên máy. OTP mặc định chỉ dùng được cho SĐT test đã cấu hình.</div>
+        <div class="row hidden" id="otpSetup" style="margin-top:8px">
+          <input id="otp" type="password" autocomplete="off" placeholder="OTP mặc định môi trường dev" aria-label="OTP mặc định">
+          <button class="shrink" id="btnSaveOtp">Lưu OTP</button>
+        </div>
         <div class="acct" id="acctBox">Chưa đăng nhập</div>
         <div class="row" style="margin-top:8px">
           <button class="ghost small shrink" id="btnRelogin" title="Bỏ token đã lưu, đăng nhập lại bằng OTP">↻ Đăng nhập lại</button>
+          <button class="ghost small shrink" id="btnEditOtp" title="OTP mặc định lưu trong file .env của máy này">Đổi OTP</button>
         </div>
         <div class="status" id="acctStatus"></div>
       </div>
@@ -259,8 +265,28 @@ async function init() {
   $('phone').value = d.phone;
   showDefaults();
   showTab(store.get('tab') || 'create');
-  if (!state.cfg.otp) setStatus($('acctStatus'), 'err', 'Chưa có FPL_OTP trong .env → không đăng nhập được. Điền OTP mặc định rồi tắt/mở lại tool.');
+  if (!state.cfg.otp) return showOtpSetup(true);
   if ($('url').value) loadPackage();
+}
+
+function showOtpSetup(show) {
+  $('otpSetup').classList.toggle('hidden', !show);
+  $('btnEditOtp').classList.toggle('hidden', show);
+  if (!show) return;
+  $('otp').focus();
+  setStatus($('acctStatus'), 'info', state.cfg.otp ? 'Nhập OTP mới rồi bấm "Lưu OTP".' : 'Máy này chưa có OTP mặc định. Nhập OTP rồi bấm "Lưu OTP" (lưu lại cho lần sau).');
+}
+async function saveOtp() {
+  try {
+    await api('POST', '/api/settings/otp', { otp: $('otp').value });
+    state.cfg.otp = true;
+    $('otp').value = '';
+    showOtpSetup(false);
+    setStatus($('acctStatus'), 'ok', '✔ Đã lưu OTP');
+    if ($('url').value) loadPackage({ force: true });
+  } catch (err) {
+    setStatus($('acctStatus'), 'err', esc(err.message));
+  }
 }
 
 function showDefaults() {
@@ -542,6 +568,9 @@ $('phone').addEventListener('change', () => /^0\d{9}$/.test($('phone').value.tri
 $('btnDefaultUrl').addEventListener('click', () => setDefault('url', $('loadStatus')));
 $('btnDefaultPhone').addEventListener('click', () => setDefault('phone', $('acctStatus')));
 $('btnRelogin').addEventListener('click', () => loadPackage({ force: true }));
+$('btnEditOtp').addEventListener('click', () => showOtpSetup(true));
+$('btnSaveOtp').addEventListener('click', saveOtp);
+$('otp').addEventListener('keydown', (e) => e.key === 'Enter' && saveOtp());
 $('offerList').addEventListener('change', () => { renderMethods(); clearStatus($('couponStatus')); });
 $('methodList').addEventListener('change', showMethod);
 $('autoPay').addEventListener('change', () => store.set('autoPay', $('autoPay').checked ? '1' : '0'));

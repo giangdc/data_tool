@@ -289,6 +289,8 @@ async function init() {
   showPwSetup(!state.cfg.passwordConfigured);
   showTab(store.get('tab') || 'flow');
   $('user').focus();
+  // Đã lưu tài khoản + mật khẩu -> tự đăng nhập (phiên còn hạn thì dùng lại ngay)
+  if (state.cfg.passwordConfigured && $('user').value.trim()) login(false);
 }
 
 // Tab chức năng: mỗi tab 1 form riêng, bảng Kết quả dùng chung
@@ -314,7 +316,8 @@ async function savePassword() {
     state.cfg.passwordConfigured = true;
     $('password').value = '';
     showPwSetup(false);
-    setStatus($('loginStatus'), 'ok', 'Đã lưu mật khẩu. Giờ nhập tài khoản và bấm Đăng nhập.');
+    if ($('user').value.trim()) login(true);
+    else setStatus($('loginStatus'), 'ok', 'Đã lưu mật khẩu. Giờ nhập tài khoản và bấm Đăng nhập.');
   } catch (err) {
     setStatus($('loginStatus'), 'err', esc(err.message));
   }

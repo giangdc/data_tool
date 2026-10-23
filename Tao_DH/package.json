@@ -1,6 +1,6 @@
 {
   "name": "fptvn-order-tool",
-  "version": "1.5.0",
+  "version": "1.7.0",
   "description": "Tool hỗ trợ QC tạo nhanh đơn hàng test trên fpt.vn (staging): nhập link gói -> tạo đơn -> thanh toán -> xem đơn",
   "type": "module",
   "engines": {

@@ -1,0 +1,11 @@
+node_modules/
+.env
+.cache/
+output/
+dist/
+runtime/
+*.log
+storageState*.json
+sso-*.json
+# Ảnh chụp portal lúc khảo sát (có SĐT KH, email nhân viên) – không đưa lên repo public
+khao-sat/screens/
