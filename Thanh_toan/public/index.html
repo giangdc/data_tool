@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thanh toán Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef; --row-hover: #f1f5fd; --row-active: #e3edfc;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240; --row-hover: #222a36; --row-active: #253553;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .bar { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
+  .card h2 .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  form { display: flex; flex-direction: column; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { font-size: 13px; color: var(--muted); }
+  input, select, textarea { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  textarea#contracts { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+  button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); padding: 6px 12px; }
+  button.ghost:hover:not(:disabled) { background: var(--row-hover); }
+  button.small { padding: 3px 9px; font-size: 12px; }
+  details { border: 1px dashed var(--line); border-radius: 6px; padding: 6px 10px; }
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  details[open] summary { margin-bottom: 8px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 0; }
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin: 0; white-space: pre-wrap; }
+  .status.err { background: var(--err-bg); color: var(--err); }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .step { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--muted); }
+  .step b { display: block; font-size: 13px; color: var(--text); }
+  .step.doing { border-color: var(--primary); background: var(--row-active); }
+  .step.done { border-color: var(--ok); background: var(--ok-bg); }
+  .step.done b::before { content: "✔ "; color: var(--ok); }
+  .step.fail { border-color: var(--err); background: var(--err-bg); }
+  .log { margin: 0; padding: 10px 12px; max-height: 340px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .log .t { color: var(--muted); }
+  .table-wrap { overflow: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--card); font-weight: 600; color: var(--muted); z-index: 1; }
+  td.err { color: var(--err); white-space: normal; min-width: 200px; }
+  tbody tr:hover { background: var(--row-hover); }
+  .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+  .hidden { display: none !important; }
+  .links { display: flex; gap: 6px; flex-wrap: wrap; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    header { padding: 10px 16px; }
+    .bar { margin-left: 0; }
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .methods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .method { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; color: var(--text); }
+  .method input { display: none; }
+  .method b { font-size: 14px; }
+  .method span { font-size: 12px; color: var(--muted); }
+  .method:has(input:checked) { border-color: var(--primary); background: var(--row-active); }
+  .method:has(input:checked) b::before { content: "● "; color: var(--primary); }
+  fieldset.cardset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  fieldset.cardset legend { font-size: 13px; font-weight: 600; padding: 0 4px; }
+  fieldset.cardset legend .sub { font-weight: 400; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
+  .tag.intl { background: var(--row-active); color: var(--primary); }
+  .tag.domestic { background: var(--warn-bg); color: var(--warn); }
+  td.ok { color: var(--ok); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Thanh toán hoá đơn</h1>
+  <span class="badge" id="envBadge">stag</span>
+  <div class="bar">
+    <span class="who" id="who"><span class="dot"></span><span id="whoText">Trình duyệt chưa mở</span></span>
+    <button class="ghost" id="btnOpen" title="Mở trang thanh toán trong cửa sổ trình duyệt của tool">Trang thanh toán</button>
+    <button class="ghost" id="btnClose" title="Đóng cửa sổ trình duyệt của tool">Đóng trình duyệt</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>Thanh toán HĐ <span class="sub" id="payUrl"></span></h2>
+      <form id="runForm">
+        <div class="field">
+          <label for="contracts">Số hợp đồng – nhiều HĐ cách nhau dấu phẩy / xuống dòng</label>
+          <textarea id="contracts" placeholder="vd: SGABP5152" autocomplete="off" required></textarea>
+        </div>
+        <div class="field">
+          <label>Loại thẻ</label>
+          <div class="methods" id="methods">
+            <label class="method"><input type="radio" name="method" value="intl"><b>Thẻ quốc tế</b><span>VISA / Master / JCB<br>Cổng Foxpay + OTP 3DS</span></label>
+            <label class="method"><input type="radio" name="method" value="domestic"><b>Thẻ nội địa</b><span>ATM / Napas<br>Trang Napas + OTP</span></label>
+          </div>
+        </div>
+        <div class="field"><label for="phone">SĐT chủ thẻ</label><input id="phone" autocomplete="off"></div>
+
+        <fieldset class="cardset" data-method="intl">
+          <legend>Thẻ quốc tế <span class="sub">(mặc định thẻ test)</span></legend>
+          <div class="field"><label for="intl-number">Số thẻ</label><input id="intl-number" autocomplete="off" inputmode="numeric"></div>
+          <div class="row2">
+            <div class="field"><label for="intl-name">Tên in trên thẻ</label><input id="intl-name" autocomplete="off"></div>
+            <div class="field"><label for="intl-date">Ngày hết hạn (MM/YY)</label><input id="intl-date" autocomplete="off"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="intl-cvv">CVV/CVC</label><input id="intl-cvv" type="password" autocomplete="off" placeholder="trống = dùng .env"></div>
+            <div class="field"><label for="intl-otp">OTP 3DS</label><input id="intl-otp" type="password" autocomplete="off" placeholder="trống = dùng .env"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="cardset" data-method="domestic">
+          <legend>Thẻ nội địa <span class="sub">(mặc định thẻ test)</span></legend>
+          <div class="field"><label for="domestic-number">Số thẻ</label><input id="domestic-number" autocomplete="off" inputmode="numeric"></div>
+          <div class="row2">
+            <div class="field"><label for="domestic-name">Họ tên chủ thẻ (không dấu)</label><input id="domestic-name" autocomplete="off"></div>
+            <div class="field"><label for="domestic-date">Ngày phát hành (MM/YY)</label><input id="domestic-date" autocomplete="off"></div>
+          </div>
+          <div class="field"><label for="domestic-otp">OTP</label><input id="domestic-otp" type="password" autocomplete="off" placeholder="trống = dùng .env"></div>
+        </fieldset>
+
+        <button type="submit" id="btnRun">Thanh toán</button>
+        <p class="hint">Tool tra HĐ (lần 1: phải có khoản thu), <b>tích tất cả khoản thu</b> → Phương thức khác → loại thẻ → Thanh toán → xác nhận SĐT →
+          <b>Thẻ quốc tế</b>: nhập thẻ ở Foxpay → OTP 3DS; <b>Thẻ nội địa</b>: nhập thẻ ở Napas → OTP.
+          Cuối cùng tra lại HĐ (lần 2): <b>không còn khoản thu = Thành công</b>, còn khoản thu = Lỗi. CVV/OTP không lưu lại.</p>
+      </form>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card hidden" id="jobCard">
+      <h2>Tiến độ <span class="sub" id="jobSub"></span></h2>
+      <div class="steps" id="steps"></div>
+      <p class="status hidden" id="jobMsg"></p>
+      <div class="table-wrap hidden" id="resultWrap" style="margin-bottom:12px">
+        <table>
+          <thead><tr><th>HĐ</th><th>Loại thẻ</th><th>Khoản thu</th><th>Tổng</th><th>Cổng thu</th><th>Mã đơn cổng</th><th>Tra lại (lần 2)</th><th>Kết quả</th><th>Lỗi / cảnh báo</th></tr></thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+      <pre class="log" id="log"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Các lần chạy gần đây <span class="actions"><button class="ghost small" id="btnRuns">Tải lại</button></span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>HĐ</th><th>Loại thẻ</th><th>Tổng</th><th>Mã đơn cổng</th><th>Payment code</th><th>Tra lại (lần 2)</th><th>Kết quả</th><th>Lỗi</th></tr></thead>
+          <tbody id="runsBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:8px">Lưu đầy đủ ở <code>output/runs.csv</code> (mở bằng Excel) và <code>output/runs.jsonl</code>.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem('thanh-toan:' + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('thanh-toan:' + k, v); } catch {} },
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+// Các chặng: hiện tiến độ theo log (của mã đang chạy)
+const PHASES = [
+  { title: 'Tra HĐ', desc: 'Chọn khoản thu', start: /Tra cứu HĐ/, done: /Đã chọn \d+ khoản/ },
+  { title: 'Loại thẻ', desc: 'Quốc tế / Nội địa, SĐT', start: /Phương thức:/, done: /^\[(Foxpay|Napas)\] Đơn / },
+  { title: 'Cổng thanh toán', desc: 'Foxpay / Napas: thẻ, OTP', start: /^\[(Foxpay|Napas)\] Đơn /, done: /Cổng báo thành công|Tra lại HĐ/ },
+  { title: 'Tra lại HĐ', desc: 'Lần 2: hết khoản thu', start: /Tra lại HĐ/, done: /HĐ hết khoản thu/ },
+];
+
+let cfg = null;
+let polling = null;
+
+function fillSelect(sel, entries, value) {
+  sel.innerHTML = entries.map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+  sel.value = value;
+}
+
+async function loadConfig() {
+  cfg = await api('/api/config');
+  $('envBadge').textContent = cfg.env;
+  $('payUrl').textContent = cfg.payUrl;
+  setMethod(store.get('method') || cfg.defaults.method);
+  $('phone').value = store.get('phone') || cfg.defaults.phone;
+  $('contracts').value = store.get('contracts') || '';
+  for (const [m, c] of Object.entries(cfg.defaults.cards)) {
+    for (const k of ['number', 'name', 'date']) $(`${m}-${k}`).value = store.get(`${m}:${k}`) || c[k] || '';
+  }
+  setBrowser(cfg.browserOpen);
+}
+
+const METHOD_LABEL = { intl: 'Thẻ quốc tế', domestic: 'Thẻ nội địa' };
+const methodTag = (name) => {
+  const m = /nội địa/i.test(name || '') ? 'domestic' : /quốc tế/i.test(name || '') ? 'intl' : '';
+  return m ? `<span class="tag ${m}">${METHOD_LABEL[m]}</span>` : esc(name);
+};
+const currentMethod = () => document.querySelector('input[name=method]:checked')?.value || 'intl';
+// Chỉ hiện ô thẻ của loại đang chọn
+function setMethod(m) {
+  const input = document.querySelector(`input[name=method][value="${m}"]`) || document.querySelector('input[name=method]');
+  input.checked = true;
+  document.querySelectorAll('fieldset.cardset').forEach((f) => f.classList.toggle('hidden', f.dataset.method !== input.value));
+}
+document.querySelectorAll('input[name=method]').forEach((r) => r.addEventListener('change', () => setMethod(r.value)));
+
+function setBrowser(open) {
+  $('who').classList.toggle('on', open);
+  $('whoText').textContent = open ? 'Trình duyệt đang mở' : 'Trình duyệt chưa mở';
+}
+
+function renderJob(job) {
+  $('jobCard').classList.remove('hidden');
+  const secs = Math.round(job.elapsedMs / 1000);
+  const codes = job.input.contracts || [];
+  $('jobSub').textContent = `${codes.length === 1 ? codes[0] : codes.length + ' HĐ'} · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  // Chặng của mã đang chạy (log từ dòng "—— <mã>" cuối cùng)
+  let logs = job.logs.map((l) => l.msg);
+  const cut = logs.map((m) => m.startsWith('—— ')).lastIndexOf(true);
+  if (cut >= 0) logs = logs.slice(cut);
+  const last = PHASES.length - 1;
+  $('steps').innerHTML = PHASES.map((p, i) => {
+    const started = logs.some((m) => p.start.test(m));
+    const done = logs.some((m) => p.done.test(m));
+    let cls = done ? 'done' : started ? (job.running ? 'doing' : job.error ? 'fail' : '') : '';
+    if (i > last) cls = '';
+    return `<div class="step ${cls}" style="${i > last ? 'opacity:.45' : ''}"><b>${p.title}</b>${p.desc}</div>`;
+  }).join('');
+
+  const msg = $('jobMsg');
+  msg.classList.remove('hidden', 'err', 'ok', 'info');
+  if (job.running) {
+    msg.classList.add('info');
+    msg.innerHTML = `<span class="spinner"></span>${esc(job.logs[job.logs.length - 1]?.msg || 'Đang mở trình duyệt...')}`;
+  } else if (job.error) {
+    msg.classList.add('err');
+    msg.textContent = job.error;
+  } else {
+    msg.classList.add('ok');
+    msg.textContent = 'Hoàn tất';
+  }
+
+  const results = job.result?.results || [];
+  $('resultWrap').classList.toggle('hidden', !results.length);
+  $('resultBody').innerHTML = results.map((r) => `<tr>
+    <td>${esc(r.contract)}</td><td>${methodTag(r.method)}<br><small>${esc(r.card)}</small></td><td>${esc(r.bills)}</td><td>${esc(r.amount)}</td>
+    <td>${esc(r.charged)}</td><td>${esc(r.gatewayOrder)}</td><td>${esc(r.remaining)}</td>
+    <td class="${r.status === 'Thành công' ? 'ok' : 'err'}">${esc(r.status || (r.error ? 'Lỗi' : ''))}</td>
+    <td class="err">${esc(r.error)}${(r.warnings || []).map((w) => '<br>⚠ ' + esc(w)).join('')}${r.screenshot ? '<br><small>Ảnh: ' + esc(r.screenshot) + '</small>' : ''}</td></tr>`).join('');
+
+  $('log').classList.toggle('hidden', !job.logs.length);
+  $('log').innerHTML = job.logs.map((l) => `<span class="t">${new Date(l.at).toLocaleTimeString('vi-VN')}</span>  ${esc(l.msg)}`).join('\n');
+  $('log').scrollTop = $('log').scrollHeight;
+
+  $('btnRun').disabled = job.running;
+  if (job.running) setBrowser(true);
+}
+
+async function poll() {
+  clearTimeout(polling);
+  try {
+    const job = await api('/api/job');
+    if (job) {
+      renderJob(job);
+      if (job.running) { polling = setTimeout(poll, 1500); return; }
+      loadRuns();
+    }
+  } catch (err) {
+    polling = setTimeout(poll, 3000);
+  }
+}
+
+$('runForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const m = currentMethod();
+  const v = (k) => ($(`${m}-${k}`)?.value || '').trim();
+  const body = {
+    contracts: $('contracts').value, method: m, phone: $('phone').value.trim(),
+    cardNumber: v('number'), cardName: v('name'), cardDate: v('date'), cardCvv: v('cvv'), cardOtp: v('otp'),
+  };
+  // Không lưu CVV/OTP
+  for (const k of ['contracts', 'method', 'phone']) store.set(k, body[k]);
+  for (const k of ['number', 'name', 'date']) store.set(`${m}:${k}`, v(k));
+  try {
+    await api('/api/run', body);
+    poll();
+  } catch (err) {
+    alertBox(err.message);
+  }
+});
+
+function alertBox(text) {
+  $('jobCard').classList.remove('hidden');
+  const msg = $('jobMsg');
+  msg.className = 'status err';
+  msg.textContent = text;
+}
+
+$('btnOpen').addEventListener('click', async () => {
+  $('btnOpen').disabled = true;
+  try { setBrowser((await api('/api/browser/open', {})).browserOpen); }
+  catch (err) { alertBox(err.message); }
+  finally { $('btnOpen').disabled = false; }
+});
+
+$('btnClose').addEventListener('click', async () => {
+  try { setBrowser((await api('/api/browser/close', {})).browserOpen); } catch (err) { alertBox(err.message); }
+});
+
+async function loadRuns() {
+  const runs = await api('/api/runs').catch(() => []);
+  $('runsBody').innerHTML = runs.length ? runs.map((r) => `<tr>
+    <td>${esc(new Date(r.finishedAt || r.startedAt).toLocaleString('vi-VN'))}</td>
+    <td>${esc(r.contract)}</td><td>${methodTag(r.method)}</td><td>${esc(r.amount)}</td><td>${esc(r.gatewayOrder)}</td><td>${esc(r.paymentCode)}</td>
+    <td>${esc(r.remaining)}</td><td class="${r.status === 'Thành công' ? 'ok' : 'err'}">${esc(r.status || (r.error ? 'Lỗi' : ''))}</td><td class="err">${esc(r.error)}</td></tr>`).join('')
+    : '<tr><td colspan="9" class="empty">Chưa có lần chạy nào</td></tr>';
+}
+$('btnRuns').addEventListener('click', loadRuns);
+
+loadConfig().then(poll).catch((err) => alertBox('Không kết nối được server: ' + err.message));
+loadRuns();
+</script>
+</body>
+</html>
