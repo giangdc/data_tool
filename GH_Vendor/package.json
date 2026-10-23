@@ -1,0 +1,22 @@
+{
+  "name": "gh-vendor-tool",
+  "version": "1.0.0",
+  "description": "Tool hỗ trợ QC cập nhật tình trạng phiếu giao hàng NCU trên Fox ERP (Quản lý NCU → Giao hàng, triển khai NCU): Chưa giao hàng → Đang giao hàng (hoá đơn) → Đã hoàn tất",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "gh-vendor": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "ui": "node src/server.js",
+    "run-flow": "node src/cli.js run",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  },
+  "dependencies": {
+    "playwright-core": "1.62.0"
+  }
+}
