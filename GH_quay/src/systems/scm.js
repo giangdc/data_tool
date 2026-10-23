@@ -138,8 +138,10 @@ function readMacPopup(page) {
     // #trackTable: chủng loại cần MAC (Description, Quantity = SL đề nghị, realQuantity = SL thực xuất)
     // #dgMACofInside: MAC đã nhập (DESCRIPTION, MAC)
     return {
+      // EquipmentID = ID chủng loại Inside = FK_CATEGORY_INSIDE_ID của mã hàng SCM (để chọn đúng mã khi trùng tên)
       categories: $('#trackTable').datagrid('getRows').map((r) => ({
         name: String(r.Description).trim(), want: Number(r.Quantity) || 0, got: Number(r.realQuantity) || 0,
+        equipmentId: r.EquipmentID,
       })),
       macs: $('#dgMACofInside').datagrid('getRows').map((r) => ({ name: String(r.DESCRIPTION).trim(), mac: String(r.MAC).trim() })),
     };
@@ -157,12 +159,18 @@ async function openMacPopup(page, subgrid) {
 
 const macWindow = (page) => page.locator('.window:visible', { has: page.locator('#btn_add') });
 
-/** Đọc các chủng loại phải nhập MAC của phiếu tạm ứng (không thay đổi gì). */
+/**
+ * Đọc các chủng loại phải nhập MAC của phiếu tạm ứng: mở popup "Nhập MAC" rồi đóng, KHÔNG nhập/lưu gì.
+ * Popup chỉ liệt kê chủng loại quản lý MAC (nguồn/phụ kiện không có) -> biết thiết bị nào cần nhập kho kèm MAC.
+ */
 export async function readMacCategories(advanceCode, onLog) {
   const page = await openScm(config.scmAdvancePath, onLog);
   const subgrid = await openAdvance(page, advanceCode);
   const popup = await openMacPopup(page, subgrid);
   await macWindow(page).locator('a.l-btn').filter({ hasText: /^\s*Đóng\s*$/ }).click();
+  await sleep(800);
+  // Có thể hỏi "Bạn có chắc chắn muốn đóng cửa sổ này?" -> Ok (chưa nhập gì nên không mất dữ liệu)
+  if (await messagerText(page)) await closeMessager(page);
   return popup.categories.map((c) => ({ ...c, need: Math.max(c.want - c.got, 0) }));
 }
 
@@ -200,7 +208,11 @@ export async function confirmAdvance(advanceCode, macs, onLog) {
     await closeMessager(page);
     throw new Error(`Lưu MAC lỗi: ${saveMsg}`);
   }
-  if (await win.isVisible()) await win.locator('a.l-btn').filter({ hasText: /^\s*Đóng\s*$/ }).click();
+  if (await win.isVisible()) {
+    await win.locator('a.l-btn').filter({ hasText: /^\s*Đóng\s*$/ }).click();
+    await sleep(800);
+    if (await messagerText(page)) await closeMessager(page);
+  }
   await waitUnblocked(page); // lưới chi tiết tải lại sau khi lưu
 
   await page.locator(`#${subgrid}-confirm-V2`).click();
@@ -241,7 +253,11 @@ const editingRow = (page) => page.evaluate(() => {
   return g.datagrid('getRows').findIndex((_, i) => g.datagrid('getEditors', i).length > 0);
 });
 
-async function setItemCode(page, row, { code, name }) {
+/**
+ * Chọn mã hàng cho dòng vật tư. Có code (ITEM_CODES) -> tìm theo mã. Không có -> gõ tên thiết bị rồi chọn mã có
+ * FK_CATEGORY_INSIDE_ID = ID chủng loại của phiếu tạm ứng (nhiều mã có thể trùng tên, vd "FPT Camera IQ 4S").
+ */
+async function setItemCode(page, row, { code, name, equipmentId }) {
   const inputId = await page.evaluate((i) => {
     const t = $($('#dg1').datagrid('getEditor', { index: i, field: 'ITEM_CODE' }).target);
     t.combogrid('showPanel');
@@ -249,19 +265,35 @@ async function setItemCode(page, row, { code, name }) {
   }, row);
   await page.focus(`#${inputId}`);
   await page.keyboard.type(code || name, { delay: 40 });
-  const picked = await waitUntil(() => page.evaluate(([i, code, name]) => {
+  const picked = await waitUntil(() => page.evaluate(([i, code, name, equipmentId]) => {
     const t = $($('#dg1').datagrid('getEditor', { index: i, field: 'ITEM_CODE' }).target);
     const g = t.combogrid('grid');
+    const rows = g.datagrid('getRows');
     const norm = (s) => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
-    const k = g.datagrid('getRows').findIndex((r) => (code ? r.ITEM_CODE === code : norm(r.ITEM_NAME) === norm(name)));
+    let k = -1;
+    if (code) k = rows.findIndex((r) => r.ITEM_CODE === code);
+    else {
+      k = rows.findIndex((r) => equipmentId && r.FK_CATEGORY_INSIDE_ID === equipmentId);
+      if (k < 0) {
+        const same = rows.filter((r) => norm(r.ITEM_NAME) === norm(name));
+        if (same.length > 1) return { ambiguous: same.map((r) => r.ITEM_CODE) };
+        k = rows.indexOf(same[0]);
+      }
+    }
     if (k < 0) return null;
-    const r = g.datagrid('getRows')[k];
+    const r = rows[k];
     g.datagrid('selectRow', k);
     t.combogrid('hidePanel');
-    return `${r.ITEM_CODE} – ${r.ITEM_NAME}`;
-  }, [row, code, name]), { timeout: 20000, message: `Không tìm thấy mã hàng cho "${name}"${code ? ` (${code})` : ''} – khai báo ITEM_CODES trong .env` });
+    return { picked: `${r.ITEM_CODE} – ${r.ITEM_NAME}` };
+  }, [row, code, name, equipmentId]), {
+    timeout: 20000,
+    message: `Không tìm thấy mã hàng SCM cho "${name}"${code ? ` (${code})` : ''} – khai báo "${name}=<mã hàng>" trong ITEM_CODES (.env)`,
+  });
+  if (picked.ambiguous) {
+    throw new Error(`"${name}" có nhiều mã hàng SCM (${picked.ambiguous.join(', ')}) – khai báo mã đúng trong ITEM_CODES (.env), vd "${name}=${picked.ambiguous[0]}"`);
+  }
   await sleep(1500);
-  return picked;
+  return picked.picked;
 }
 
 /** Nhập MAC cho 1 dòng vật tư. MAC bị SCM báo trùng/đã tồn tại -> thay bằng newMac() (sửa luôn item.macs). */

@@ -82,6 +82,8 @@ export async function readTicket(page) {
   const { fields, cards, body } = raw;
   const history = body.slice(body.indexOf('Lịch sử xử lý'));
   return {
+    // "Giao hàng" = phiếu giao hàng tại quầy (luồng của tool); loại khác (vd "Bán thiết bị") có màn hình khác
+    supportType: fields['Loại hỗ trợ'] || '',
     contract: fields['Hợp đồng'] || '',
     orderCode: fields['Mã đơn hàng'] || '',
     ticketStatus: fields['Trạng thái phiếu'] || '',
@@ -160,8 +162,12 @@ export async function selectTicket(page, { deliveryCode, onLog }) {
     await waitIdle(page);
     const t = await waitUntil(async () => {
       const r = await readTicket(page);
-      return r.deliveryCode && r.ticketStatus ? r : null;
+      return (r.deliveryCode && r.ticketStatus) || r.supportType ? r : null;
     }, { timeout: 30000, message: 'Không đọc được thông tin phiếu' });
+    if (!/^Giao hàng$/i.test(t.supportType)) {
+      seen.push(`phiếu ${i + 1}: ${t.supportType || 'không rõ loại'} (không phải Giao hàng)`);
+      continue;
+    }
     seen.push(`${t.deliveryCode} (${t.ticketStatus})`);
     if (deliveryCode ? t.deliveryCode === deliveryCode : !FINAL_STATES.test(t.ticketStatus)) {
       if (total > 1) onLog?.(`Chọn phiếu ${i + 1}/${total}: ${t.deliveryCode}`);
@@ -170,7 +176,7 @@ export async function selectTicket(page, { deliveryCode, onLog }) {
   }
   throw new Error(deliveryCode
     ? `Không thấy phiếu ${deliveryCode} trên HĐ này`
-    : `HĐ không còn phiếu nào chưa xử lý xong: ${seen.join(', ')}`);
+    : `HĐ không có phiếu Giao hàng tại quầy nào cần xử lý: ${seen.join(', ')}`);
 }
 
 /** Tải lại trang phiếu (Blazor không tự cập nhật dữ liệu đồng bộ từ SCM/GHTK) rồi mở lại đúng phiếu. */

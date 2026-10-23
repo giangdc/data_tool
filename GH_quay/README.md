@@ -52,7 +52,7 @@ node src/cli.js ghtk S23115402.1100037933 4        # chỉ đẩy trạng thái 
 | `ERP_STOCK` | `KTNTESTMAC` | Kho xuất Fox ERP = Mã kho Inside bên SCM |
 | `SCM_STOCK_NAME` | `Kho KTN test MAC` | Tên kho đó bên SCM (combo kho SCM chỉ tìm được theo **tên**) |
 | `STOCK_PHONE` | `0775335608` | SĐT kho (bắt buộc trước khi đề nghị xuất kho) |
-| `ITEM_CODES` | Play 4 = 20058112; IQ 4S = 20055098 | Mã hàng SCM theo tên chủng loại cần MAC; thiếu thì tool tìm theo tên |
+| `ITEM_CODES` | Play 4 = 20058112; IQ 4S = 20055098 | Không bắt buộc: tool tự biết thiết bị nào cần MAC (từ SCM) và tự tìm mã hàng theo tên + ID chủng loại. Chỉ điền để ép mã cụ thể |
 | `MAC_PREFIX` | trống | Tiền tố MAC; MAC luôn 12 ký tự hex (SCM nhận 12-43 ký tự hex, không dấu `:`) |
 | `CARRIER`, `GHTK_STATUS` | GHTK, 5 | Đơn vị vận chuyển, trạng thái GHTK mặc định |
 | `SYNC_WAIT_SEC` | 120 | Thời gian chờ SCM/GHTK đồng bộ về Fox ERP |
@@ -64,8 +64,10 @@ node src/cli.js ghtk S23115402.1100037933 4        # chỉ đẩy trạng thái 
   Tìm HĐ mở tab `/service/retail-counter/ticket?q1=<token mã hoá>` (không mở thẳng bằng số HĐ được).
   Dữ liệu SCM/GHTK đồng bộ về không tự hiện → tool tải lại trang + mở lại đúng phiếu để đọc.
 - **SCM** là ASP.NET MVC + jQuery EasyUI → combo/lưới điều khiển qua API EasyUI trên trang. Popup *Nhập MAC* của phiếu
-  tạm ứng cho biết chủng loại nào cần MAC (nguồn/phụ kiện không cần). MAC phải **có trong kho** trước (phiếu nhập) thì
-  mới nhập vào phiếu tạm ứng được.
+  tạm ứng cho biết chủng loại nào cần MAC (nguồn/phụ kiện không cần) → **đổi thiết bị khác không cần cấu hình**: tool đọc
+  popup (chỉ xem), rồi chọn mã hàng có `FK_CATEGORY_INSIDE_ID` = ID chủng loại (nhiều mã trùng tên, vd IQ 4S có 20055098
+  và 20058114). MAC phải **có trong kho** trước (phiếu nhập) thì mới nhập vào phiếu tạm ứng được; mỗi lần chạy tạo phiếu
+  nhập mới với MAC ngẫu nhiên không trùng.
 - **GHTK lab** gọi webhook `apis-stag.fpt.vn/.../ghtk-receive-data` → Fox ERP. Sau *Đã giao hàng*, Fox ERP tự tạo phiếu
   hoàn ứng, báo SPF, active camera, đẩy PHHD; bước nào lỗi (vd active camera với MAC giả) tool hiện ở **Cảnh báo**.
 - Lỗi giữa chừng: ảnh chụp màn hình ở `output/debug/`, nhật ký server ở `output/ui-server.log`.

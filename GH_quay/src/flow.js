@@ -93,20 +93,25 @@ export async function runFlow(opts, onLog = () => {}, onState = () => {}) {
       onLog('[SCM] Tạm ứng đã được xác nhận – bỏ qua bước 5-6');
     } else {
       system = config.scmUrl;
-      // Vật tư quản lý MAC = vật tư có mã hàng trong ITEM_CODES (nguồn/phụ kiện không cần MAC).
-      // Phải nhập MAC vào kho (phiếu nhập) TRƯỚC, rồi mới nhập MAC vào phiếu tạm ứng để xác nhận.
-      let wanted = t.advanceItems.filter((i) => itemCodeFor(i.name)).map((i) => ({ name: i.name, need: i.qty }));
-      const others = t.advanceItems.filter((i) => !itemCodeFor(i.name)).map((i) => i.name);
-      if (others.length) onLog(`[SCM] Không cần MAC: ${others.join(', ')}`);
-      if (!t.advanceItems.length) {
-        // Không đọc được vật tư từ lịch sử phiếu -> hỏi SCM chủng loại nào cần MAC
-        onLog(`[SCM] Đọc chủng loại cần MAC của phiếu ${record.advanceCode}`);
+      // Thiết bị nào cần MAC: SCM quyết định (popup "Nhập MAC" của phiếu tạm ứng chỉ liệt kê chủng loại quản lý MAC).
+      // Chỉ ĐỌC popup rồi đóng; thứ tự thao tác vẫn là: tạo phiếu nhập (MAC vào kho) TRƯỚC -> xác nhận tạm ứng SAU.
+      let wanted;
+      try {
+        onLog(`[SCM] Đọc thiết bị cần MAC của phiếu ${record.advanceCode} (chỉ xem, không nhập)`);
         wanted = (await scm.readMacCategories(record.advanceCode, onLog)).filter((c) => c.need > 0);
+      } catch (err) {
+        // Dự phòng: thiết bị trong lịch sử phiếu có khai trong ITEM_CODES
+        onLog(`⚠ Không đọc được từ SCM (${err.message}) – dùng ITEM_CODES trong .env`);
+        wanted = t.advanceItems.filter((i) => itemCodeFor(i.name)).map((i) => ({ name: i.name, need: i.qty }));
       }
+      const macNames = new Set(wanted.map((w) => w.name.toLowerCase()));
+      const others = t.advanceItems.map((i) => i.name).filter((n) => !macNames.has(n.toLowerCase()));
+      if (others.length) onLog(`[SCM] Không cần MAC: ${others.join(', ')}`);
       // Mỗi lần chạy luôn tạo phiếu nhập MỚI với MAC mới (không trùng MAC đã dùng ở các lần trước)
       const used = usedMacs();
       const items = wanted.map((c) => ({
-        name: c.name, code: itemCodeFor(c.name), macs: Array.from({ length: c.need }, () => randomMac(used)),
+        name: c.name, code: itemCodeFor(c.name), equipmentId: c.equipmentId,
+        macs: Array.from({ length: c.need }, () => randomMac(used)),
       }));
       let macs = items.flatMap((i) => i.macs);
       if (items.length) {
