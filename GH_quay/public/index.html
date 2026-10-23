@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GH quầy Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef; --row-hover: #f1f5fd; --row-active: #e3edfc;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240; --row-hover: #222a36; --row-active: #253553;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .bar { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
+  .card h2 .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  form { display: flex; flex-direction: column; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { font-size: 13px; color: var(--muted); }
+  input, select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; width: 100%; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  input#contract { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+  button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); padding: 6px 12px; }
+  button.ghost:hover:not(:disabled) { background: var(--row-hover); }
+  button.small { padding: 3px 9px; font-size: 12px; }
+  details { border: 1px dashed var(--line); border-radius: 6px; padding: 6px 10px; }
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  details[open] summary { margin-bottom: 8px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 0; }
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin: 0; white-space: pre-wrap; }
+  .status.err { background: var(--err-bg); color: var(--err); }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .step { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--muted); }
+  .step b { display: block; font-size: 13px; color: var(--text); }
+  .step.doing { border-color: var(--primary); background: var(--row-active); }
+  .step.done { border-color: var(--ok); background: var(--ok-bg); }
+  .step.done b::before { content: "✔ "; color: var(--ok); }
+  .step.fail { border-color: var(--err); background: var(--err-bg); }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; margin: 0 0 12px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-weight: 600; word-break: break-all; }
+  .kv dd .copy { margin-left: 6px; cursor: pointer; color: var(--primary); font-weight: 400; font-size: 12px; }
+  .log { margin: 0; padding: 10px 12px; max-height: 340px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .log .t { color: var(--muted); }
+  .table-wrap { overflow: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--card); font-weight: 600; color: var(--muted); z-index: 1; }
+  td.err { color: var(--err); white-space: normal; min-width: 200px; }
+  tbody tr:hover { background: var(--row-hover); }
+  .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+  .hidden { display: none !important; }
+  .links { display: flex; gap: 6px; flex-wrap: wrap; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    header { padding: 10px 16px; }
+    .bar { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Giao hàng tại quầy</h1>
+  <span class="badge" id="envBadge">stag</span>
+  <div class="bar">
+    <span class="who" id="who"><span class="dot"></span><span id="whoText">Trình duyệt chưa mở</span></span>
+    <button class="ghost" data-open="erp" title="Mở Fox ERP trong cửa sổ trình duyệt của tool để đăng nhập">Fox ERP</button>
+    <button class="ghost" data-open="scm" title="Mở SCM để đăng nhập">SCM</button>
+    <button class="ghost" data-open="ghtk" title="Mở GHTK lab để đăng nhập">GHTK</button>
+    <button class="ghost" id="btnClose" title="Đóng cửa sổ trình duyệt của tool">Đóng trình duyệt</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>Chạy luồng</h2>
+      <form id="runForm">
+        <div class="field">
+          <label for="contract">Số hợp đồng</label>
+          <input id="contract" placeholder="vd: SGABP5121" autocomplete="off" required>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="until">Chạy tới</label>
+            <select id="until"></select>
+          </div>
+          <div class="field">
+            <label for="ghtkStatus">Trạng thái GHTK</label>
+            <select id="ghtkStatus"></select>
+          </div>
+        </div>
+        <details>
+          <summary>Tùy chọn (kho, SĐT kho, đơn vị vận chuyển)</summary>
+          <div class="row2">
+            <div class="field"><label for="stock">Kho xuất (Fox ERP)</label><input id="stock"></div>
+            <div class="field"><label for="phone">SĐT kho</label><input id="phone"></div>
+          </div>
+          <div class="field" style="margin-top:8px"><label for="carrier">Đơn vị vận chuyển</label><input id="carrier"></div>
+        </details>
+        <button type="submit" id="btnRun">Chạy</button>
+        <p class="hint">Tool mở 1 cửa sổ trình duyệt và tự thao tác. Hệ thống nào chưa đăng nhập thì đăng nhập ngay trong cửa sổ đó, tool sẽ tự chạy tiếp.
+          Chạy lại cùng HĐ sẽ tiếp tục từ bước còn dở. MAC được sinh ngẫu nhiên (12 ký tự hex).</p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Đẩy trạng thái GHTK <span class="sub">cho vận đơn có sẵn</span></h2>
+      <form id="ghtkForm">
+        <div class="field">
+          <label for="ghtkCodes">Mã vận đơn (nhiều mã cách nhau dấu phẩy)</label>
+          <input id="ghtkCodes" placeholder="vd: S23115402.1100037933" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="ghtkOnlyStatus">Trạng thái</label>
+          <select id="ghtkOnlyStatus"></select>
+        </div>
+        <button type="submit" id="btnGhtk" class="ghost">Gửi trạng thái</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card hidden" id="jobCard">
+      <h2>Tiến độ <span class="sub" id="jobSub"></span></h2>
+      <div class="steps" id="steps"></div>
+      <p class="status hidden" id="jobMsg"></p>
+      <dl class="kv" id="resultKv"></dl>
+      <pre class="log" id="log"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Các lần chạy gần đây <span class="actions"><button class="ghost small" id="btnRuns">Tải lại</button></span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>HĐ</th><th>Phiếu GH</th><th>Tạm ứng</th><th>Phiếu nhập</th><th>Vận đơn</th><th>Trạng thái</th><th>Lỗi</th></tr></thead>
+          <tbody id="runsBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:8px">Lưu đầy đủ ở <code>output/runs.csv</code> (mở bằng Excel) và <code>output/runs.jsonl</code>.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem('gh-quay:' + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('gh-quay:' + k, v); } catch {} },
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+// Các chặng của luồng: hiện tiến độ theo log
+const PHASES = [
+  { key: 'advance', title: 'Fox ERP 1-4', desc: 'Nhận xử lý, chọn kho, tạo tạm ứng', start: /^\[Fox ERP\] Tìm HĐ/, done: /Tạo phiếu tạm ứng vật tư|Đã có phiếu tạm ứng/ },
+  { key: 'scm', title: 'SCM 5-6', desc: 'Phiếu nhập MAC, xác nhận tạm ứng', start: /^\[SCM\]/, done: /Xác nhận tạm ứng – chờ|bỏ qua bước 5-6/ },
+  { key: 'ship', title: 'Fox ERP 7', desc: 'GHTK, lưu & đóng hàng', start: /Chọn đơn vị vận chuyển|Lưu phiếu|Đóng hàng|bỏ qua bước 7/, done: /Tạo vận đơn|bỏ qua bước 7/ },
+  { key: 'done', title: 'GHTK 8-10', desc: 'Đẩy trạng thái vận đơn', start: /^GHTK:|Chờ nhận trạng thái/, done: /Trạng thái phiếu:/ },
+];
+const RESULT_LABELS = {
+  contract: 'Số HĐ', orderCode: 'Mã đơn hàng', deliveryCode: 'Mã phiếu giao hàng', advanceCode: 'Phiếu tạm ứng',
+  importCode: 'Phiếu nhập SCM', macs: 'MAC', trackingCode: 'Mã vận đơn', ghtkStatus: 'Trạng thái GHTK đã đẩy',
+  ticketStatus: 'Trạng thái phiếu', deliveryStatus: 'Trạng thái giao hàng', warnings: 'Cảnh báo', screenshot: 'Ảnh lỗi',
+};
+
+let cfg = null;
+let polling = null;
+
+function fillSelect(sel, entries, value) {
+  sel.innerHTML = entries.map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+  sel.value = value;
+}
+
+async function loadConfig() {
+  cfg = await api('/api/config');
+  $('envBadge').textContent = cfg.env;
+  fillSelect($('until'), Object.entries(cfg.stopPoints), store.get('until') || cfg.defaults.until);
+  const statuses = Object.entries(cfg.ghtkStatuses).sort((a, b) => a[0] - b[0]).map(([k, v]) => [k, `${k} - ${v}`]);
+  fillSelect($('ghtkStatus'), statuses, store.get('ghtkStatus') || cfg.defaults.ghtkStatus);
+  fillSelect($('ghtkOnlyStatus'), statuses, cfg.defaults.ghtkStatus);
+  for (const k of ['stock', 'phone', 'carrier']) $(k).value = store.get(k) || cfg.defaults[k];
+  $('contract').value = store.get('contract') || '';
+  syncStatusField();
+  setBrowser(cfg.browserOpen);
+}
+
+function setBrowser(open) {
+  $('who').classList.toggle('on', open);
+  $('whoText').textContent = open ? 'Trình duyệt đang mở' : 'Trình duyệt chưa mở';
+}
+
+function syncStatusField() { $('ghtkStatus').disabled = $('until').value !== 'done'; }
+$('until').addEventListener('change', syncStatusField);
+
+function renderJob(job) {
+  $('jobCard').classList.remove('hidden');
+  const secs = Math.round(job.elapsedMs / 1000);
+  $('jobSub').textContent = `${job.kind === 'flow' ? 'HĐ ' + (job.input.contract || '').toUpperCase() : 'Đẩy trạng thái GHTK'} · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  // Chặng
+  const logs = job.logs.map((l) => l.msg);
+  const steps = $('steps');
+  if (job.kind === 'flow') {
+    const until = job.input.until || 'done';
+    const last = PHASES.findIndex((p) => p.key === until);
+    steps.classList.remove('hidden');
+    steps.innerHTML = PHASES.map((p, i) => {
+      const started = logs.some((m) => p.start.test(m));
+      const done = logs.some((m) => p.done.test(m));
+      let cls = done ? 'done' : started ? (job.running ? 'doing' : job.error ? 'fail' : '') : '';
+      if (i > last) cls = '';
+      return `<div class="step ${cls}" style="${i > last ? 'opacity:.45' : ''}"><b>${p.title}</b>${p.desc}</div>`;
+    }).join('');
+  } else steps.classList.add('hidden');
+
+  const msg = $('jobMsg');
+  msg.classList.remove('hidden', 'err', 'ok', 'info');
+  if (job.running) {
+    const lastLog = logs[logs.length - 1] || 'Đang mở trình duyệt...';
+    msg.classList.add('info');
+    msg.innerHTML = `<span class="spinner"></span>${esc(lastLog)}`;
+  } else if (job.error) {
+    msg.classList.add('err');
+    msg.textContent = job.error;
+  } else {
+    msg.classList.add('ok');
+    msg.textContent = 'Hoàn tất';
+  }
+
+  const r = job.result || {};
+  $('resultKv').innerHTML = Object.entries(RESULT_LABELS).filter(([k]) => r[k]).map(([k, label]) => {
+    const v = Array.isArray(r[k]) ? r[k].join('\n') : r[k];
+    const copy = ['contract', 'orderCode', 'deliveryCode', 'advanceCode', 'importCode', 'trackingCode'].includes(k)
+      ? `<span class="copy" data-copy="${esc(v)}">sao chép</span>` : '';
+    return `<dt>${label}</dt><dd>${esc(v).replace(/\n/g, '<br>')}${copy}</dd>`;
+  }).join('');
+
+  $('log').classList.toggle('hidden', !job.logs.length);
+  $('log').innerHTML = job.logs.map((l) => `<span class="t">${new Date(l.at).toLocaleTimeString('vi-VN')}</span>  ${esc(l.msg)}`).join('\n');
+  $('log').scrollTop = $('log').scrollHeight;
+
+  const busy = job.running;
+  $('btnRun').disabled = busy;
+  $('btnGhtk').disabled = busy;
+  if (busy) setBrowser(true);
+}
+
+async function poll() {
+  clearTimeout(polling);
+  try {
+    const job = await api('/api/job');
+    if (job) {
+      renderJob(job);
+      if (job.running) { polling = setTimeout(poll, 1500); return; }
+      loadRuns();
+    }
+  } catch (err) {
+    polling = setTimeout(poll, 3000);
+  }
+}
+
+$('runForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    contract: $('contract').value.trim(), until: $('until').value, ghtkStatus: $('ghtkStatus').value,
+    stock: $('stock').value.trim(), phone: $('phone').value.trim(), carrier: $('carrier').value.trim(),
+  };
+  for (const k of ['contract', 'until', 'ghtkStatus', 'stock', 'phone', 'carrier']) store.set(k, body[k]);
+  try {
+    await api('/api/run', body);
+    poll();
+  } catch (err) {
+    alertBox(err.message);
+  }
+});
+
+$('ghtkForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/ghtk', { codes: $('ghtkCodes').value, status: $('ghtkOnlyStatus').value });
+    poll();
+  } catch (err) {
+    alertBox(err.message);
+  }
+});
+
+function alertBox(text) {
+  $('jobCard').classList.remove('hidden');
+  const msg = $('jobMsg');
+  msg.className = 'status err';
+  msg.textContent = text;
+}
+
+document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', async () => {
+  b.disabled = true;
+  try { setBrowser((await api('/api/browser/open', { system: b.dataset.open })).browserOpen); }
+  catch (err) { alertBox(err.message); }
+  finally { b.disabled = false; }
+}));
+
+$('btnClose').addEventListener('click', async () => {
+  try { setBrowser((await api('/api/browser/close', {})).browserOpen); } catch (err) { alertBox(err.message); }
+});
+
+$('resultKv').addEventListener('click', (e) => {
+  const v = e.target.dataset?.copy;
+  if (!v) return;
+  navigator.clipboard?.writeText(v);
+  e.target.textContent = 'đã chép';
+  setTimeout(() => { e.target.textContent = 'sao chép'; }, 1200);
+});
+
+async function loadRuns() {
+  const runs = await api('/api/runs').catch(() => []);
+  $('runsBody').innerHTML = runs.length ? runs.map((r) => `<tr>
+    <td>${esc(new Date(r.finishedAt || r.startedAt).toLocaleString('vi-VN'))}</td>
+    <td>${esc(r.contract)}</td><td>${esc(r.deliveryCode)}</td><td>${esc(r.advanceCode)}</td><td>${esc(r.importCode)}</td>
+    <td>${esc(r.trackingCode)}</td><td>${esc(r.deliveryStatus || r.ticketStatus)}</td><td class="err">${esc(r.error)}</td></tr>`).join('')
+    : '<tr><td colspan="8" class="empty">Chưa có lần chạy nào</td></tr>';
+}
+$('btnRuns').addEventListener('click', loadRuns);
+
+loadConfig().then(poll).catch((err) => alertBox('Không kết nối được server: ' + err.message));
+loadRuns();
+</script>
+</body>
+</html>

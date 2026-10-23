@@ -1,0 +1,9 @@
+node_modules/
+.env
+.cache/
+output/
+dist/
+runtime/
+*.log
+storageState*.json
+sso-*.json

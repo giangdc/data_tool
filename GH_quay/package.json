@@ -1,0 +1,23 @@
+{
+  "name": "gh-quay-tool",
+  "version": "1.0.0",
+  "description": "Tool hỗ trợ QC chạy nhanh luồng Giao hàng tại quầy: Fox ERP (nhận xử lý, tạm ứng vật tư) → SCM (phiếu nhập MAC, xác nhận tạm ứng) → Fox ERP (GHTK, đóng hàng) → GHTK lab (đẩy trạng thái vận đơn)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "gh-quay": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "ui": "node src/server.js",
+    "run-flow": "node src/cli.js run",
+    "ghtk": "node src/cli.js ghtk",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  },
+  "dependencies": {
+    "playwright-core": "1.62.0"
+  }
+}
