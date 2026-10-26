@@ -12,7 +12,10 @@ Mỗi tool nằm trong 1 thư mục riêng, có README hướng dẫn chi tiết
 | **FPT Play Order Tool** | [`FPL/`](FPL/README.md) | dev.fptplay.vn | Nhập link gói → đăng nhập OTP mặc định → tạo giao dịch → tự thanh toán thẻ test → xem gói trên tài khoản | 3002 | v1.0.0 |
 | **CRM Data Tool** | [`CRM/`](CRM/) | crm-stag.fpt.net | Tạo cơ hội (theo cơ hội mẫu) → Báo giá → Đánh dấu version → Tạo đơn hàng | 3002 | v1.0.0 (đang phát triển) |
 | **Bill Detail Tool** | [`Bill_Detail/`](Bill_Detail/README.md) | inside.fpt.net stag (Liệt kê cước) | Nhập số hợp đồng → danh sách hóa đơn → chi tiết hóa đơn (gọi thẳng API, tránh timeout của inside) | 3003 | v1.0.0 |
-| **SOP Order Tool** | [`SOP/`](SOP/README.md) | portal-sop-stg.fpt.vn (Sale Platform) | Nhập SĐT KH → địa chỉ (tìm trên bản đồ) → combo Internet → PTTT → Tạo báo giá → Tạo hợp đồng + khảo sát định danh | 3005 | v0.1.0 |
+| **SOP Order Tool** | [`SOP/`](SOP/README.md) | portal-sop-stg.fpt.vn (Sale Platform) | Nhập SĐT KH → địa chỉ (tìm trên bản đồ) → combo Internet → PTTT → Tạo báo giá → Tạo hợp đồng + khảo sát định danh | 3007 | v0.1.0 |
+| **GH quầy Tool** | [`GH_quay/`](GH_quay/README.md) | Fox ERP stag + SCM UAT + GHTK lab | Nhập số HĐ → nhận xử lý phiếu, tạm ứng vật tư (Fox ERP) → phiếu nhập MAC, xác nhận tạm ứng (SCM) → GHTK, đóng hàng → đẩy trạng thái vận đơn (GHTK lab) | 3004 | v1.0.0 (đang thử nghiệm) |
+| **GH Vendor Tool** | [`GH_Vendor/`](GH_Vendor/README.md) | Fox ERP stag (Quản lý NCU) | Nhập mã đơn hàng FTEL → tab Quản lý phiếu giao hàng: Chưa giao hàng → Đang giao hàng (hoá đơn NCU, ngày, tệp HĐ điện tử) → Đã hoàn tất | 3005 | v1.0.0 (đang thử nghiệm) |
+| **Thanh toán Tool** | [`Thanh_toan/`](Thanh_toan/README.md) | staging.fpt.vn/pay + Foxpay stag | Nhập số HĐ → tích khoản thu → Thẻ Quốc Tế / Thẻ Nội địa → xác nhận SĐT → nhập thẻ test + OTP → "Thanh toán thành công" | 3006 | v1.0.0 (đang thử nghiệm) |
 
 > FPL và CRM cùng mặc định cổng **3002** – muốn chạy song song thì đổi `UI_PORT` trong `.env` của một tool.
 

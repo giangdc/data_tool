@@ -30,7 +30,7 @@ export const config = {
   },
   headless: env('HEADLESS', 'false').toLowerCase() === 'true',
   browser: env('BROWSER', 'auto').toLowerCase(),
-  uiPort: Number(env('UI_PORT')) || 3005,
+  uiPort: Number(env('UI_PORT')) || 3007,
 };
 
 /** Tài khoản Portal SOP: đọc lại .env mỗi lần (sửa trên giao diện / tay đều có hiệu lực ngay). Không log. */

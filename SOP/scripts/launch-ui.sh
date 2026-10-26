@@ -5,7 +5,7 @@ APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$APP_DIR/output"
 PID_FILE="$APP_DIR/.cache/ui-server.pid"
 PORT="$(grep -E '^UI_PORT=' "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]')"
-PORT="${PORT:-3005}"
+PORT="${PORT:-3007}"
 URL="http://localhost:$PORT"
 
 notify() { command -v notify-send >/dev/null && notify-send -i "$APP_DIR/assets/icon.svg" "SOP Order Tool" "$1"; }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Giao diện web chạy trên máy: npm run ui -> http://localhost:3005
+// Giao diện web chạy trên máy: npm run ui -> http://localhost:3007
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';

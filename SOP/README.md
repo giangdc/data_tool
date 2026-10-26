@@ -21,7 +21,7 @@ Chưa làm: bước **Thanh toán** sau khi có HĐ.
 ```bash
 cd SOP
 npm install
-npm run ui            # mở http://localhost:3005
+npm run ui            # mở http://localhost:3007
 # hoặc: bash install.sh  (cài thư viện + tạo icon Desktop/menu + mở giao diện)
 ```
 
@@ -56,7 +56,7 @@ npm run order -- --phone 0964633310 --address "123, Trương Định, Phường 
 | `SOP_USER`, `SOP_PASSWORD` | Tài khoản Portal SOP (nhập trên giao diện được) |
 | `DEFAULT_PHONE`, `DEFAULT_ADDRESS`, `DEFAULT_COMBO`, `DEFAULT_COMBO_INDEX`, `DEFAULT_PAYMENT` | Giá trị mặc định của form |
 | `HEADLESS` | `true` chạy ẩn trình duyệt, `false` (mặc định) hiện cửa sổ để theo dõi |
-| `UI_PORT` | Cổng giao diện (mặc định 3005) |
+| `UI_PORT` | Cổng giao diện (mặc định 3007) |
 
 ## Cấu trúc
 
@@ -65,7 +65,7 @@ config/environments.js   URL portal + trang đăng nhập basic-auth
 src/core/                env (.env, tài khoản), browser (Chrome + đăng nhập), store (csv/jsonl), logger
 src/sop/flutter.js       điều khiển Flutter web: đọc nhãn qua semantics (click xuyên), bấm toạ độ, chờ màn đổi
 src/sop/order.js         luồng tạo đơn + HĐ; mã đơn/HĐ/link/bookport đọc từ response API sapi.fpt.vn
-src/server.js, cli.js    giao diện web (cổng 3005) + dòng lệnh
+src/server.js, cli.js    giao diện web (cổng 3007) + dòng lệnh
 khao-sat/                ghi chép khảo sát (KHAO_SAT.md) + script khảo sát (Chrome debug 9333, netlog chỉ ghi KEY)
 ```
 
