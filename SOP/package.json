@@ -1,0 +1,22 @@
+{
+  "name": "sop-order-tool",
+  "version": "0.1.0",
+  "description": "Tool hỗ trợ QC tạo nhanh đơn Internet + hợp đồng trên Portal SOP stag (portal-sop-stg.fpt.vn)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "ui": "node src/server.js",
+    "order": "node src/cli.js",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  },
+  "dependencies": {
+    "playwright-core": "1.62.0"
+  },
+  "bin": {
+    "sop-order": "src/cli.js"
+  }
+}

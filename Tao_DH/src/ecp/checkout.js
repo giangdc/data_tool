@@ -1,17 +1,23 @@
 // Luồng checkout fpt.vn qua API ECP (đã khảo sát 2026-10-16 trên staging.fpt.vn):
 //   checkout/create -> address -> [payment-methods/get] -> customer -> payment -> voucher/apply -> complete -> checkout/get
 // Tạo checkout + địa chỉ trước để lấy danh sách PTTT của gói (PTTT chỉ có sau bước address).
+// Gói catalog mới FCP (source 'FCP', vd PRD_NET_001 – khảo sát 2026-10-22): create/address/calculate/payment-methods/customer/payment
+// dùng bản v2 (/ordering/public/v2), voucher/complete/get vẫn v1. PTTT v2 chọn bằng payment_method_id.
 import { formatVnd } from './product.js';
 
 const P = '/ordering/public/v1';
+const P2 = '/ordering/public/v2';
+/** Bước create/address/calculate/payment-methods/customer/payment: gói FCP đi v2 */
+const base = (source) => (source === 'FCP' ? P2 : P);
 
 const httpErr = (message) => Object.assign(new Error(message), { status: 400 });
 
 /** Tạo checkout cho 1 gói -> { checkoutId, token } */
-export async function createCheckout(api, { slug, sourceUrl, webUrl }) {
+export async function createCheckout(api, { slug, sourceUrl, webUrl, source }) {
   const path = new URL(sourceUrl).pathname.replace(/^\//, '');
-  const d = await api.post(`${P}/checkout/create`, {
+  const d = await api.post(`${base(source)}/checkout/create`, {
     bundles: [{ bundle_code: slug }],
+    ...(source === 'FCP' && { order_info: { order_type: 1 } }),
     referral: {
       tracking_id: '', url: webUrl, camp_medium: '', camp_name: '', camp_term: '', camp_content: '',
       camp_extra: JSON.stringify({ url: sourceUrl, route_name: slug }),
@@ -60,9 +66,9 @@ export const noPolicyMessage = (a) =>
  * Gửi địa chỉ lên checkout. Địa chỉ không có chính sách -> ném lỗi (code NO_POLICY) với câu dễ hiểu.
  * (web fpt.vn nuốt lỗi này, vẫn cho đi tiếp rồi báo "Đăng ký thành công" mà không có đơn)
  */
-export async function setAddress(capi, address) {
+export async function setAddress(capi, address, source) {
   try {
-    return await capi.post(`${P}/checkout/address`, toAddressPayload(address));
+    return await capi.post(`${base(source)}/checkout/address`, toAddressPayload(address));
   } catch (err) {
     if (err.code === NO_POLICY) throw Object.assign(new Error(noPolicyMessage(address)), { status: 400, code: NO_POLICY });
     throw err;
@@ -76,17 +82,23 @@ export async function setAddress(capi, address) {
 export async function applySelection(capi, { slug, offer, addons, extraSkuIds = [] }) {
   const unknown = extraSkuIds.filter((id) => !offer.extras.some((e) => String(e.skuId) === String(id)));
   if (unknown.length) throw httpErr(`Dịch vụ bổ sung không có trong lựa chọn "${offer.label}": ${unknown.join(', ')}`);
+  // Gói FCP (parseFcpOffers): chỉ gửi hình thức trả + số tháng sử dụng như web
+  if (offer.paymentTermId != null) {
+    return capi.post(`${P2}/checkout/calculate`, { bundles: [{ bundle_code: slug, payment_term_id: offer.paymentTermId, contract_length_months: offer.months }] });
+  }
   return capi.post(`${P}/checkout/calculate`, {
     bundles: [{
       bundle_code: slug,
       price_list_id: offer.priceListId,
       billing_type_id: offer.billingTypeId,
       billing_cycle: offer.billingCycle,
-      contract_length_months: offer.months,
-      products: [],
+      contract_length_months: offer.products ? offer.contractMonths : offer.months,
+      products: offer.products ?? [],
       addons,
       extras: [
         ...extraSkuIds.map((id) => ({ sku_id: Number(id), parent_sku_id: null, quantity: 1 })),
+        // Gói thiết bị: không chọn "tự lắp đặt" (gói giao hàng) thì gửi phí triển khai = hỗ trợ lắp đặt (như web)
+        ...(offer.extras.some((e) => e.delivery && extraSkuIds.map(String).includes(String(e.skuId))) ? [] : offer.installFees ?? []),
         // Quà tặng web tự chọn sẵn theo chính sách trả trước (vd camera)
         ...offer.gifts.map(({ group_id, sku_group_id, quantity }) => ({ group_id, sku_group_id, quantity })),
       ],
@@ -94,17 +106,24 @@ export async function applySelection(capi, { slug, offer, addons, extraSkuIds = 
   });
 }
 
-/** PTTT khả dụng của gói -> [{ code, name, method: 'COD'|'Online', type, icon }] (thứ tự như web) */
-export async function getPaymentMethods(capi, slug) {
-  const list = (await capi.post(`${P}/checkout/payment-methods/get`, { bundle_codes: [slug] })) || [];
-  return list.map((m) => ({ code: m.code, name: m.name, method: m.payment_method, type: m.payment_type, icon: m.icon }));
+/** PTTT khả dụng của gói -> [{ code, name, method: 'COD'|'Online', type, icon, id }] (thứ tự như web; id = payment_method_id của FCP) */
+export async function getPaymentMethods(capi, slug, source) {
+  const list = (source === 'FCP'
+    ? await capi.post(`${P2}/checkout/payment-methods/get`)
+    : await capi.post(`${P}/checkout/payment-methods/get`, { bundle_codes: [slug] })) || [];
+  return list.map((m) => ({ code: m.code, name: m.name, method: m.payment_method, type: m.payment_type, icon: m.icon, id: m.payment_method_id }));
 }
+
+/** Chọn PTTT cho checkout (FCP: theo payment_method_id) */
+const selectPayment = (capi, method, source) => capi.post(`${base(source)}/checkout/payment`, source === 'FCP'
+  ? { selected_payment_method_id: method.id, selected_online_method: method.method === 'COD' ? '' : method.code }
+  : { selected_payment_method: method.method, selected_online_method: method.method === 'COD' ? null : method.code });
 
 export const getCheckout = (capi) => capi.post(`${P}/checkout/get`, {});
 
 /** Đọc lại PTTT + giá hiện tại của checkout (sau khi đổi địa chỉ / lựa chọn) */
-export async function checkoutSnapshot(capi, slug) {
-  const [methods, data] = await Promise.all([getPaymentMethods(capi, slug), getCheckout(capi)]);
+export async function checkoutSnapshot(capi, slug, source) {
+  const [methods, data] = await Promise.all([getPaymentMethods(capi, slug, source), getCheckout(capi)]);
   return { methods, view: toOrderView(data) };
 }
 
@@ -112,7 +131,7 @@ const SDT = /^0\d{9}$/;
 
 /**
  * Tạo đơn trên checkout đã có (đã set địa chỉ hoặc chưa).
- * input: { slug, fullName, phone, address (đã resolve), note, paymentCode, selection: {offer, addons, extraSkuIds} }
+ * input: { slug, source, fullName, phone, address (đã resolve), note, paymentCode, selection: {offer, addons, extraSkuIds} }
  * -> { steps, complete (data của checkout/complete), order (checkout/get), method }
  */
 export async function placeOrder(capi, input) {
@@ -122,12 +141,13 @@ export async function placeOrder(capi, input) {
   if (!SDT.test(phone)) throw httpErr(`Số điện thoại không hợp lệ: "${input.phone}" (cần 10 số, bắt đầu bằng 0)`);
   const steps = [];
 
-  await setAddress(capi, input.address);
+  const { source } = input;
+  await setAddress(capi, input.address, source);
   steps.push('địa chỉ');
 
   // Lỗi ở bước này web fpt.vn vẫn báo "Đăng ký thành công" (thực chất chỉ là lead) -> tool báo lỗi thật
   const address = toAddressPayload(input.address);
-  await capi.post(`${P}/checkout/customer`, { full_name: fullName, phone, ...address, note: String(input.note ?? '') });
+  await capi.post(`${base(source)}/checkout/customer`, { full_name: fullName, phone, ...address, note: String(input.note ?? '') });
   steps.push('khách hàng');
 
   if (input.selection) {
@@ -136,15 +156,12 @@ export async function placeOrder(capi, input) {
   }
 
   // PTTT phụ thuộc lựa chọn (vd thêm dịch vụ bổ sung thì mất "Thanh toán tại nhà") -> lấy sau calculate
-  const methods = await getPaymentMethods(capi, input.slug);
+  const methods = await getPaymentMethods(capi, input.slug, source);
   if (!methods.length) throw httpErr('Gói không có phương thức thanh toán nào với lựa chọn / địa chỉ này');
   const method = methods.find((m) => m.code === input.paymentCode) ?? (input.paymentCode ? null : methods[0]);
   if (!method) throw httpErr(`PTTT "${input.paymentCode}" không khả dụng với lựa chọn này. Có: ${methods.map((m) => `${m.code} (${m.name})`).join(', ')}`);
 
-  await capi.post(`${P}/checkout/payment`, {
-    selected_payment_method: method.method,
-    selected_online_method: method.method === 'COD' ? null : method.code,
-  });
+  await selectPayment(capi, method, source);
   steps.push(`PTTT ${method.name}`);
 
   // Web tự áp ưu đãi mặc định trước khi thanh toán
@@ -168,11 +185,11 @@ export async function placeOrder(capi, input) {
  * Chỉ PTTT online: đổi sang "Thanh toán tại nhà" ECP báo ORDER_SUBMISSION_FAILED (staging 2026-10-19).
  * -> { method, complete }
  */
-export async function changePayment(capi, slug, paymentCode) {
-  const methods = await onlineMethods(capi, slug);
+export async function changePayment(capi, slug, paymentCode, source) {
+  const methods = await onlineMethods(capi, slug, source);
   const method = methods.find((m) => m.code === paymentCode);
   if (!method) throw httpErr(`PTTT "${paymentCode}" không đổi được cho đơn này. Có: ${methods.map((m) => `${m.code} (${m.name})`).join(', ')}`);
-  await capi.post(`${P}/checkout/payment`, { selected_payment_method: method.method, selected_online_method: method.code });
+  await selectPayment(capi, method, source);
   await capi.post(`${P}/voucher/apply`, { vouchers: [], mode: 'Auto' }).catch(() => {});
   const complete = await capi.post(`${P}/checkout/complete`, {});
   if (!complete?.redirect_url && !complete?.qr_code_info?.image_base64) throw httpErr(`Đổi PTTT xong nhưng không có link/QR thanh toán (status: ${complete?.status ?? '?'})`);
@@ -180,7 +197,7 @@ export async function changePayment(capi, slug, paymentCode) {
 }
 
 /** PTTT đổi được khi thanh toán lại (bỏ COD) */
-export const onlineMethods = async (capi, slug) => (await getPaymentMethods(capi, slug)).filter((m) => m.method !== 'COD');
+export const onlineMethods = async (capi, slug, source) => (await getPaymentMethods(capi, slug, source)).filter((m) => m.method !== 'COD');
 
 /** checkout/complete -> cách thanh toán cho UI: { type: 'none'|'redirect'|'qr', url?, qrImage?, expireSeconds?, deeplink? } */
 export function toPayment(complete) {

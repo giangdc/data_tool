@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bill Detail Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef; --row-hover: #f1f5fd; --row-active: #e3edfc;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240; --row-hover: #222a36; --row-active: #253553;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .login-bar { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  .login-bar a { font-size: 12px; color: var(--muted); }
+  #acctForm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #acctForm.hidden { display: none; }
+  #acctForm input { width: 150px; padding: 6px 10px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
+  .card h2 .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  form.search { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+  form.search .field { display: flex; flex-direction: column; gap: 4px; }
+  form.search .field.grow { flex: 1 1 220px; }
+  label { font-size: 13px; color: var(--muted); }
+  input, select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); padding: 6px 12px; }
+  button.ghost:hover:not(:disabled) { background: var(--row-hover); }
+  .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin: 0; }
+  .status.err { background: var(--err-bg); color: var(--err); }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .contract-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 18px; font-size: 13px; }
+  .contract-info div span { color: var(--muted); display: block; font-size: 12px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chips button { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; padding: 4px 10px; }
+  .chips button.active { border-color: var(--primary); color: var(--primary); background: var(--row-active); }
+  .table-wrap { overflow: auto; max-height: 460px; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--card); font-weight: 600; color: var(--muted); z-index: 1; cursor: pointer; user-select: none; }
+  th.num, td.num { text-align: right; }
+  td.wrap { white-space: normal; min-width: 160px; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr.active { background: var(--row-active); }
+  tbody tr.cancelled td { color: var(--muted); text-decoration: line-through; }
+  tbody tr.cancelled td.note { text-decoration: none; }
+  td a { color: var(--primary); font-weight: 600; text-decoration: none; }
+  tfoot td { font-weight: 700; position: sticky; bottom: 0; background: var(--card); }
+  .debt { color: var(--err); }
+  #filter { width: 220px; padding: 6px 10px; }
+  iframe { width: 100%; min-height: 640px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+  .hidden { display: none !important; }
+  @media (max-width: 640px) {
+    header { padding: 10px 16px; }
+    .login-bar { margin-left: 0; }
+    #filter { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tra cứu chi tiết hóa đơn</h1>
+  <span class="badge" id="envBadge">stag</span>
+  <div class="login-bar">
+    <span class="who" id="who"><span class="dot"></span><span id="whoText">Đang kiểm tra...</span></span>
+    <form id="acctForm" class="hidden" autocomplete="off">
+      <input id="acctUser" placeholder="Tài khoản inside" aria-label="Tài khoản inside" autocomplete="username">
+      <input id="acctPassword" type="password" placeholder="Mật khẩu" aria-label="Mật khẩu" autocomplete="current-password">
+      <input id="acctOtp" type="password" placeholder="OTP (nếu có)" aria-label="OTP" autocomplete="off">
+      <button id="btnSaveAcct" type="submit">Lưu &amp; đăng nhập</button>
+      <button id="btnCancelAcct" type="button" class="ghost">Hủy</button>
+    </form>
+    <button id="btnLogin" class="ghost">Đăng nhập</button>
+    <button id="btnLogout" class="ghost hidden">Đăng xuất</button>
+    <a href="#" id="acctEditLink" title="Tài khoản lưu trong file .env của máy này">Đổi tài khoản</a>
+    <a id="insideLink" href="http://inside.fpt.net" target="_blank" rel="noopener">Mở inside ↗</a>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <form class="search" id="searchForm">
+      <div class="field grow">
+        <label for="contract">Số hợp đồng</label>
+        <input id="contract" placeholder="vd: SGH835870" autocomplete="off" required>
+      </div>
+      <div class="field">
+        <label for="year">Năm</label>
+        <select id="year"></select>
+      </div>
+      <div class="field">
+        <label for="month">Tháng</label>
+        <select id="month"></select>
+      </div>
+      <button type="submit" id="btnSearch">Tra cứu</button>
+    </form>
+    <p class="hint">Chọn năm cụ thể sẽ nhanh hơn nhiều (~0.5s) so với "Toàn bộ" (HĐ nhiều hóa đơn có thể mất 15s+). Danh sách được nhớ 10 phút, bấm "Tải lại" để lấy mới.</p>
+    <p class="status hidden" id="msg"></p>
+  </section>
+
+  <section class="card hidden" id="contractCard">
+    <h2>Hợp đồng</h2>
+    <div class="chips hidden" id="contractChips"></div>
+    <div class="contract-info" id="contractInfo"></div>
+  </section>
+
+  <section class="card hidden" id="billsCard">
+    <h2>Danh sách hóa đơn <span class="sub" id="billsSub"></span>
+      <span class="actions">
+        <input id="filter" placeholder="Lọc: số HĐ, nội dung, NV bán..." autocomplete="off">
+        <button class="ghost" id="btnReload" type="button">Tải lại</button>
+      </span>
+    </h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="billsHead"></tr></thead>
+        <tbody id="billsBody"></tbody>
+        <tfoot><tr id="billsFoot"></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="card hidden" id="detailCard">
+    <h2>Chi tiết hóa đơn <span class="sub" id="detailSub"></span>
+      <span class="actions"><a id="detailOpen" target="_blank" rel="noopener"><button class="ghost" type="button">Mở tab mới ↗</button></a></span>
+    </h2>
+    <iframe id="detailFrame" title="Chi tiết hóa đơn" sandbox="allow-same-origin"></iframe>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem('bill-detail:' + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('bill-detail:' + k, v); } catch {} },
+};
+const fmt = (n) => (n ?? 0).toLocaleString('vi-VN');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+const state = { contracts: [], contract: null, rows: [], sort: null, activeBill: null };
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+
+let timer = null;
+function showMsg(kind, text, { elapsed = false } = {}) {
+  clearInterval(timer);
+  const el = $('msg');
+  el.className = 'status ' + kind;
+  if (!text) return el.classList.add('hidden');
+  if (!elapsed) { el.textContent = text; return; }
+  const started = Date.now();
+  const tick = () => { el.innerHTML = `<span class="spinner"></span>${esc(text)} (${Math.floor((Date.now() - started) / 1000)}s)`; };
+  tick();
+  timer = setInterval(tick, 1000);
+}
+
+function handleErr(err) {
+  if (err.status === 401) setLogin(false);
+  showMsg('err', err.message);
+}
+
+// ---- Đăng nhập ----
+function setLogin(on, session) {
+  $('who').classList.toggle('on', on);
+  $('whoText').textContent = on
+    ? `Đã đăng nhập inside${session?.user ? ': ' + session.user : ''}${session?.savedAt ? ' · ' + new Date(session.savedAt).toLocaleString('vi-VN') : ''}`
+    : 'Chưa đăng nhập inside';
+  $('btnLogin').textContent = on ? 'Đăng nhập lại' : 'Đăng nhập';
+  $('btnLogout').classList.toggle('hidden', !on);
+}
+
+// Form tài khoản: lưu vào .env của máy này, lần sau mở tool tự đăng nhập. Không bao giờ nhận lại mật khẩu từ server
+let acct = { account: '', credentialsConfigured: false, otpConfigured: false };
+function showAcctForm(show) {
+  $('acctForm').classList.toggle('hidden', !show);
+  $('btnLogin').classList.toggle('hidden', show);
+  $('acctEditLink').classList.toggle('hidden', show);
+  $('btnCancelAcct').classList.toggle('hidden', !acct.credentialsConfigured);
+  if (!show) return;
+  $('acctUser').value = acct.account || '';
+  $('acctPassword').value = $('acctOtp').value = '';
+  $('acctPassword').placeholder = acct.credentialsConfigured ? 'Mật khẩu (trống = giữ nguyên)' : 'Mật khẩu';
+  $('acctOtp').placeholder = acct.otpConfigured ? 'OTP (trống = giữ nguyên)' : 'OTP (nếu có)';
+  (acct.account ? $('acctPassword') : $('acctUser')).focus();
+}
+
+$('acctForm').onsubmit = async (e) => {
+  e.preventDefault();
+  $('btnSaveAcct').disabled = true;
+  showMsg('info', 'Đang lưu tài khoản và đăng nhập inside', { elapsed: true });
+  try {
+    const r = await api('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: $('acctUser').value, password: $('acctPassword').value, otp: $('acctOtp').value }),
+    });
+    acct = { ...acct, account: r.account, credentialsConfigured: true, otpConfigured: acct.otpConfigured || Boolean($('acctOtp').value.trim()) };
+    showAcctForm(false);
+    setLogin(true, r.session);
+    showMsg('ok', 'Đã lưu tài khoản (lần sau mở tool tự đăng nhập) và đăng nhập thành công');
+  } catch (err) {
+    // Lưu được nhưng đăng nhập lỗi -> giữ form để sửa lại
+    const cfg = await api('/api/config').catch(() => null);
+    if (cfg) acct = cfg;
+    handleErr(err);
+  } finally {
+    $('btnSaveAcct').disabled = false;
+  }
+};
+$('btnCancelAcct').onclick = () => { showAcctForm(false); showMsg('', ''); };
+$('acctEditLink').onclick = (e) => { e.preventDefault(); showAcctForm(true); };
+
+$('btnLogin').onclick = async () => {
+  if (!acct.credentialsConfigured) return showAcctForm(true);
+  $('btnLogin').disabled = true;
+  showMsg('info', `Đang đăng nhập inside bằng tài khoản ${acct.account}`, { elapsed: true });
+  try {
+    const r = await api('/api/login', { method: 'POST' });
+    setLogin(true, r.session);
+    showMsg('ok', 'Đăng nhập thành công');
+  } catch (err) {
+    handleErr(err);
+  } finally {
+    $('btnLogin').disabled = false;
+  }
+};
+
+$('btnLogout').onclick = async () => {
+  await api('/api/logout', { method: 'POST' }).catch(() => {});
+  setLogin(false);
+  showMsg('', '');
+};
+
+// ---- Bộ lọc ----
+function fillFilters() {
+  const now = new Date().getFullYear();
+  const years = [['0', 'Toàn bộ']];
+  for (let y = now; y >= 2015; y--) years.push([String(y), String(y)]);
+  $('year').innerHTML = years.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+  $('month').innerHTML = '<option value="0">Tất cả</option>' + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">Tháng ${i + 1}</option>`).join('');
+  $('contract').value = store.get('contract') || '';
+  $('year').value = store.get('year') || '0';
+}
+
+// ---- Tra cứu ----
+$('searchForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const q = $('contract').value.trim();
+  if (!q) return;
+  store.set('contract', q);
+  store.set('year', $('year').value);
+  $('btnSearch').disabled = true;
+  ['contractCard', 'billsCard', 'detailCard'].forEach((id) => $(id).classList.add('hidden'));
+  showMsg('info', `Đang tìm hợp đồng ${q}`, { elapsed: true });
+  try {
+    state.contracts = await api('/api/contracts?' + new URLSearchParams({ q }));
+    if (!state.contracts.length) return showMsg('err', `Không tìm thấy hợp đồng "${q}"`);
+    renderContractChips();
+    await selectContract(state.contracts[0]);
+  } catch (err) {
+    handleErr(err);
+  } finally {
+    $('btnSearch').disabled = false;
+  }
+};
+
+function renderContractChips() {
+  const many = state.contracts.length > 1;
+  $('contractChips').classList.toggle('hidden', !many);
+  $('contractChips').innerHTML = many
+    ? state.contracts.map((c, i) => `<button type="button" data-i="${i}">${esc(c.contract)} · ${esc(c.name)}</button>`).join('')
+    : '';
+  $('contractChips').querySelectorAll('button').forEach((b) => (b.onclick = () => selectContract(state.contracts[b.dataset.i])));
+}
+
+async function selectContract(c, refresh = false) {
+  state.contract = c;
+  $('contractChips').querySelectorAll('button').forEach((b) => b.classList.toggle('active', state.contracts[b.dataset.i] === c));
+  $('contractInfo').innerHTML = [
+    ['Số hợp đồng', c.contract], ['Tên khách hàng', c.name], ['Trạng thái', c.status],
+    ['Chi nhánh', c.location], ['Địa chỉ thanh toán', c.address], ['ObjID', c.objId],
+  ].map(([k, v]) => `<div><span>${k}</span>${esc(v) || '–'}</div>`).join('');
+  $('contractCard').classList.remove('hidden');
+  await loadBills(refresh);
+}
+
+async function loadBills(refresh = false) {
+  const c = state.contract;
+  const year = $('year').value, month = $('month').value;
+  const label = year === '0' ? 'toàn bộ' : (month !== '0' ? `tháng ${month}/` : 'năm ') + year;
+  $('btnReload').disabled = true;
+  showMsg('info', `Đang tải danh sách hóa đơn ${label} của ${c.contract}`, { elapsed: true });
+  try {
+    const r = await api('/api/bills?' + new URLSearchParams({ objId: c.objId, year, month, ...(refresh && { refresh: '1' }) }));
+    state.rows = r.rows;
+    state.sort = null;
+    $('filter').value = '';
+    $('billsSub').textContent = `· ${r.rows.length} hóa đơn (${label})` + (r.cached ? ' · từ bộ nhớ tạm' : ` · ${(r.ms / 1000).toFixed(1)}s`);
+    renderBills();
+    $('billsCard').classList.remove('hidden');
+    showMsg('', '');
+  } catch (err) {
+    handleErr(err);
+  } finally {
+    $('btnReload').disabled = false;
+  }
+}
+
+$('btnReload').onclick = () => state.contract && loadBills(true);
+$('year').onchange = $('month').onchange = () => { store.set('year', $('year').value); if (state.contract) loadBills(); };
+
+// ---- Bảng hóa đơn ----
+const COLUMNS = [
+  { key: 'stt', title: 'STT', num: true },
+  { key: 'content', title: 'Nội dung', wrap: true },
+  { key: 'billNumber', title: 'Hóa đơn', render: (r) => `<a href="#">${esc(r.billNumber)}</a>` },
+  { key: 'billDate', title: 'Ngày phát hành', sortKey: (r) => r.billDate.replace(/^(\d\d)\/(\d\d)\/(\d{4})/, '$3$2$1') },
+  { key: 'branch', title: 'CN' },
+  { key: 'digital', title: 'Loại HĐ' },
+  { key: 'amount', title: 'Số tiền', num: true, render: (r) => fmt(r.amount) },
+  { key: 'paidTotal', title: 'Đã TT', num: true, render: (r) => fmt(r.paidTotal) },
+  { key: 'transaction', title: 'Mã giao dịch' },
+  { key: 'salesName', title: 'NV bán' },
+  { key: 'note', title: 'Ghi chú', cls: 'note', render: (r) => `<span class="${/^Còn nợ/.test(r.note) ? 'debt' : ''}">${esc(r.note)}</span>` },
+];
+
+function visibleRows() {
+  const f = $('filter').value.trim().toLowerCase();
+  let rows = f ? state.rows.filter((r) => [r.billNumber, r.content, r.salesName, r.transaction, r.note, r.billDate].some((v) => String(v ?? '').toLowerCase().includes(f))) : [...state.rows];
+  if (state.sort) {
+    const col = COLUMNS.find((c) => c.key === state.sort.key);
+    const val = col.sortKey || ((r) => r[col.key] ?? '');
+    rows.sort((a, b) => { const x = val(a), y = val(b); return (x > y ? 1 : x < y ? -1 : 0) * state.sort.dir; });
+  }
+  return rows;
+}
+
+function renderBills() {
+  $('billsHead').innerHTML = COLUMNS.map((c) => {
+    const arrow = state.sort?.key === c.key ? (state.sort.dir > 0 ? ' ▲' : ' ▼') : '';
+    return `<th class="${c.num ? 'num' : ''}" data-key="${c.key}">${c.title}${arrow}</th>`;
+  }).join('');
+  $('billsHead').querySelectorAll('th').forEach((th) => (th.onclick = () => {
+    const key = th.dataset.key;
+    state.sort = state.sort?.key === key ? { key, dir: -state.sort.dir } : { key, dir: 1 };
+    renderBills();
+  }));
+
+  const rows = visibleRows();
+  const body = $('billsBody');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="empty">${state.rows.length ? 'Không có hóa đơn khớp bộ lọc' : 'Hợp đồng không có hóa đơn trong khoảng thời gian này'}</td></tr>`;
+  } else {
+    body.innerHTML = rows.map((r) => `<tr class="${r.cancelled ? 'cancelled' : ''} ${r === state.activeBill ? 'active' : ''}">` +
+      COLUMNS.map((c) => `<td class="${[c.num && 'num', c.wrap && 'wrap', c.cls].filter(Boolean).join(' ')}">${c.render ? c.render(r) : esc(r[c.key])}</td>`).join('') + '</tr>').join('');
+    [...body.rows].forEach((tr, i) => (tr.onclick = (e) => { e.preventDefault(); openDetail(rows[i], tr); }));
+  }
+  const live = rows.filter((r) => !r.cancelled);
+  const sum = (k) => live.reduce((s, r) => s + (r[k] || 0), 0);
+  $('billsFoot').innerHTML = COLUMNS.map((c) => `<td class="${c.num ? 'num' : ''}">${
+    c.key === 'content' ? `Tổng (${live.length} HĐ, không tính HĐ hủy)` : c.key === 'amount' ? fmt(sum('amount')) : c.key === 'paidTotal' ? fmt(sum('paidTotal')) : ''}</td>`).join('');
+}
+
+$('filter').oninput = renderBills;
+
+// ---- Chi tiết ----
+const detailUrl = (r) => '/detail?' + new URLSearchParams(r.detail);
+
+function openDetail(r, tr) {
+  state.activeBill = r;
+  [...$('billsBody').rows].forEach((x) => x.classList.toggle('active', x === tr));
+  $('detailSub').textContent = `· ${r.billNumber} · ${r.billDate}`;
+  $('detailOpen').href = $('detailFrame').src = detailUrl(r);
+  $('detailCard').classList.remove('hidden');
+  $('detailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
+// Co giãn khung chi tiết theo nội dung
+$('detailFrame').onload = () => {
+  try {
+    const doc = $('detailFrame').contentDocument;
+    $('detailFrame').style.height = Math.max(640, doc.documentElement.scrollHeight + 20) + 'px';
+  } catch {}
+};
+
+// ---- Khởi động ----
+(async () => {
+  fillFilters();
+  try {
+    const cfg = await api('/api/config');
+    $('envBadge').textContent = cfg.env;
+    $('insideLink').href = cfg.insideUrl;
+    acct = cfg;
+    setLogin(cfg.loggedIn, cfg.session);
+    if (!cfg.credentialsConfigured) {
+      showAcctForm(true);
+      showMsg('info', 'Máy này chưa có tài khoản inside. Nhập tài khoản + mật khẩu rồi bấm "Lưu & đăng nhập" (lưu lại cho lần sau).');
+    } else if (!cfg.loggedIn) {
+      $('btnLogin').click(); // đã lưu tài khoản -> tự đăng nhập
+    }
+  } catch (err) {
+    showMsg('err', 'Không kết nối được server của tool: ' + err.message);
+  }
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import { config } from '../core/env.js';
 import { EcpClient } from '../core/http.js';
 import { saveRecord, readRecords } from '../core/store.js';
 import { Locations } from './location.js';
-import { parseProductUrl, getProduct, parseOffers } from './product.js';
+import { parseProductUrl, getProduct, parseOffers, getFcpQuote, parseFcpOffers } from './product.js';
 import {
   createCheckout, setAddress, applySelection, checkoutSnapshot, placeOrder, getCheckout, toOrderView, orderStatus,
   toLocation, addressText, noPolicyMessage, NO_POLICY, changePayment, onlineMethods, toPayment,
@@ -23,7 +23,7 @@ export class OrderService {
   constructor() {
     this.api = new EcpClient(config.ecpApiUrl, config.clientId, undefined, config.proxy);
     this.locations = new Locations(this.api);
-    this.prepared = new Map(); // checkoutId -> { token, slug, sourceUrl, product, at }
+    this.prepared = new Map(); // checkoutId -> { token, slug, source: 'ECP'|'FCP', sourceUrl, product, at }
     this.pending = new Map(); // mã đơn -> { qr } (ảnh QR chỉ giữ trong phiên, không ghi file)
   }
 
@@ -38,9 +38,10 @@ export class OrderService {
    * Lựa chọn hợp lệ của gói tại địa chỉ: offer (mặc định cái đầu tiên) + dịch vụ bổ sung (mặc định không chọn).
    * Địa chỉ không có chính sách -> ném lỗi code NO_POLICY.
    */
-  async #selection(slug, addr, offerKey, extras = []) {
-    const raw = (await getProduct(this.api, slug, toLocation(addr))).raw;
-    const { offers, addons } = parseOffers(raw);
+  async #selection(product, addr, offerKey, extras = []) {
+    const { offers, addons } = product.source === 'FCP'
+      ? parseFcpOffers(await getFcpQuote(this.api, product.slug, toLocation(addr)).catch((err) => (err.status < 500 ? null : Promise.reject(err))))
+      : parseOffers((await getProduct(this.api, product.slug, toLocation(addr))).raw);
     if (!offers.length) throw Object.assign(new Error(noPolicyMessage(addr)), { status: 400, code: NO_POLICY });
     const offer = offers.find((o) => o.key === offerKey) ?? offers[0];
     // Bổ sung không còn trong offer mới (đổi chu kỳ) thì bỏ
@@ -65,10 +66,10 @@ export class OrderService {
     const capi = this.api.withToken(p.token);
     p.at = Date.now();
     try {
-      await setAddress(capi, addr);
-      const { offers, selection } = await this.#selection(p.slug, addr, offerKey, extras);
+      await setAddress(capi, addr, p.source);
+      const { offers, selection } = await this.#selection(p.product, addr, offerKey, extras);
       await applySelection(capi, { slug: p.slug, ...selection });
-      const { methods, view } = await checkoutSnapshot(capi, p.slug);
+      const { methods, view } = await checkoutSnapshot(capi, p.slug, p.source);
       const { offer, extraSkuIds } = selection;
       return {
         policy: { ok: true },
@@ -90,11 +91,12 @@ export class OrderService {
 
   /** Bước 1: link gói (+ địa chỉ, lựa chọn) -> tạo checkout, trả về gói + chính sách + sản phẩm + bổ sung + PTTT + giá */
   async prepare({ url, address, offerKey, extras } = {}) {
-    const { slug, sourceUrl } = parseProductUrl(url, config.webUrl);
-    const { raw, ...product } = await getProduct(this.api, slug);
-    const { checkoutId, token } = await createCheckout(this.api, { slug, sourceUrl, webUrl: config.webUrl });
+    const { sourceUrl, ...u } = parseProductUrl(url, config.webUrl);
+    const { raw, ...product } = await getProduct(this.api, u.slug);
+    const { slug, source } = product;
+    const { checkoutId, token } = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
     this.#gc();
-    const p = { token, slug, sourceUrl, product, at: Date.now() };
+    const p = { token, slug, source, sourceUrl, product, at: Date.now() };
     this.prepared.set(checkoutId, p);
     return { checkoutId, product, sourceUrl, ...(await this.#configure(p, { address, offerKey, extras })) };
   }
@@ -114,19 +116,20 @@ export class OrderService {
     let p = checkoutId && this.prepared.get(checkoutId);
     const addr = await this.locations.resolve(address, config.defaults);
     if (!p) {
-      const { slug, sourceUrl } = parseProductUrl(url, config.webUrl);
-      const { raw, ...product } = await getProduct(this.api, slug);
+      const { sourceUrl, ...u } = parseProductUrl(url, config.webUrl);
+      const { raw, ...product } = await getProduct(this.api, u.slug);
+      const { slug, source } = product;
       // Kiểm tra chính sách trước khi tạo checkout
-      await this.#selection(slug, addr, offerKey, extras);
-      const c = await createCheckout(this.api, { slug, sourceUrl, webUrl: config.webUrl });
-      p = { token: c.token, slug, sourceUrl, product };
+      await this.#selection(product, addr, offerKey, extras);
+      const c = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
+      p = { token: c.token, slug, source, sourceUrl, product };
       checkoutId = c.checkoutId;
     }
-    const { selection } = await this.#selection(p.slug, addr, offerKey, extras);
+    const { selection } = await this.#selection(p.product, addr, offerKey, extras);
     this.prepared.delete(checkoutId); // 1 checkout chỉ tạo được 1 đơn
     const capi = this.api.withToken(p.token);
     const { steps, method, complete, order } = await this.#serial(p, () => placeOrder(capi, {
-      slug: p.slug, fullName, phone, address: addr, note: note ?? config.defaults.note, paymentCode, selection,
+      slug: p.slug, source: p.source, fullName, phone, address: addr, note: note ?? config.defaults.note, paymentCode, selection,
     }));
     const { offer, extraSkuIds } = selection;
 
@@ -141,6 +144,7 @@ export class OrderService {
       code: view.code,
       orderId: view.orderId,
       productCode: p.slug,
+      source: p.source,
       productName: p.product?.name,
       offerLabel: offerLabel(offer),
       extras: offer.extras.filter((e) => extraSkuIds.includes(String(e.skuId))).map((e) => e.name).join('; '),
@@ -192,7 +196,7 @@ export class OrderService {
 
   /** Đổi PTTT (hoặc giữ PTTT) + hoàn tất lại -> link/QR mới, ghi bản ghi mới cho đơn (cùng token) */
   async #changePayment(rec, capi, paymentCode) {
-    const { method, complete } = await changePayment(capi, rec.summary.productCode, paymentCode);
+    const { method, complete } = await changePayment(capi, rec.summary.productCode, paymentCode, rec.summary.source);
     const summary = { ...rec.summary, paymentCode: method.code, paymentName: method.name, paymentChangedAt: new Date().toLocaleString('vi-VN') };
     const order = toOrderView(await getCheckout(capi).catch(() => null)) || rec.order;
     const r = { summary, token: rec.token, complete: { status: complete.status, display_type: complete.display_type, redirect_url: complete.redirect_url || '' }, order };
@@ -266,7 +270,7 @@ export class OrderService {
     Object.assign(view, this.#withGateway(view, pay));
     const payUrl = view.waitingPayment ? rec.complete?.redirect_url || '' : '';
     // Còn chờ thanh toán -> cho đổi PTTT / thanh toán lại
-    const changeMethods = view.waitingPayment ? await onlineMethods(this.api.withToken(rec.token), rec.summary.productCode).catch(() => []) : [];
+    const changeMethods = view.waitingPayment ? await onlineMethods(this.api.withToken(rec.token), rec.summary.productCode, rec.summary.source).catch(() => []) : [];
     return { ...view, summary: rec.summary, payUrl, autoPay: pay || null, canAutoPay: view.waitingPayment && CARD_METHODS.includes(rec.summary.paymentCode), changeMethods, qr: view.waitingPayment ? this.pending.get(view.code)?.qr ?? null : null };
   }
 

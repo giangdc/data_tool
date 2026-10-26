@@ -6,7 +6,7 @@ Tool hỗ trợ QC tạo nhanh **đơn hàng test trên fpt.vn (staging)**. Khô
 
 | Bước | Tool làm gì |
 |---|---|
-| 1. Tải gói | Nhập link chi tiết gói (vd `https://staging.fpt.vn/internet/goi-giga`) → tool kiểm tra **chính sách** tại địa chỉ, lấy **Thông tin sản phẩm** (trả sau / trả trước N tháng), **Dịch vụ/Thiết bị bổ sung**, **PTTT** và tạm tính |
+| 1. Tải gói | Nhập link chi tiết gói (vd `https://staging.fpt.vn/internet/goi-giga`) → tool kiểm tra **chính sách** tại địa chỉ, lấy **Thông tin sản phẩm** (trả sau / trả trước N tháng; gói camera: chu kỳ gói lưu trữ 1/6/12 tháng, ô "Tôi muốn tự lắp đặt" ở mục bổ sung; gói catalog mới **FCP** như `internet/PRD_NET_003` tool tự nhận ra, hiện nhãn "catalog FCP"), **Dịch vụ/Thiết bị bổ sung**, **PTTT** và tạm tính |
 | 2. Tạo đơn | Điền sẵn SĐT `0964633310`, địa chỉ **Hồ Chí Minh**, **Nhà riêng** (đổi được sang **Chung cư**), **sản phẩm đầu tiên**, **không chọn bổ sung**, **PTTT đầu tiên**. Sửa được hết → **Tạo đơn hàng** |
 | 3. Thanh toán | *Thanh toán tại nhà*: xong ngay. *Thẻ tín dụng / ATM*: nút **Mở trang thanh toán** (cổng Foxpay/NAPAS staging) → nhập thẻ test → bấm **Kiểm tra thanh toán**. *VietQR*: hiện mã QR ngay trên tool |
 | 4. Xem đơn | Bảng **Kết quả** (Lần này / Lịch sử) + nút **Chi tiết**: mã đơn, order ID, trạng thái, khách hàng, địa chỉ, sản phẩm, tổng tiền, PTTT. Tab **Xem đơn hàng** tra theo mã |
@@ -61,6 +61,8 @@ npm run create  -- https://staging.fpt.vn/internet/goi-giga --pm COD -n 3  # t�
 npm run create  -- goi-giga --pm VIETQR --phone 0912345678 --province "Hà Nội" --no 9
 npm run create  -- goi-giga --apartment --building "VVA Tower" --block A1 --floor 5 --room 501 --extras 1907 --pm VIETQR
 npm run methods -- goi-giga --offer 3                                    # xem PTTT/giá với lựa chọn thứ 3
+npm run create  -- https://staging.fpt.vn/camera/combo-2-camera-fcam-play-4-iq-4s --offer 2 --pm COD   # camera, lưu trữ 6 tháng (thêm --extras 4176 = tự lắp đặt)
+npm run create  -- https://staging.fpt.vn/internet/PRD_NET_003 --offer 2 --pm COD   # gói FCP, trả trước 1 tháng
 npm run create  -- goi-giga --pm INTERNATIONAL --pay                     # tạo + tự thanh toán thẻ test (mở Chrome)
 npm run pay     -- 0000N5DLOHXC                                           # tự thanh toán đơn chờ thanh toán (Thẻ tín dụng/ATM)
 npm run repay   -- 0000N5DLOHXC --pm DOMESTIC --pay                       # đổi PTTT đơn chờ thanh toán + tự thanh toán lại

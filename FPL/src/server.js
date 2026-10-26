@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { config, ROOT_DIR, saveDefaults, defaultOtp } from './core/env.js';
+import { config, ROOT_DIR, saveDefaults, defaultOtp, saveEnvValue } from './core/env.js';
 import { log } from './core/logger.js';
 import { OrderService } from './fpl/orders.js';
 import { session, forget, normalizePhone } from './fpl/auth.js';
@@ -25,6 +25,14 @@ const routes = {
   'POST /api/settings/defaults': async ({ body }) => {
     if (body.phone) body.phone = normalizePhone(body.phone);
     return saveDefaults(body);
+  },
+
+  // Lưu OTP mặc định vào .env (lần đầu dùng trên máy mới / đổi OTP)
+  'POST /api/settings/otp': async ({ body }) => {
+    const otp = String(body.otp ?? '').trim();
+    if (!/^\S{4,20}$/.test(otp)) throw Object.assign(new Error('OTP không hợp lệ'), { status: 400 });
+    saveEnvValue('FPL_OTP', otp);
+    return { otp: true };
   },
 
   // Đăng nhập (OTP mặc định) / kiểm tra tài khoản; force = đăng nhập lại; logout = bỏ token đã lưu
@@ -59,6 +67,10 @@ const routes = {
 };
 
 async function readBody(req) {
+  // Chỉ nhận JSON: trang web lạ không gửi được application/json sang localhost (bị CORS chặn)
+  if (!String(req.headers['content-type']).startsWith('application/json')) {
+    throw Object.assign(new Error('Chỉ nhận dữ liệu JSON'), { status: 415 });
+  }
   let raw = '';
   for await (const chunk of req) {
     raw += chunk;
@@ -104,6 +116,6 @@ server.listen(PORT, HOST, () => {
   log.ok(`FPT Play Order Tool (${config.name}) đang chạy: ${target}  — Ctrl+C để dừng`);
   const p = config.proxy;
   log.info(p ? `Gọi API FPT Play qua proxy ${new URL(p.url).host} – ${p.source}` : 'Gọi API FPT Play trực tiếp (không proxy)');
-  if (!defaultOtp()) log.warn('Chưa có FPL_OTP trong .env – không đăng nhập được');
+  if (!defaultOtp()) log.warn('Chưa có FPL_OTP trong .env — nhập OTP trên giao diện lần đầu');
   if (!process.argv.includes('--no-open')) openBrowser(target);
 });

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOP Order Tool</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef; --row-hover: #f1f5fd; --row-active: #e3edfc;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240; --row-hover: #222a36; --row-active: #253553;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .bar { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bar a { font-size: 12px; color: var(--muted); }
+  .who { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .who .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .who.on .dot { background: var(--ok); }
+  #acctForm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #acctForm input { width: 160px; padding: 6px 10px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
+  form.run { display: flex; flex-direction: column; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  label { font-size: 13px; color: var(--muted); }
+  input, select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; width: 100%; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  input#phone { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .check input { width: auto; }
+  button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); padding: 6px 12px; }
+  button.ghost:hover:not(:disabled) { background: var(--row-hover); }
+  .hint { font-size: 12px; color: var(--muted); margin: 0; }
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin: 0; white-space: pre-wrap; }
+  .status.err { background: var(--err-bg); color: var(--err); }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; margin: 0 0 12px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-weight: 600; word-break: break-all; }
+  .kv dd .copy { margin-left: 6px; cursor: pointer; color: var(--primary); font-weight: 400; font-size: 12px; }
+  .log { margin: 0; padding: 10px 12px; max-height: 340px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .log .t { color: var(--muted); }
+  .table-wrap { overflow: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--card); font-weight: 600; color: var(--muted); z-index: 1; }
+  td.err { color: var(--err); white-space: normal; min-width: 200px; }
+  tbody tr:hover { background: var(--row-hover); }
+  .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+  .hidden { display: none !important; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    header { padding: 10px 16px; }
+    .bar { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>SOP – Tạo đơn Internet</h1>
+  <span class="badge" id="envBadge">stag</span>
+  <div class="bar">
+    <span class="who" id="who"><span class="dot"></span><span id="whoText">Chưa có tài khoản</span></span>
+    <form id="acctForm" class="hidden" autocomplete="off">
+      <input id="acctUser" placeholder="Tài khoản Portal SOP" aria-label="Tài khoản Portal SOP" autocomplete="username">
+      <input id="acctPassword" type="password" placeholder="Mật khẩu" aria-label="Mật khẩu" autocomplete="current-password">
+      <button id="btnSaveAcct" type="submit">Lưu &amp; đăng nhập</button>
+      <button id="btnCancelAcct" type="button" class="ghost">Hủy</button>
+    </form>
+    <button id="btnRelogin" class="ghost" title="Bỏ phiên đã lưu, đăng nhập lại bằng tài khoản đang lưu">Đăng nhập lại</button>
+    <a href="#" id="acctEditLink" title="Tài khoản lưu trong file .env của máy này">Đổi tài khoản</a>
+    <a id="portalLink" href="#" target="_blank" rel="noopener">Mở portal ↗</a>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>Tạo đơn <span class="sub">KH có sẵn trong "Khách hàng của tôi"</span></h2>
+      <form class="run" id="runForm">
+        <div class="field">
+          <label for="phone">SĐT khách hàng *</label>
+          <input id="phone" inputmode="numeric" maxlength="10" placeholder="vd: 0964633310" required>
+        </div>
+        <div class="field">
+          <label for="address">Địa chỉ lắp đặt (tìm theo bản đồ, lấy kết quả đầu tiên)</label>
+          <input id="address">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="combo">Combo gợi ý</label>
+            <select id="combo"></select>
+          </div>
+          <div class="field">
+            <label for="comboIndex">Gói thứ (trong combo)</label>
+            <select id="comboIndex"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="payment">Phương thức thanh toán (đúng tên trên màn báo giá)</label>
+          <input id="payment" list="paymentList">
+          <datalist id="paymentList">
+            <option>Napas</option><option>Tiền mặt</option><option>Chuyển khoản</option><option>Thanh toán khi triển khai</option>
+            <option>Thanh toán sau triển khai</option><option>VNPay-QR</option><option>FoxPay-QR</option><option>Foxpay</option><option>MBBank</option>
+          </datalist>
+        </div>
+        <label class="check"><input type="checkbox" id="contract" checked> Tạo luôn hợp đồng (+ khảo sát Định danh KH)</label>
+        <button id="btnRun" type="submit">Tạo đơn</button>
+        <p class="hint">Tool điều khiển 1 cửa sổ Chrome riêng – <b>đừng thao tác / thu nhỏ cửa sổ đó</b> khi đang chạy (màn tạo đơn bấm theo toạ độ). Chạy 1 đơn ~2–3 phút.</p>
+      </form>
+    </section>
+    <div class="status hidden" id="msg"></div>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <h2>Kết quả <span class="sub" id="elapsed"></span></h2>
+      <dl class="kv" id="result"><dt>–</dt><dd class="hint">Chưa chạy</dd></dl>
+      <pre class="log" id="log"></pre>
+    </section>
+    <section class="card">
+      <h2>Lịch sử <span class="sub">output/orders.csv</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Thời gian</th><th>SĐT</th><th>KH</th><th>Combo</th><th>Mã đơn</th><th>Mã HĐ</th><th>Bookport</th><th>Lỗi</th></tr></thead>
+          <tbody id="runs"><tr><td colspan="8" class="empty">Chưa có</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+
+function showMsg(kind, html) {
+  const el = $('msg');
+  if (!html) return el.classList.add('hidden');
+  el.className = 'status ' + kind;
+  el.innerHTML = html;
+}
+
+// ---- Tài khoản: lưu vào .env của máy này, lần sau mở tool không cần nhập lại. Server không trả mật khẩu ----
+let cfg = null;
+function setWho(text, on) {
+  $('who').classList.toggle('on', on);
+  $('whoText').textContent = text;
+}
+function showAcctForm(show) {
+  $('acctForm').classList.toggle('hidden', !show);
+  $('acctEditLink').classList.toggle('hidden', show);
+  $('btnRelogin').classList.toggle('hidden', show || !cfg.credentialsConfigured);
+  $('btnCancelAcct').classList.toggle('hidden', !cfg.credentialsConfigured);
+  if (!show) return;
+  $('acctUser').value = cfg.account || '';
+  $('acctPassword').value = '';
+  $('acctPassword').placeholder = cfg.credentialsConfigured ? 'Mật khẩu (trống = giữ nguyên)' : 'Mật khẩu';
+  (cfg.account ? $('acctPassword') : $('acctUser')).focus();
+}
+
+async function login(path, label) {
+  showMsg('info', `<span class="spinner"></span>${esc(label)}…`);
+  try {
+    const r = await api('POST', path);
+    setWho(`Đã đăng nhập: ${r.account}`, true);
+    showMsg('ok', 'Đăng nhập Portal SOP thành công');
+  } catch (err) {
+    setWho(cfg.account ? `Tài khoản: ${cfg.account}` : 'Chưa có tài khoản', false);
+    showMsg('err', esc(err.message));
+    if (err.status === 401) showAcctForm(true);
+  }
+}
+
+$('acctForm').onsubmit = async (e) => {
+  e.preventDefault();
+  $('btnSaveAcct').disabled = true;
+  try {
+    const r = await api('POST', '/api/settings', { user: $('acctUser').value, password: $('acctPassword').value });
+    cfg = { ...cfg, ...r };
+    showAcctForm(false);
+    await login('/api/relogin', 'Đã lưu tài khoản (lần sau mở tool không cần nhập). Đang đăng nhập');
+  } catch (err) {
+    showMsg('err', esc(err.message));
+  } finally {
+    $('btnSaveAcct').disabled = false;
+  }
+};
+$('btnCancelAcct').onclick = () => { showAcctForm(false); showMsg('', ''); };
+$('acctEditLink').onclick = (e) => { e.preventDefault(); showAcctForm(true); };
+$('btnRelogin').onclick = () => login('/api/relogin', 'Đang đăng nhập lại');
+
+// ---- Chạy ----
+let poll = null;
+function renderResult(r) {
+  if (!r) return;
+  const rows = [
+    ['Khách hàng', r.customer ? `${r.customer} – ${r.phone}` : r.phone],
+    ['Mã đơn hàng', r.orderCode, true], ['Mã hợp đồng', r.contractCode, true], ['Bookport', r.bookport, true],
+    ['Link báo giá', r.quoteLink ? `<a href="${esc(r.quoteLink)}" target="_blank" rel="noopener">${esc(r.quoteLink)}</a>` : '', false, true],
+    ['Combo', `${r.combo} – gói ${r.comboIndex}`], ['Thanh toán', r.payment], ['Địa chỉ', r.address],
+  ];
+  $('result').innerHTML = rows.map(([k, v, copy, html]) => `<dt>${k}</dt><dd>${v ? (html ? v : esc(v)) + (copy ? ` <span class="copy" data-copy="${esc(v)}">copy</span>` : '') : '–'}</dd>`).join('');
+}
+
+async function refreshJob() {
+  const j = await api('GET', '/api/job').catch(() => null);
+  if (!j) return;
+  $('log').innerHTML = j.logs.map((l) => `<span class="t">${new Date(l.at).toLocaleTimeString('vi-VN')}</span> ${esc(l.msg)}`).join('\n');
+  $('log').scrollTop = $('log').scrollHeight;
+  $('elapsed').textContent = `${Math.round(j.elapsedMs / 1000)}s`;
+  renderResult(j.result);
+  $('btnRun').disabled = j.running;
+  if (j.running) return showMsg('info', '<span class="spinner"></span>Đang chạy… (đừng thao tác trên cửa sổ Chrome của tool)');
+  clearInterval(poll);
+  poll = null;
+  if (j.error) {
+    showMsg('err', esc(j.error));
+    if (j.authError) showAcctForm(true);
+  } else showMsg('ok', 'Xong');
+  loadRuns();
+}
+
+$('runForm').onsubmit = async (e) => {
+  e.preventDefault();
+  if (!cfg.credentialsConfigured) return showAcctForm(true);
+  const body = {
+    phone: $('phone').value.trim(), address: $('address').value.trim(), combo: $('combo').value,
+    comboIndex: Number($('comboIndex').value), payment: $('payment').value.trim(), contract: $('contract').checked,
+  };
+  for (const k of ['phone', 'address', 'combo', 'comboIndex', 'payment']) store.set(k, body[k]);
+  try {
+    await api('POST', '/api/run', body);
+    $('log').textContent = '';
+    $('result').innerHTML = '<dt>–</dt><dd class="hint">Đang chạy</dd>';
+    poll = poll || setInterval(refreshJob, 1500);
+    refreshJob();
+  } catch (err) {
+    showMsg('err', esc(err.message));
+  }
+};
+
+async function loadRuns() {
+  const runs = await api('GET', '/api/runs').catch(() => []);
+  $('runs').innerHTML = runs.length ? runs.map((r) => `<tr>
+    <td>${esc(new Date(r.finishedAt || r.startedAt).toLocaleString('vi-VN'))}</td><td>${esc(r.phone)}</td><td>${esc(r.customer)}</td>
+    <td>${esc(r.combo)} #${esc(r.comboIndex)}</td><td>${esc(r.orderCode)}</td><td>${esc(r.contractCode)}</td><td>${esc(r.bookport)}</td>
+    <td class="err">${esc(r.error)}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">Chưa có</td></tr>';
+}
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-copy]');
+  if (!t) return;
+  try { await navigator.clipboard.writeText(t.dataset.copy); t.textContent = 'đã copy'; setTimeout(() => (t.textContent = 'copy'), 1000); } catch {}
+});
+
+(async () => {
+  try {
+    cfg = await api('GET', '/api/config');
+  } catch (err) {
+    return showMsg('err', 'Không kết nối được server của tool: ' + esc(err.message));
+  }
+  $('envBadge').textContent = cfg.env;
+  $('portalLink').href = cfg.portalUrl + '/quan-ly-khach-hang/khach-hang/danh-sach';
+  $('combo').innerHTML = cfg.combos.map((c) => `<option>${esc(c)}</option>`).join('');
+  const d = cfg.defaults;
+  $('phone').value = store.get('phone') || d.phone || '';
+  $('address').value = store.get('address') || d.address;
+  $('combo').value = store.get('combo') || d.combo;
+  $('comboIndex').value = store.get('comboIndex') || d.comboIndex;
+  $('payment').value = store.get('payment') || d.payment;
+  loadRuns();
+  refreshJob().then(() => { if ($('btnRun').disabled) poll = setInterval(refreshJob, 1500); });
+  if (!cfg.credentialsConfigured) {
+    showAcctForm(true);
+    showMsg('info', 'Máy này chưa có tài khoản Portal SOP. Nhập Tài khoản + Mật khẩu rồi bấm "Lưu & đăng nhập" (lưu lại cho lần sau).');
+  } else {
+    showAcctForm(false);
+    setWho(`Tài khoản: ${cfg.account}`, false);
+  }
+})();
+</script>
+</body>
+</html>

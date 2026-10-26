@@ -26,7 +26,7 @@ Nhập **Số hợp đồng** → hiển thị **danh sách hóa đơn** → cli
 | Bước | Method + path | Params | Kết quả |
 |---|---|---|---|
 | 1 Tìm HĐ | `POST /InternetSubs/Accounting/LayoutSearch20/onLS_ViewReport` (form-urlencoded, X-Requested-With) | `LocationID, Search, KeywordSup, Keyword` | JSON `{data, msg}` → lấy `vID` (ObjID) |
-| 2 Danh sách | `GET /InternetSubs/Accounting/BillHistoryNew/LoadReport` | `vID, QMont, QYear, IsSSTCus` | HTML ~310KB (109 HĐ cho sgh835870) — nghi là chỗ chậm |
+| 2 Danh sách | `GET /InternetSubs/Accounting/BillHistoryNew/LoadReport` | `vID, QMont, QYear, IsSSTCus=0` | **JSON** `{data, msg}` ~310KB (242 dòng cho sgh835870), `data` là chuỗi JSON lồng |
 | 3 Chi tiết | `GET /InternetSubs/Accounting/LayoutSearch20/GetPartialPublicDetail` | `BillNumber, ObjID, Month, Year` | HTML ~41KB, 3 table; **gọi thẳng OK chỉ với cookie** |
 
 - Link hóa đơn trong bảng: `onclick="MJS.onViewPublicDetail({BillNumber:'U24SG00103292', ObjID:'1054648943', Month:'6', Year:'2024'})"`
@@ -43,9 +43,23 @@ Bảng Thông tin chi tiết loại dịch vụ: STT, Số HĐ, Loại DV, Số 
 Bảng Chi tiết dịch vụ Telecom: STT, Số HĐ, Loại DV, Nội dung, Số tiền, VAT, VAT Rate, Tổng tiền, Tên sale bán.
 → Cách đơn giản nhất: render lại nguyên HTML partial của bước 3 (giữ đủ trường).
 
-## Việc còn mở
-- Đọc `View_9.js` / LayoutSearch20 để biết giá trị `LocationID`, `Search`, `KeywordSup` khi tìm theo Số HĐ.
-- Chọn stack (Python/TS) + dạng UI (web nhỏ local?).
-- Auth: Playwright mở browser cho user tự login SSO 1 lần → lưu storageState (gitignore, không in nội dung).
-- Đo thời gian từng API để xác nhận chỗ timeout (nghi `LoadReport`).
-- Dữ liệu có PII khách hàng → chỉ dùng nội bộ.
+## Khảo sát bổ sung 2026-10-20 (đã chốt)
+- Script form tìm kiếm = inline trong trang BillHistoryNew (`onViewReport`): `LocationID=ddlBranch` (8 = HCM),
+  `Search=ddlField` (**4 = Số hợp đồng**), `KeywordSup=ddlSearch` (**1 = Chính xác**), `Keyword=txtData`.
+  Kết quả `data` (chuỗi JSON) → `[{STT, PaymentAddress, Contract, ID, LocationID, Name, StatusDesc, Location}]`, `ID` = ObjID.
+- Tìm theo số HĐ **không phụ thuộc LocationID** (8 / 4 / -1 / 0 đều ra cùng kết quả).
+- `LoadReport` trả JSON, field chính: `BillNumber, BillDate (/Date(ms)/), Content, BranchCode, Digital (1 điện tử/0 giấy), Amount,
+  PaidTotal, PaidAction (>0 = đã hủy), PaidType/PaidTypeName, LastPaidDate, PaymentDetailReceipt, SalesName, ObjID, Month, Year…`
+  Lỗi trả `msg:"error"` + SqlException trong `data`.
+- Đo thời gian (gọi trong trình duyệt): tìm HĐ 13ms · **LoadReport toàn bộ 15.3s** (chỗ chậm) · LoadReport `QYear=2024` 0.5s · chi tiết 2.4s.
+- Chi tiết: HTML 41KB, 3 bảng render sẵn phía server, 1 `<style>` + 2 script (biến `dt4` không dùng, chặn copy) → bỏ script vẫn đủ.
+- Đăng nhập: `login-stag.fpt.net` → Keycloak `iam-stag.fpt.net` (realm fpt, client `inside_portal`).
+- Stack chốt: Node thuần + playwright-core (giống các tool khác), UI web cổng 3003 – xem `../README.md`.
+
+## Đăng nhập bằng tài khoản + mật khẩu (không qua IAM) – 2026-10-20
+- `login-stag.fpt.net` vẫn có form cũ (`fUserName`, `fPassword`, `fOTP` + checkbox "Sử dụng OTP"); trang tự bấm
+  "ĐĂNG NHẬP VỚI IAM" bằng JS nên trình duyệt mới bị chuyển sang IAM.
+- Nút "ĐĂNG NHẬP" gọi `POST /Login` (form-urlencoded) `UserName, Password, OTP, Token='', IAM=false, urlReturn`
+  → JSON `{status: 1, token}`; lỗi `status: -1` + `errDescription` (`Invalid user credentials`, `Account is not fully set up`, `Account disabled`).
+- Sau đó trình duyệt chuyển tới `urlReturn?Token=<token>` → mvc.inside đổi token lấy cookie phiên.
+- Tool làm đúng 2 bước này bằng HTTP (src/core/auth.js), không cần Playwright.

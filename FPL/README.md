@@ -27,7 +27,7 @@ Tool hỗ trợ QC **mua nhanh gói FPT Play test trên dev.fptplay.vn**. Không
 ```bash
 tar -xzf fpl-order-tool-*-linux-x64.tar.gz -C ~ && bash ~/fpl-order-tool/install.sh
 ```
-Rồi tạo `.env` từ `.env.example` (điền `FPL_OTP` + thẻ test).
+Rồi tạo `.env` từ `.env.example` (điền thẻ test). OTP mặc định nhập trên giao diện lần đầu (**Lưu OTP**, đổi bằng nút **Đổi OTP**) – tool lưu vào `.env`.
 
 **Từ mã nguồn**: `bash install.sh` (hoặc `npm run ui`). Không có thư viện ngoài, không cần `npm install`.
 

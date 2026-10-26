@@ -253,6 +253,8 @@ async function init() {
   showOtpSetup(!state.cfg.otpConfigured);
   showTab(store.get('tab') || 'opp');
   $('user').focus();
+  // Đã lưu tài khoản + OTP -> tự đăng nhập (token còn hạn thì dùng lại ngay)
+  if (state.cfg.otpConfigured && $('user').value.trim()) login(false);
 }
 
 // Tab chức năng: mỗi tab 1 form riêng, bảng Kết quả dùng chung
@@ -278,7 +280,9 @@ async function saveOtp() {
     state.cfg.otpConfigured = true;
     $('otp').value = '';
     showOtpSetup(false);
-    setStatus($('loginStatus'), 'ok', 'Đã lưu OTP. Giờ nhập tài khoản và bấm Đăng nhập.');
+    setStatus($('loginStatus'), 'ok', 'Đã lưu OTP.');
+    if ($('user').value.trim()) login(true);
+    else setStatus($('loginStatus'), 'ok', 'Đã lưu OTP. Giờ nhập tài khoản và bấm Đăng nhập.');
   } catch (err) {
     setStatus($('loginStatus'), 'err', esc(err.message));
   }
