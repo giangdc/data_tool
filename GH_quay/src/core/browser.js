@@ -60,13 +60,45 @@ export async function closeBrowser() {
   } else await ctx?.close().catch(() => {});
 }
 
+/**
+ * Xoá phiên đăng nhập của các trang (đăng xuất phía trình duyệt): đóng tab của các trang đó, xoá cookie (cả cookie gắn ở
+ * domain cha, vd .fpt.net) và localStorage/IndexedDB/cache của từng origin.
+ */
+export async function clearSiteData(urls) {
+  const ctx = await getContext();
+  const origins = [...new Set(urls.map((u) => new URL(u).origin))];
+  const hosts = origins.map((o) => new URL(o).hostname);
+
+  // Còn giữ 1 tab trống để cửa sổ trình duyệt không bị đóng theo
+  if (!ctx.pages().some((p) => p.url() === 'about:blank')) await ctx.newPage();
+  for (const p of ctx.pages()) {
+    if (hosts.some((h) => p.url().startsWith('http') && new URL(p.url()).hostname === h)) await p.close().catch(() => {});
+  }
+
+  const domains = new Set(hosts.flatMap((h) => {
+    const parts = h.split('.');
+    return parts.slice(0, -1).map((_, i) => parts.slice(i).join('.'));
+  }));
+  const escape = (d) => d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await ctx.clearCookies({ domain: new RegExp(`^\\.?(${[...domains].map(escape).join('|')})$`) });
+
+  const page = ctx.pages().find((p) => p.url() === 'about:blank') || (await ctx.newPage());
+  const cdp = await ctx.newCDPSession(page);
+  for (const origin of origins) await cdp.send('Storage.clearDataForOrigin', { origin, storageTypes: 'all' }).catch(() => {});
+  await cdp.detach().catch(() => {});
+}
+
 /** Tìm tab đang mở khớp điều kiện, không có thì mở tab mới tới url. */
+// Tab trống đang được pageFor() khác dùng (đăng nhập song song nhiều hệ thống) -> không lấy trùng
+const claimed = new WeakSet();
+
 export async function pageFor(match, url) {
   const ctx = await getContext();
   let page = ctx.pages().find((p) => match(p.url()));
   if (!page) {
-    page = ctx.pages().find((p) => p.url() === 'about:blank') || (await ctx.newPage());
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    page = ctx.pages().find((p) => p.url() === 'about:blank' && !claimed.has(p)) || (await ctx.newPage());
+    claimed.add(page);
+    await page.goto(url, { waitUntil: 'domcontentloaded' }).finally(() => claimed.delete(page));
   }
   await page.bringToFront();
   return page;
@@ -97,7 +129,7 @@ export async function debugShot(page, name) {
 /**
  * Đảm bảo trang đã đăng nhập.
  * - isLoginPage(url): đang ở màn đăng nhập?
- * - autoLogin(page): điền tài khoản trong .env (nếu có cấu hình), trả false nếu không có tài khoản
+ * - autoLogin(page): điền tài khoản đã lưu (nhập trên giao diện / .env), trả false nếu chưa có tài khoản
  * Không tự đăng nhập được thì chờ người dùng đăng nhập tay trong cửa sổ trình duyệt.
  */
 export async function ensureLoggedIn(page, { system, isLoginPage, autoLogin, onLog }) {
@@ -106,7 +138,7 @@ export async function ensureLoggedIn(page, { system, isLoginPage, autoLogin, onL
   if (!isLoginPage(page.url())) return;
 
   if (await autoLogin(page)) {
-    onLog(`Đăng nhập ${system} bằng tài khoản trong .env`);
+    onLog(`Đăng nhập ${system} bằng tài khoản đã lưu`);
     const ok = await waitUntil(async () => !isLoginPage(page.url()), { timeout: 30000 }).catch(() => false);
     if (ok) return;
     onLog(`⚠ Tự đăng nhập ${system} chưa thành công (sai mật khẩu / cần OTP?) – hãy đăng nhập tay trong cửa sổ trình duyệt`);

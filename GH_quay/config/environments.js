@@ -6,6 +6,8 @@ export const ENVIRONMENTS = {
     // tool mở thẳng trang này để tìm HĐ; bấm tìm sẽ mở tab /service/retail-counter/ticket?q1=<token>
     erpUrl: 'https://fox-erp-stag.fpt.net',
     erpSearchPath: '/service/retail-counter',
+    // Keycloak IAM của Fox ERP: đăng xuất phải xoá cả phiên ở đây, không thì vào lại ERP sẽ tự đăng nhập tài khoản cũ
+    erpIamUrl: 'https://iam-stag.fpt.net',
     // Tool SCM (ASP.NET MVC + jQuery EasyUI), chạy http
     scmUrl: 'http://ftelscm-uat.fpt.net',
     scmImportPath: '/Modules/InvImport/CreatedTicketV2',

@@ -77,6 +77,25 @@
   .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
   .hidden { display: none !important; }
   .links { display: flex; gap: 6px; flex-wrap: wrap; }
+  .acc { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 6px 8px; align-items: center; }
+  .acc .sys { font-size: 13px; font-weight: 600; }
+  .acc-state { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; font-size: 13px; }
+  .acc-state div { display: flex; gap: 8px; align-items: center; }
+  .acc-state .sys { width: 70px; font-weight: 600; }
+  .acc-state .user { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip { font-size: 11.5px; padding: 1px 8px; border-radius: 10px; background: var(--line); color: var(--muted); white-space: nowrap; }
+  .chip.on { background: var(--ok-bg); color: var(--ok); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btns .end { margin-left: auto; }
+  #btnAcc { position: relative; }
+  #btnAcc.warn::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; width: min(520px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
+  dialog::backdrop { background: rgb(0 0 0 / .35); }
+  dialog h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  dialog h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
+  dialog h2 .x { margin-left: auto; background: transparent; color: var(--muted); padding: 0 6px; font-size: 18px; line-height: 1; }
+  dialog h2 .x:hover { background: var(--row-hover); }
   @media (max-width: 900px) {
     main { grid-template-columns: 1fr; }
     .steps { grid-template-columns: 1fr 1fr; }
@@ -91,6 +110,9 @@
   <span class="badge" id="envBadge">stag</span>
   <div class="bar">
     <span class="who" id="who"><span class="dot"></span><span id="whoText">Trình duyệt chưa mở</span></span>
+    <button class="ghost" id="btnAcc" title="Nhập / xem tài khoản Fox ERP, SCM, GHTK đã lưu">👤 Tài khoản</button>
+    <button id="btnLogin" title="Đăng nhập cả Fox ERP, SCM, GHTK bằng tài khoản đã lưu">Đăng nhập</button>
+    <button class="ghost" id="btnLogout" title="Đăng xuất cả Fox ERP, SCM, GHTK">Đăng xuất</button>
     <button class="ghost" data-open="erp" title="Mở Fox ERP trong cửa sổ trình duyệt của tool để đăng nhập">Fox ERP</button>
     <button class="ghost" data-open="scm" title="Mở SCM để đăng nhập">SCM</button>
     <button class="ghost" data-open="ghtk" title="Mở GHTK lab để đăng nhập">GHTK</button>
@@ -169,6 +191,23 @@
   </div>
 </main>
 
+<dialog id="accDlg">
+  <h2>Tài khoản <span class="sub">lưu trên máy này, lần sau không cần nhập lại</span>
+    <button type="button" class="x" id="btnAccClose" title="Đóng">×</button></h2>
+  <div class="acc-state" id="accState"></div>
+  <form id="accForm">
+    <div class="acc" id="accFields"></div>
+    <p class="status err hidden" id="accMsg"></p>
+    <div class="btns">
+      <button type="submit" id="btnAccLogin">Lưu &amp; đăng nhập</button>
+      <button type="button" class="ghost" id="btnAccSave">Chỉ lưu</button>
+      <button type="button" class="ghost end" id="btnAccCancel">Đóng</button>
+    </div>
+    <p class="hint">Lưu vào file <code>.env</code> trên máy (không gửi đi đâu). Mật khẩu để trống = giữ mật khẩu đã lưu.
+      Đổi sang tài khoản khác: bấm <b>Đăng xuất</b> trước rồi đăng nhập lại.</p>
+  </form>
+</dialog>
+
 <script>
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -199,6 +238,7 @@ const RESULT_LABELS = {
 
 let cfg = null;
 let polling = null;
+const JOB_TITLES = { ghtk: 'Đẩy trạng thái GHTK', login: 'Đăng nhập Fox ERP, SCM, GHTK', logout: 'Đăng xuất Fox ERP, SCM, GHTK' };
 
 function fillSelect(sel, entries, value) {
   sel.innerHTML = entries.map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
@@ -216,7 +256,78 @@ async function loadConfig() {
   $('contract').value = store.get('contract') || '';
   syncStatusField();
   setBrowser(cfg.browserOpen);
+  renderAccounts(cfg.accounts, cfg.sessions);
 }
+
+function renderAccounts(accounts, sessions) {
+  const entries = Object.entries(accounts);
+  $('accState').innerHTML = entries.map(([k, a]) => {
+    const saved = a.user && a.hasPassword;
+    const s = sessions?.[k];
+    const chip = s === true ? '<span class="chip on">đã đăng nhập</span>'
+      : s === false ? '<span class="chip">đã đăng xuất</span>'
+      : saved ? '<span class="chip">đã lưu</span>' : '<span class="chip warn">chưa lưu</span>';
+    return `<div><span class="sys">${esc(a.name)}</span><span class="user">${esc(a.user || '—')}</span>${chip}</div>`;
+  }).join('');
+  const missing = entries.filter(([, a]) => !a.user || !a.hasPassword).map(([, a]) => a.name);
+  $('btnAcc').classList.toggle('warn', missing.length > 0);
+  $('btnAcc').title = missing.length ? `Chưa lưu tài khoản: ${missing.join(', ')}` : 'Xem / đổi tài khoản đã lưu';
+  // Không ghi đè ô đang nhập dở
+  if (!$('accDlg').open) {
+    $('accFields').innerHTML = entries.map(([k, a]) => `<span class="sys">${esc(a.name)}</span>
+      <input data-acc="${k}" data-f="user" placeholder="Tên đăng nhập" autocomplete="off" value="${esc(a.user)}">
+      <input data-acc="${k}" data-f="password" type="password" autocomplete="new-password"
+        placeholder="${a.hasPassword ? 'Đã lưu – để trống nếu không đổi' : 'Mật khẩu'}">`).join('');
+  }
+}
+
+function accError(text) {
+  $('accMsg').textContent = text || '';
+  $('accMsg').classList.toggle('hidden', !text);
+}
+
+// Mở popup: nạp lại thông tin đang lưu (tên đăng nhập; mật khẩu chỉ báo đã lưu hay chưa)
+$('btnAcc').addEventListener('click', async () => {
+  accError('');
+  await refreshAccounts();
+  $('accDlg').showModal();
+  const first = [...document.querySelectorAll('[data-acc]')].find((i) => !i.value && !(i.dataset.f === 'password' && i.placeholder.startsWith('Đã lưu')));
+  (first || $('btnAccLogin')).focus();
+});
+for (const id of ['btnAccClose', 'btnAccCancel']) $(id).addEventListener('click', () => $('accDlg').close());
+
+function accountInput() {
+  const out = {};
+  document.querySelectorAll('[data-acc]').forEach((i) => { (out[i.dataset.acc] ||= {})[i.dataset.f] = i.value.trim(); });
+  return out;
+}
+
+async function refreshAccounts() {
+  const c = await api('/api/config').catch(() => null);
+  if (c) { setBrowser(c.browserOpen); renderAccounts(c.accounts, c.sessions); }
+}
+
+async function startLogin(accounts) {
+  try {
+    await api('/api/login', accounts ? { accounts } : {});
+    $('accDlg').close();
+    await refreshAccounts();
+    poll();
+  } catch (err) { accounts ? accError(err.message) : alertBox(err.message); }
+}
+
+$('accForm').addEventListener('submit', (e) => { e.preventDefault(); startLogin(accountInput()); });
+$('btnAccSave').addEventListener('click', async () => {
+  try {
+    const { accounts } = await api('/api/accounts', { accounts: accountInput() });
+    $('accDlg').close();
+    renderAccounts(accounts, cfg?.sessions);
+  } catch (err) { accError(err.message); }
+});
+$('btnLogin').addEventListener('click', () => startLogin());
+$('btnLogout').addEventListener('click', async () => {
+  try { await api('/api/logout', {}); poll(); } catch (err) { alertBox(err.message); }
+});
 
 function setBrowser(open) {
   $('who').classList.toggle('on', open);
@@ -229,7 +340,7 @@ $('until').addEventListener('change', syncStatusField);
 function renderJob(job) {
   $('jobCard').classList.remove('hidden');
   const secs = Math.round(job.elapsedMs / 1000);
-  $('jobSub').textContent = `${job.kind === 'flow' ? 'HĐ ' + (job.input.contract || '').toUpperCase() : 'Đẩy trạng thái GHTK'} · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  $('jobSub').textContent = `${job.kind === 'flow' ? 'HĐ ' + (job.input.contract || '').toUpperCase() : JOB_TITLES[job.kind]} · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 
   // Chặng
   const logs = job.logs.map((l) => l.msg);
@@ -274,8 +385,7 @@ function renderJob(job) {
   $('log').scrollTop = $('log').scrollHeight;
 
   const busy = job.running;
-  $('btnRun').disabled = busy;
-  $('btnGhtk').disabled = busy;
+  for (const id of ['btnRun', 'btnGhtk', 'btnLogin', 'btnLogout', 'btnAccLogin']) $(id).disabled = busy;
   if (busy) setBrowser(true);
 }
 
@@ -287,6 +397,7 @@ async function poll() {
       renderJob(job);
       if (job.running) { polling = setTimeout(poll, 1500); return; }
       loadRuns();
+      refreshAccounts();
     }
   } catch (err) {
     polling = setTimeout(poll, 3000);

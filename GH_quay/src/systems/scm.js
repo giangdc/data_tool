@@ -13,6 +13,15 @@ async function autoLogin(page) {
   return true;
 }
 
+/** Mở SCM, chưa đăng nhập thì đăng nhập (tài khoản đã lưu / chờ đăng nhập tay). */
+export async function login(onLog) {
+  const page = await pageFor((u) => u.startsWith(config.scmUrl), config.scmUrl);
+  await ensureLoggedIn(page, { system: 'SCM', isLoginPage, autoLogin, onLog });
+  return page;
+}
+
+export const session = { origins: () => [config.scmUrl], checkUrl: () => config.scmUrl, isLoginPage };
+
 async function openScm(path, onLog) {
   const url = config.scmUrl + path;
   const page = await pageFor((u) => u.startsWith(config.scmUrl), url);

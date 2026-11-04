@@ -119,10 +119,26 @@ async function notifications(page) {
 
 const formField = (page, labelRe) => page.locator('.rz-form-field', { has: page.locator('label', { hasText: labelRe }) }).first();
 
+// Portal: chưa đăng nhập thì chuyển sang IAM. Còn /service/retail-counter KHÔNG chuyển (mở được nhưng không có user),
+// phiên của nó có được khi portal nhúng nó qua iframe -> phải đăng nhập ở portal.
+const PORTAL_URL = () => `${config.erpUrl}/app/supply-chain`;
+
+/** Đăng nhập Fox ERP qua portal (tài khoản đã lưu / chờ đăng nhập tay). */
+export async function login(onLog) {
+  const page = await pageFor((u) => u.startsWith(PORTAL_URL()) || isLoginPage(u), PORTAL_URL());
+  await ensureLoggedIn(page, { system: 'Fox ERP', isLoginPage, autoLogin, onLog });
+  // Chờ portal nạp iframe màn giao dịch thiết bị để service nhận phiên (không thấy cũng chạy tiếp)
+  await waitUntil(async () => page.frames().some((f) => f.url().startsWith(SEARCH_URL())), { timeout: 15000 }).catch(() => {});
+  return page;
+}
+
+/** Đăng xuất: các trang có phiên đăng nhập + trang để kiểm tra đã ra màn đăng nhập. */
+export const session = { origins: () => [config.erpUrl, config.erpIamUrl], checkUrl: PORTAL_URL, isLoginPage };
+
 /** Bước 1: tìm HĐ -> mở tab phiếu (q1 là token mã hoá, không mở thẳng bằng số HĐ được). */
 export async function openTicketPage(contract, onLog) {
+  await login(onLog);
   const page = await pageFor((u) => u.replace(/\/$/, '') === SEARCH_URL(), SEARCH_URL());
-  await ensureLoggedIn(page, { system: 'Fox ERP', isLoginPage, autoLogin, onLog });
   if (page.url().replace(/\/$/, '') !== SEARCH_URL()) await page.goto(SEARCH_URL(), { waitUntil: 'domcontentloaded' });
   const box = page.locator(SEARCH_BOX);
   await box.waitFor({ timeout: 30000 });

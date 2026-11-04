@@ -4,12 +4,13 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { config, ROOT_DIR } from './core/env.js';
+import { config, ROOT_DIR, saveAccounts, accountSummary } from './core/env.js';
 import { log } from './core/logger.js';
 import { saveRun, recentRuns } from './core/store.js';
 import { getContext, closeBrowser, isBrowserOpen } from './core/browser.js';
 import { runFlow, STOP_POINTS } from './flow.js';
 import { pushStatus, GHTK_STATUSES } from './systems/ghtk.js';
+import { loginAll, logoutAll, sessions } from './session.js';
 
 const PORT = Number(process.env.UI_PORT) || 3004;
 const HOST = '127.0.0.1';
@@ -52,8 +53,21 @@ const routes = {
     stopPoints: STOP_POINTS,
     ghtkStatuses: GHTK_STATUSES,
     links: { erp: `${config.erpUrl}/app/supply-chain`, scm: config.scmUrl, ghtk: config.ghtkUrl + config.ghtkApiConfigPath },
-    autoLogin: { erp: Boolean(config.erpUser), scm: Boolean(config.scmUser), ghtk: Boolean(config.ghtkUser) },
+    accounts: accountSummary(),
+    sessions,
   }),
+
+  // Lưu tài khoản nhập trên giao diện vào .env của máy (mật khẩu không trả ngược về trình duyệt)
+  'POST /api/accounts': async ({ body }) => ({ accounts: saveAccounts(body.accounts) }),
+
+  // Đăng nhập cả 3 hệ thống (kèm tài khoản vừa nhập thì lưu trước)
+  'POST /api/login': async ({ body }) => {
+    if (job?.running) throw Object.assign(new Error('Đang có lượt chạy khác, chờ xong rồi đăng nhập'), { status: 409 });
+    if (body.accounts) saveAccounts(body.accounts);
+    return startJob('login', {}, (onLog) => loginAll(onLog));
+  },
+
+  'POST /api/logout': async () => startJob('logout', {}, (onLog) => logoutAll(onLog)),
 
   'POST /api/run': async ({ body }) => {
     if (!String(body.contract ?? '').trim()) throw Object.assign(new Error('Chưa nhập số hợp đồng'), { status: 400 });

@@ -24,10 +24,15 @@ Cần **Google Chrome** (hoặc Edge) trên máy: tool điều khiển 1 cửa s
 
 ## Dùng giao diện
 
-1. Lần đầu: bấm **Fox ERP / SCM / GHTK** trên thanh trên cùng để mở từng hệ thống trong cửa sổ trình duyệt của tool và
-   **đăng nhập** (phiên được nhớ cho lần sau). Không đăng nhập trước cũng được: khi chạy tới hệ thống nào chưa đăng nhập,
-   tool dừng chờ bạn đăng nhập trong cửa sổ đó (tối đa `LOGIN_WAIT_MIN` phút) rồi tự chạy tiếp.
+1. **👤 Tài khoản** (nút trên thanh trên cùng, cạnh Đăng nhập – chấm cam = còn hệ thống chưa lưu): mở popup nhập tài khoản/mật khẩu Fox ERP, SCM, GHTK lab → **Lưu & đăng nhập**.
+   Thông tin lưu vào `.env` trên máy (quyền 600), lần sau không cần nhập lại; mật khẩu để trống = giữ mật khẩu đã lưu.
+   - **Đăng nhập** (thanh trên cùng): đăng nhập song song cả 3 hệ thống bằng tài khoản đã lưu. Hệ thống chưa lưu tài khoản
+     (hoặc sai mật khẩu/cần OTP) thì tool chờ bạn đăng nhập tay trong cửa sổ trình duyệt (tối đa `LOGIN_WAIT_MIN` phút).
+   - **Đăng xuất**: xoá phiên cả 3 hệ thống (Fox ERP gồm cả IAM Keycloak) rồi kiểm tra lại đã về màn đăng nhập.
+     Đổi tài khoản thì Đăng xuất trước rồi Đăng nhập lại (màn retail-counter của Fox ERP hay giữ phiên tài khoản cũ).
+   - Fox ERP đăng nhập qua portal `/app/supply-chain` (trang `/service/retail-counter` không tự chuyển sang màn đăng nhập).
    - Fox ERP phải dùng tài khoản **có quyền kho xuất** (vd ChuyenNT5). Tài khoản không có quyền thì danh sách kho rỗng.
+   - Các nút **Fox ERP / SCM / GHTK** vẫn dùng được để mở từng hệ thống và đăng nhập tay.
 2. Nhập **Số hợp đồng** (HĐ có phiếu giao hàng tại quầy đang *Chờ xác nhận*), chọn **Chạy tới** và **Trạng thái GHTK** → **Chạy**.
 3. Theo dõi 4 chặng + nhật ký; xong thì sao chép mã ở khung kết quả.
 
@@ -42,13 +47,14 @@ node src/cli.js run SGABP5121                      # cả luồng, GHTK trạng 
 node src/cli.js run SGABP5121 --until ship         # dừng sau khi có mã vận đơn
 node src/cli.js run SGABP5121 --status 9           # bước cuối đẩy "Không giao được hàng"
 node src/cli.js ghtk S23115402.1100037933 4        # chỉ đẩy trạng thái GHTK
+node src/cli.js login / logout                    # đăng nhập / đăng xuất cả 3 hệ thống
 ```
 
 ## Cấu hình (`.env`, tạo từ `.env.example`)
 
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `ERP_USER/PASSWORD`, `SCM_USER/PASSWORD`, `GHTK_USER/PASSWORD` | trống | Điền thì tool tự đăng nhập; trống thì chờ đăng nhập tay |
+| `ERP_USER/PASSWORD`, `SCM_USER/PASSWORD`, `GHTK_USER/PASSWORD` | trống | Nhập trên giao diện (nút 👤 Tài khoản) hoặc điền tay; trống thì chờ đăng nhập tay |
 | `ERP_STOCK` | `KTNTESTMAC` | Kho xuất Fox ERP = Mã kho Inside bên SCM |
 | `SCM_STOCK_NAME` | `Kho KTN test MAC` | Tên kho đó bên SCM (combo kho SCM chỉ tìm được theo **tên**) |
 | `STOCK_PHONE` | `0775335608` | SĐT kho (bắt buộc trước khi đề nghị xuất kho) |

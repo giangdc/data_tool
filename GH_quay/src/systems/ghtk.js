@@ -27,6 +27,17 @@ async function autoLogin(page) {
   return true;
 }
 
+const apiConfigUrl = () => config.ghtkUrl + config.ghtkApiConfigPath;
+
+/** Mở GHTK lab, chưa đăng nhập thì đăng nhập (tài khoản đã lưu / chờ đăng nhập tay). */
+export async function login(onLog) {
+  const page = await pageFor((u) => u.startsWith(config.ghtkUrl), apiConfigUrl());
+  await ensureLoggedIn(page, { system: 'GHTK lab', isLoginPage, autoLogin, onLog });
+  return page;
+}
+
+export const session = { origins: () => [config.ghtkUrl], checkUrl: apiConfigUrl, isLoginPage };
+
 /** Gửi trạng thái giả lập cho 1 hoặc nhiều mã vận đơn (cách nhau dấu phẩy). */
 export async function pushStatus(trackingCodes, status, onLog) {
   const label = GHTK_STATUSES[status];

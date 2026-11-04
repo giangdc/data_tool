@@ -7,19 +7,21 @@ import { saveRun } from './core/store.js';
 import { closeBrowser } from './core/browser.js';
 import { runFlow, STOP_POINTS } from './flow.js';
 import { pushStatus, GHTK_STATUSES } from './systems/ghtk.js';
+import { loginAll, logoutAll } from './session.js';
 
 const HELP = `GH quầy Tool – chạy luồng Giao hàng tại quầy (Fox ERP → SCM → Fox ERP → GHTK lab)
 
   node src/cli.js run <số HĐ> [--until ${Object.keys(STOP_POINTS).join('|')}] [--status <mã GHTK>]
                               [--stock <kho>] [--phone <SĐT kho>]
   node src/cli.js ghtk <mã vận đơn[,mã khác]> <mã trạng thái>
+  node src/cli.js login | logout      đăng nhập / đăng xuất cả 3 hệ thống (tài khoản lưu trong .env)
 
   --until   chạy tới đâu thì dừng (mặc định done):
 ${Object.entries(STOP_POINTS).map(([k, v]) => `              ${k.padEnd(8)} ${v}`).join('\n')}
   --status  trạng thái GHTK đẩy ở bước cuối (mặc định ${config.ghtkStatus}):
 ${Object.entries(GHTK_STATUSES).map(([k, v]) => `              ${k.padStart(2)}  ${v}`).join('\n')}
 
-Trình duyệt sẽ hiện lên; hệ thống nào chưa đăng nhập thì đăng nhập trong cửa sổ đó (hoặc khai báo tài khoản trong .env).`;
+Trình duyệt sẽ hiện lên; hệ thống nào chưa đăng nhập thì đăng nhập trong cửa sổ đó (hoặc lưu tài khoản trên giao diện / trong .env).`;
 
 async function main() {
   const { positionals, values } = parseArgs({
@@ -46,6 +48,10 @@ async function main() {
     }
   } else if (cmd === 'ghtk' && args[0] && args[1]) {
     await pushStatus(args[0], args[1], onLog);
+  } else if (cmd === 'login') {
+    await loginAll(onLog);
+  } else if (cmd === 'logout') {
+    await logoutAll(onLog);
   } else {
     console.log(HELP);
     if (cmd && cmd !== 'help' && !values.help) process.exitCode = 1;
