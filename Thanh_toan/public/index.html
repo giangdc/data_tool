@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPT.vn Bill Pay Tool</title>
+<link rel="icon" href="/icon.svg">
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff; --accent: #f37021;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--primary); }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  header h1 img { width: 24px; height: 24px; }
+  header .site { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  nav.tabs { max-width: 1280px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  nav.tabs button { white-space: nowrap; background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; font-weight: 600; padding: 9px 16px; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
+  nav.tabs button:hover:not(:disabled) { background: var(--card); color: var(--text); }
+  nav.tabs button.active { background: var(--card); color: var(--primary); border-color: var(--line); }
+  nav.tabs button .step { background: var(--muted); }
+  nav.tabs button.active .step { background: var(--primary); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  main { max-width: 1440px; margin: 0 auto; padding: 16px 16px 40px; }
+  /* 3 bước tạo đơn xếp ngang (giống các bước đăng ký trên web), màn hẹp thì xếp dọc */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 16px; align-items: start; }
+  @media (max-width: 1100px) { .steps { grid-template-columns: 1fr; gap: 16px; } }
+  .step-card { position: relative; }
+  .step-card > h2 { padding-bottom: 10px; border-bottom: 2px solid var(--primary); }
+  .step-card > h2 + h3 { border-top: 0; padding-top: 0; margin-top: 10px; }
+  @media (min-width: 1101px) { .step-card:not(:last-child)::after { content: '›'; position: absolute; right: -19px; top: 8px; font-size: 26px; line-height: 1; color: var(--muted); } }
+  .results { margin-top: 16px; }
+  nav.tabs { max-width: 1440px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h3 { font-size: 13px; margin: 16px 0 2px; padding-top: 12px; border-top: 1px dashed var(--line); color: var(--text); }
+  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  label .req { color: var(--err); }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  textarea { resize: vertical; min-height: 40px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  select:disabled, input:disabled { opacity: .6; }
+  .row { display: flex; gap: 8px; align-items: end; }
+  .row > * { flex: 1; min-width: 0; }
+  .row > .shrink { flex: 0 0 auto; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); font-weight: 500; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  button.accent { background: var(--accent); }
+  button.accent:hover:not(:disabled) { background: #d85f15; }
+  .full { width: 100%; margin-top: 14px; }
+  .status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.err { background: var(--err-bg); color: var(--err); white-space: pre-wrap; }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .disabled-block { opacity: .5; pointer-events: none; }
+  .pkg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--primary) 6%, var(--card)); display: none; }
+  .pkg.show { display: block; }
+  .pkg b { font-size: 15px; }
+  .pkg .price { color: var(--primary); font-weight: 700; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .total b { font-size: 20px; color: var(--primary); }
+  .radios { display: flex; gap: 24px; margin-top: 12px; }
+  .radios label, .opt { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: 14px; cursor: pointer; }
+  .radios input, .opt input { width: auto; margin: 0; }
+  .opts { border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; overflow: hidden; }
+  .opts .grp { padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--muted); background: color-mix(in srgb, var(--primary) 6%, var(--card)); }
+  .opt { padding: 9px 12px; border-top: 1px solid var(--line); }
+  .opts > .opt:first-child, .opts > .grp:first-child { border-top: 0; }
+  .opt .name { flex: 1; min-width: 0; }
+  .opt .price { color: var(--primary); font-weight: 600; white-space: nowrap; }
+  .opt .sub { display: block; color: var(--muted); font-size: 12px; }
+  .opts .hint { padding: 8px 12px; margin: 0; }
+  .pay-box { margin-top: 12px; padding: 12px; border-radius: 8px; border: 1px solid var(--line); display: none; text-align: center; }
+  .pay-box.show { display: block; }
+  .check { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-weight: 500; cursor: pointer; }
+  .check input { width: auto; margin: 0; }
+  .check[hidden] { display: none; }
+  .repay { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+  .repay select { width: auto; max-width: 100%; margin: 0; }
+  .pay-box img { width: 220px; max-width: 100%; background: #fff; padding: 8px; border-radius: 8px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar h2 { margin: 0; margin-right: auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { background: transparent; color: var(--muted); border-radius: 0; font-weight: 500; padding: 5px 10px; }
+  .seg button.active { background: var(--primary); color: #fff; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #resultTable { min-width: 760px; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.code { font-weight: 700; white-space: nowrap; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td .sub { color: var(--muted); font-size: 12px; }
+  tr.new td { background: var(--ok-bg); }
+  tr.fail td { background: var(--err-bg); color: var(--err); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+  .pill.err { background: var(--err-bg); color: var(--err); }
+  .pill.none { color: var(--muted); }
+  td.actions { white-space: nowrap; text-align: right; }
+  td.actions button + button { margin-left: 4px; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(760px, calc(100vw - 32px)); background: var(--card); color: var(--text); }
+  dialog::backdrop { background: rgba(10, 14, 22, .45); }
+  .dlg-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .dlg-head h2 { margin: 0; font-size: 16px; margin-right: auto; }
+  .dlg-body { padding: 14px 18px 18px; max-height: 75vh; overflow: auto; }
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-word; }
+  .sec { margin-top: 16px; }
+  .sec h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  .sum-row td { border-bottom: 0; padding: 3px 8px; }
+  .sum-row.final td { font-weight: 700; font-size: 15px; border-top: 1px solid var(--line); padding-top: 8px; }
+  /* Bill Pay */
+  .bill { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); cursor: pointer; margin: 0; color: var(--text); font-size: 14px; }
+  .opts > .bill:first-child { border-top: 0; }
+  .bill input { width: auto; margin: 0; }
+  .bill .name { flex: 1; min-width: 0; }
+  .bill .sub { display: block; color: var(--muted); font-size: 12px; }
+  .bill .price { color: var(--primary); font-weight: 700; white-space: nowrap; }
+  .bill.locked { opacity: .55; cursor: not-allowed; }
+  .opt.off { opacity: .55; cursor: not-allowed; }
+  .opt .tag { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .progress { margin-top: 12px; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: none; max-height: 260px; overflow: auto; }
+  .progress.show { display: block; }
+  .progress div { padding: 2px 0; }
+  .progress .t { color: var(--muted); display: inline-block; min-width: 44px; }
+  .kv-mini { display: grid; grid-template-columns: 110px 1fr; gap: 4px 10px; font-size: 13px; margin-top: 10px; }
+  .kv-mini dt { color: var(--muted); }
+  .kv-mini dd { margin: 0; word-break: break-word; }
+</style>
+</head>
+<body>
+<header>
+  <h1><img src="/icon.svg" alt="">FPT.vn Bill Pay Tool</h1>
+  <span class="badge" id="envBadge">…</span>
+  <span class="site" id="siteLink"></span>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Thanh toán khoản thu theo số hợp đồng</h2>
+    <label for="contractNo">Số hợp đồng <span class="req">*</span> <span class="hint" id="contractHint"></span></label>
+    <div class="row">
+      <input id="contractNo" placeholder="vd: SGABP5048" autocomplete="off" style="text-transform: uppercase">
+      <button class="ghost shrink" id="btnDefaultContract" title="Lần sau mở tool sẽ tự tra cứu số HĐ này">☆ Đặt mặc định</button>
+      <button class="shrink" id="btnLookup">Thanh toán</button>
+    </div>
+    <div class="pkg" id="contractBox"></div>
+    <div class="status" id="lookupStatus"></div>
+  </div>
+
+  <div id="payForm" class="steps disabled-block">
+    <div class="card step-card">
+      <h2><span class="step">1</span> Khoản thu</h2>
+      <label class="check" id="allWrap"><input type="checkbox" id="chkAll" checked> Chọn tất cả</label>
+      <div class="opts" id="billList"><div class="hint">Nhập số hợp đồng rồi bấm Thanh toán</div></div>
+      <div class="total"><span>Tổng cộng (<span id="billCount">0</span> khoản)</span><b id="billTotal">0đ</b></div>
+    </div>
+
+    <div class="card step-card">
+      <h2><span class="step">2</span> Phương thức thanh toán</h2>
+      <div class="opts" id="methodList"><div class="hint">Chọn khoản thu trước</div></div>
+      <div class="hint" id="cardHint"></div>
+      <label class="check"><input type="checkbox" id="chkDefaultPm"> Đặt làm PTTT mặc định</label>
+    </div>
+
+    <div class="card step-card">
+      <h2><span class="step">3</span> Thanh toán</h2>
+      <dl class="kv-mini" id="paySummary"></dl>
+      <button class="accent full" id="btnPay" disabled>Thanh toán</button>
+      <div class="hint">Tool mở Chrome trên máy, tự nhập thẻ test (.env) và chờ cổng báo kết quả (~30–90 giây). Không đóng cửa sổ Chrome đó.</div>
+      <div class="progress" id="progress"></div>
+      <div class="status" id="payStatus"></div>
+    </div>
+  </div>
+
+  <div class="card results">
+    <div class="toolbar">
+      <h2>Kết quả</h2>
+      <div class="seg" id="viewSeg">
+        <button data-view="session" class="active">Lần này</button>
+        <button data-view="history">Lịch sử</button>
+      </div>
+      <button class="ghost small" id="btnRefresh" title="Cập nhật trạng thái giao dịch">⟳ Cập nhật trạng thái</button>
+    </div>
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead><tr><th>Thời gian</th><th>Hợp đồng</th><th>Mã giao dịch</th><th>PTTT</th><th>Khoản thu</th><th class="num">Số tiền</th><th>Trạng thái</th></tr></thead>
+        <tbody id="resultBody"><tr><td colspan="7" class="empty">Chưa có giao dịch</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { cfg: null, contract: null, methods: [], pm: null, sessionRows: [], history: [], view: 'session', busy: false };
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+function setStatus(el, kind, html) { el.className = 'status show ' + kind; el.innerHTML = html; }
+const clearStatus = (el) => { el.className = 'status'; el.innerHTML = ''; };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const vnd = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+const spin = (text) => `<span class="spinner"></span>${esc(text)}`;
+const PILL = { SUCCESS: 'ok', PENDING: 'wait' };
+const pill = (status, label) => `<span class="pill ${PILL[status] || (status ? 'err' : 'none')}">${esc(label || status || '–')}</span>`;
+
+async function init() {
+  state.cfg = await api('GET', '/api/config');
+  $('envBadge').textContent = state.cfg.env;
+  $('siteLink').innerHTML = `<a href="${esc(state.cfg.payUrl)}" target="_blank" rel="noopener">${esc(state.cfg.payUrl.replace(/^https?:\/\//, ''))} ↗</a>`;
+  $('contractNo').value = state.cfg.defaults.contractNo || '';
+  showDefault();
+  loadHistory();
+  if ($('contractNo').value) lookup();
+}
+
+// ---- Mặc định số HĐ ----
+function showDefault() {
+  const d = state.cfg.defaults.contractNo;
+  $('contractHint').textContent = d ? `(mặc định: ${d})` : '';
+  $('btnDefaultContract').disabled = !$('contractNo').value.trim() || $('contractNo').value.trim().toUpperCase() === d;
+}
+$('contractNo').addEventListener('input', showDefault);
+$('contractNo').addEventListener('keydown', (e) => { if (e.key === 'Enter') lookup(); });
+$('btnDefaultContract').onclick = async () => {
+  state.cfg.defaults = await api('POST', '/api/settings/defaults', { contractNo: $('contractNo').value });
+  showDefault();
+};
+$('chkDefaultPm').onchange = async () => {
+  if (!$('chkDefaultPm').checked || !state.pm) return;
+  state.cfg.defaults = await api('POST', '/api/settings/defaults', { paymentMethod: state.pm });
+  renderMethods();
+};
+
+// ---- Bước 1: tra cứu khoản thu ----
+async function lookup() {
+  const no = $('contractNo').value.trim().toUpperCase();
+  if (!no) return setStatus($('lookupStatus'), 'err', 'Nhập số hợp đồng');
+  $('contractNo').value = no;
+  showDefault();
+  $('btnLookup').disabled = true;
+  setStatus($('lookupStatus'), 'info', spin('Đang tra cứu khoản thu…'));
+  $('contractBox').classList.remove('show');
+  $('payForm').classList.add('disabled-block');
+  try {
+    state.contract = await api('POST', '/api/lookup', { contractNo: no });
+    renderContract();
+    clearStatus($('lookupStatus'));
+  } catch (err) {
+    state.contract = null;
+    setStatus($('lookupStatus'), 'err', esc(err.message));
+    renderBills();
+  } finally {
+    $('btnLookup').disabled = false;
+  }
+}
+$('btnLookup').onclick = lookup;
+
+function renderContract() {
+  const c = state.contract;
+  $('contractBox').innerHTML = `<b>${esc(c.contractNo)}</b>${c.contractName ? ' – ' + esc(c.contractName) : ''}
+    ${c.address ? `<div class="hint">${esc(c.address)}</div>` : ''}
+    ${c.bills.length ? `<div>${c.bills.length} khoản thu · <span class="price">${vnd(c.total)}</span></div>` : `<div class="hint">${esc(c.message)}</div>`}`;
+  $('contractBox').classList.add('show');
+  if (c.bills.length) $('payForm').classList.remove('disabled-block');
+  renderBills();
+}
+
+function renderBills() {
+  const bills = state.contract?.bills || [];
+  $('allWrap').hidden = bills.filter((b) => b.selectable).length < 2;
+  $('chkAll').checked = true;
+  $('billList').innerHTML = bills.length ? bills.map((b) => `
+    <label class="bill ${b.selectable ? '' : 'locked'}" title="${b.selectable ? '' : 'Web không cho chọn khoản loại ' + esc(b.type)}">
+      <input type="checkbox" value="${esc(b.billNumber)}" ${b.selectable ? 'checked' : 'disabled'}>
+      <span class="name">${esc(b.title)}<span class="sub">${esc(b.content)} · ${esc(b.billNumberId)}</span></span>
+      <span class="price">${esc(b.totalText)}</span>
+    </label>`).join('') : `<div class="hint">${esc(state.contract?.message || 'Nhập số hợp đồng rồi bấm Thanh toán')}</div>`;
+  $('billList').querySelectorAll('input').forEach((i) => (i.onchange = onBillsChanged));
+  onBillsChanged();
+}
+
+const selectedBills = () => [...$('billList').querySelectorAll('input:checked')].map((i) => i.value);
+
+let methodsTimer;
+function onBillsChanged() {
+  const ids = selectedBills();
+  const bills = (state.contract?.bills || []).filter((b) => ids.includes(b.billNumber));
+  const selectable = (state.contract?.bills || []).filter((b) => b.selectable).length;
+  $('chkAll').checked = ids.length === selectable && selectable > 0;
+  $('chkAll').indeterminate = ids.length > 0 && ids.length < selectable;
+  $('billCount').textContent = bills.length;
+  $('billTotal').textContent = vnd(bills.reduce((s, b) => s + b.total, 0));
+  clearTimeout(methodsTimer);
+  if (!bills.length) { state.methods = []; renderMethods(); return; }
+  methodsTimer = setTimeout(loadMethods, 250);
+}
+$('chkAll').onchange = () => {
+  $('billList').querySelectorAll('input:not(:disabled)').forEach((i) => (i.checked = $('chkAll').checked));
+  onBillsChanged();
+};
+
+// ---- Bước 2: PTTT ----
+async function loadMethods() {
+  $('methodList').innerHTML = `<div class="hint">${spin('Đang tải phương thức thanh toán…')}</div>`;
+  try {
+    state.methods = await api('POST', '/api/methods', { contractNo: state.contract.contractNo, billIds: selectedBills() });
+  } catch (err) {
+    state.methods = [];
+    $('methodList').innerHTML = `<div class="hint" style="color: var(--err)">${esc(err.message)}</div>`;
+    return renderSummary();
+  }
+  const ok = state.methods.filter((m) => m.supported);
+  if (!ok.some((m) => m.code === state.pm)) state.pm = (ok.find((m) => m.code === state.cfg.defaults.paymentMethod) || ok[0])?.code || null;
+  renderMethods();
+}
+
+function renderMethods() {
+  const list = state.methods;
+  if (list.length) {
+    $('methodList').innerHTML = list.map((m) => `
+      <label class="opt ${m.supported ? '' : 'off'}">
+        <input type="radio" name="pm" value="${esc(m.code)}" ${m.code === state.pm ? 'checked' : ''} ${m.supported ? '' : 'disabled'}>
+        <span class="name">${esc(m.name)}<span class="sub">${esc(m.code)}${m.code === state.cfg.defaults.paymentMethod ? ' · mặc định' : ''}</span></span>
+        <span class="tag">${m.supported ? (m.cards ? `${m.cards} thẻ test` : '⚠ chưa có thẻ test') : 'tool chưa hỗ trợ'}</span>
+      </label>`).join('');
+    $('methodList').querySelectorAll('input').forEach((i) => (i.onchange = () => { state.pm = i.value; renderMethods(); }));
+  } else if (!selectedBills().length) $('methodList').innerHTML = '<div class="hint">Chọn khoản thu trước</div>';
+  const m = list.find((x) => x.code === state.pm);
+  $('cardHint').textContent = m && !m.cards ? `Chưa có thẻ test ${m.name}: thêm CARD_${m.code}_* vào .env (copy từ Tao_DH/.env)` : '';
+  $('chkDefaultPm').checked = !!state.pm && state.pm === state.cfg.defaults.paymentMethod;
+  $('chkDefaultPm').disabled = !state.pm || $('chkDefaultPm').checked;
+  renderSummary();
+}
+
+// ---- Bước 3: thanh toán ----
+function renderSummary() {
+  const ids = selectedBills();
+  const bills = (state.contract?.bills || []).filter((b) => ids.includes(b.billNumber));
+  const m = state.methods.find((x) => x.code === state.pm);
+  $('paySummary').innerHTML = state.contract ? `
+    <dt>Hợp đồng</dt><dd><b>${esc(state.contract.contractNo)}</b></dd>
+    <dt>Khoản thu</dt><dd>${bills.length ? bills.map((b) => esc(b.billNumberId)).join(', ') : '–'}</dd>
+    <dt>PTTT</dt><dd>${m ? esc(m.name) : '–'}</dd>
+    <dt>Số tiền</dt><dd><b>${vnd(bills.reduce((s, b) => s + b.total, 0))}</b></dd>` : '';
+  $('btnPay').disabled = state.busy || !bills.length || !m?.supported || !m.cards;
+  $('btnPay').textContent = bills.length ? `Thanh toán ${vnd(bills.reduce((s, b) => s + b.total, 0))}` : 'Thanh toán';
+}
+
+$('btnPay').onclick = async () => {
+  const body = { contractNo: state.contract.contractNo, billIds: selectedBills(), paymentMethod: state.pm };
+  state.busy = true;
+  renderSummary();
+  $('payForm').querySelectorAll('.step-card:not(:last-child)').forEach((c) => c.classList.add('disabled-block'));
+  const t0 = Date.now();
+  $('progress').innerHTML = '';
+  $('progress').classList.add('show');
+  const tick = setInterval(() => setStatus($('payStatus'), 'info', spin(`Đang thanh toán… ${Math.round((Date.now() - t0) / 1000)}s (xem cửa sổ Chrome)`)), 1000);
+  setStatus($('payStatus'), 'info', spin('Đang thanh toán…'));
+  try {
+    const r = await api('POST', '/api/pay', body);
+    const s = r.summary;
+    $('progress').innerHTML = r.steps.map((x) => `<div><span class="t">${esc(x.at)}s</span>${esc(x.text)}</div>`).join('');
+    setStatus($('payStatus'), s.result === 'success' ? 'ok' : 'err',
+      `${s.result === 'success' ? '✔' : '✖'} <b>${esc(s.paymentCode)}</b> · ${esc(s.paymentName)} ${esc(s.amountText)} – ${esc(s.statusLabel)}${s.message ? ': ' + esc(s.message) : ''}`);
+    state.sessionRows.unshift(s);
+    loadHistory();
+    if (r.remaining) { state.contract = r.remaining; renderContract(); }
+  } catch (err) {
+    setStatus($('payStatus'), 'err', esc(err.message));
+  } finally {
+    clearInterval(tick);
+    state.busy = false;
+    $('payForm').querySelectorAll('.step-card').forEach((c) => c.classList.remove('disabled-block'));
+    renderSummary();
+  }
+};
+
+// ---- Kết quả ----
+async function loadHistory() {
+  try { state.history = await api('GET', '/api/history'); } catch { state.history = []; }
+  renderResults();
+}
+function renderResults() {
+  const rows = state.view === 'session' ? state.sessionRows : state.history;
+  $('resultBody').innerHTML = rows.length ? rows.map((s, i) => `
+    <tr class="${state.view === 'session' && i === 0 && s.result === 'success' ? 'new' : ''}">
+      <td>${esc(s.time)}</td>
+      <td class="code">${esc(s.contractNo)}<div class="sub">${esc(s.contractName || '')}</div></td>
+      <td>${esc(s.paymentCode)}<div class="sub">thẻ ${esc(s.card)}</div></td>
+      <td>${esc(s.paymentName)}</td>
+      <td>${esc(s.billIds)}<div class="sub">${esc(s.billCount)} khoản</div></td>
+      <td class="num">${esc(s.amountText || vnd(s.amount))}</td>
+      <td>${pill(s.status, s.statusLabel)}${s.result !== 'success' && s.message ? `<div class="sub">${esc(s.message)}</div>` : ''}</td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty">${state.view === 'session' ? 'Chưa có giao dịch trong lần này' : 'Chưa có lịch sử'}</td></tr>`;
+}
+$('viewSeg').querySelectorAll('button').forEach((b) => (b.onclick = () => {
+  state.view = b.dataset.view;
+  $('viewSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+  renderResults();
+}));
+$('btnRefresh').onclick = async () => {
+  const rows = state.view === 'session' ? state.sessionRows : state.history.slice(0, 30);
+  const codes = [...new Set(rows.filter((s) => s.paymentCode && s.status !== 'SUCCESS').map((s) => s.paymentCode))];
+  if (!codes.length) return;
+  $('btnRefresh').disabled = true;
+  try {
+    const st = await api('POST', '/api/status', { codes });
+    for (const r of [...state.sessionRows, ...state.history]) {
+      const x = st.find((y) => y.paymentCode === r.paymentCode);
+      if (x && x.status !== 'ERROR') Object.assign(r, { status: x.status, statusLabel: x.statusLabel });
+    }
+    renderResults();
+  } finally {
+    $('btnRefresh').disabled = false;
+  }
+};
+
+init().catch((err) => setStatus($('lookupStatus'), 'err', 'Không tải được cấu hình: ' + esc(err.message)));
+</script>
+</body>
+</html>
