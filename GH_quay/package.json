@@ -1,6 +1,6 @@
 {
   "name": "gh-quay-tool",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tool hỗ trợ QC chạy nhanh luồng Giao hàng tại quầy: Fox ERP (nhận xử lý, tạm ứng vật tư) → SCM (phiếu nhập MAC, xác nhận tạm ứng) → Fox ERP (GHTK, đóng hàng) → GHTK lab (đẩy trạng thái vận đơn)",
   "type": "module",
   "engines": {
