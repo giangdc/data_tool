@@ -1,0 +1,426 @@
+{
+ "note": "Danh sách gói khảo sát 2026-10-26 (stag, 123 Trương Định, P. Bến Thành, HCM) – dùng khi chưa tải gói lần nào",
+ "address": "123, Trương Định, Phường Bến Thành, Hồ Chí Minh",
+ "packages": [
+  {
+   "group": "GigaF1",
+   "index": 1,
+   "name": "Giga F1 - 1T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 2,
+   "name": "Giga F1 - 1T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 3,
+   "name": "Giga F1 - 1T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 4,
+   "name": "Giga F1 - 1T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 5,
+   "name": "Giga F1 - 1T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Access Point AX1800AZ:1, Internet hub AX1800GZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 6,
+   "name": "Giga F1 - 6T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 1659000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 7,
+   "name": "Giga F1 - 6T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 1659000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF1",
+   "index": 8,
+   "name": "Giga F1 - 6T",
+   "monthly": 210000,
+   "setup": 399000,
+   "total": 1659000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 1,
+   "name": "Giga F2 - 1T",
+   "monthly": 260000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 2,
+   "name": "Giga F2 - 1T",
+   "monthly": 260000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 3,
+   "name": "Giga F2 - 6T",
+   "monthly": 260000,
+   "setup": 499000,
+   "total": 2059000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 4,
+   "name": "Giga F2 - 6T",
+   "monthly": 260000,
+   "setup": 499000,
+   "total": 2059000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 5,
+   "name": "Giga F2 - 6T",
+   "monthly": 260000,
+   "setup": 499000,
+   "total": 2059000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 6,
+   "name": "Giga F2 - 12T",
+   "monthly": 240000,
+   "setup": 499000,
+   "total": 3619000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 7,
+   "name": "Giga F2 - 12T",
+   "monthly": 240000,
+   "setup": 499000,
+   "total": 3619000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "GigaF2",
+   "index": 8,
+   "name": "Giga F2 - 12T",
+   "monthly": 240000,
+   "setup": 499000,
+   "total": 3619000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 1,
+   "name": "Meta F1 - 1T",
+   "monthly": 320000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 2,
+   "name": "Meta F1 - 1T",
+   "monthly": 320000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 3,
+   "name": "Meta F1 - 6T",
+   "monthly": 320000,
+   "setup": 399000,
+   "total": 2319000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 4,
+   "name": "Meta F1 - 6T",
+   "monthly": 320000,
+   "setup": 399000,
+   "total": 2319000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 5,
+   "name": "Meta F1 - 12T",
+   "monthly": 295385,
+   "setup": 399000,
+   "total": 4239000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF1",
+   "index": 6,
+   "name": "Meta F1 - 12T",
+   "monthly": 295385,
+   "setup": 399000,
+   "total": 4239000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 1,
+   "name": "Meta F2 - 1T",
+   "monthly": 365000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 2,
+   "name": "Meta F2 - 1T",
+   "monthly": 365000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Access Point AX1800AZ:2, Internet hub AX1800GZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 3,
+   "name": "Meta F2 - 6T",
+   "monthly": 365000,
+   "setup": 499000,
+   "total": 2689000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 4,
+   "name": "Meta F2 - 6T",
+   "monthly": 365000,
+   "setup": 499000,
+   "total": 2689000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 5,
+   "name": "Meta F2 - 12T",
+   "monthly": 336924,
+   "setup": 499000,
+   "total": 4879000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "MetaF2",
+   "index": 6,
+   "name": "Meta F2 - 12T",
+   "monthly": 336924,
+   "setup": 499000,
+   "total": 4879000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF1",
+   "index": 1,
+   "name": "Sky F1 - 1T",
+   "monthly": 225000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF1",
+   "index": 2,
+   "name": "Sky F1 - 1T",
+   "monthly": 225000,
+   "setup": 399000,
+   "total": 399000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF1",
+   "index": 3,
+   "name": "Sky F1 - 6T",
+   "monthly": 225000,
+   "setup": 399000,
+   "total": 1749000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF1",
+   "index": 4,
+   "name": "Sky F1 - 6T",
+   "monthly": 225000,
+   "setup": 399000,
+   "total": 1749000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:1",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 1,
+   "name": "Sky F2 - 1T",
+   "monthly": 275000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 2,
+   "name": "Sky F2 - 1T",
+   "monthly": 275000,
+   "setup": 499000,
+   "total": 499000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 3,
+   "name": "Sky F2 - 6T",
+   "monthly": 275000,
+   "setup": 499000,
+   "total": 2149000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 4,
+   "name": "Sky F2 - 6T",
+   "monthly": 275000,
+   "setup": 499000,
+   "total": 2149000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 5,
+   "name": "Sky F2 - 12T",
+   "monthly": 253847,
+   "setup": 499000,
+   "total": 3799000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "SkyF2",
+   "index": 6,
+   "name": "Sky F2 - 12T",
+   "monthly": 253847,
+   "setup": 499000,
+   "total": 3799000,
+   "products": "Internet hub AX1800GZ:1, Access Point AX1800AZ:2",
+   "services": "Internet"
+  },
+  {
+   "group": "Combo khác",
+   "index": 1,
+   "name": "Max - 6T",
+   "monthly": 72600,
+   "setup": 0,
+   "total": 435600,
+   "products": "",
+   "services": "FPT Play"
+  },
+  {
+   "group": "Combo khác",
+   "index": 2,
+   "name": "VIP - 6T",
+   "monthly": 72600,
+   "setup": 0,
+   "total": 435600,
+   "products": "",
+   "services": "FPT Play"
+  },
+  {
+   "group": "Combo khác",
+   "index": 3,
+   "name": "VIP - 12T",
+   "monthly": 71970,
+   "setup": 0,
+   "total": 935600,
+   "products": "",
+   "services": "FPT Play"
+  },
+  {
+   "group": "Combo khác",
+   "index": 4,
+   "name": "Max - 12T",
+   "monthly": 71970,
+   "setup": 0,
+   "total": 935600,
+   "products": "",
+   "services": "FPT Play"
+  }
+ ]
+}

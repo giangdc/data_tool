@@ -24,11 +24,15 @@ export const config = {
   defaults: {
     phone: env('DEFAULT_PHONE'),
     address: env('DEFAULT_ADDRESS', '123, Trương Định, Phường Bến Thành, Hồ Chí Minh'),
+    // Toạ độ điền vào form địa chỉ khi Google trên stag không trả (OVER_QUERY_LIMIT); khớp địa chỉ mặc định
+    coords: env('DEFAULT_COORDS', '10.7733664, 106.6944494'),
+    // Gói mặc định: nhóm combo + thứ tự gói trong nhóm (theo danh sách gói tải từ portal)
     combo: env('DEFAULT_COMBO', 'GigaF1'),
     comboIndex: Number(env('DEFAULT_COMBO_INDEX', '1')) || 1,
     payment: env('DEFAULT_PAYMENT', 'Napas'),
   },
-  headless: env('HEADLESS', 'false').toLowerCase() === 'true',
+  // Mặc định chạy ngầm (chọn lại được trên giao diện)
+  headless: env('HEADLESS', 'true').toLowerCase() !== 'false',
   browser: env('BROWSER', 'auto').toLowerCase(),
   uiPort: Number(env('UI_PORT')) || 3005,
 };

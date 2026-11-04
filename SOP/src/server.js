@@ -4,23 +4,27 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { config, credentials, saveEnvValue, ROOT_DIR } from './core/env.js';
+import { config, credentials, saveEnvValue, ROOT_DIR, OUTPUT_DIR } from './core/env.js';
 import { log } from './core/logger.js';
-import { saveRun, recentRuns } from './core/store.js';
-import { getContext, closeBrowser, isBrowserOpen, openPortal } from './core/browser.js';
-import { createInternetOrder, COMBOS } from './sop/order.js';
+import { saveRun, recentRuns, savePackages, loadPackages, saveCustomers, loadCustomers, saveServiceOptions, loadServiceOptions } from './core/store.js';
+import { getContext, closeBrowser, isBrowserOpen, browserHeadless, openPortal } from './core/browser.js';
+import { createOrder, fetchPackages, fetchCustomers, fetchServiceOptions } from './sop/order.js';
+import { CUSTOMER_TYPES, DEFAULT_CUSTOMER_TYPE } from './sop/customer.js';
+import { SERVICES } from './sop/services.js';
 
 const PORT = config.uiPort;
 const HOST = '127.0.0.1';
 const PAGE = path.join(ROOT_DIR, 'public', 'index.html');
 
-// Chỉ 1 lượt chạy tại một thời điểm (cùng 1 cửa sổ trình duyệt)
+// Chỉ 1 lượt chạy tại một thời điểm (cùng 1 cửa sổ trình duyệt). kind: order | packages | customers | service-options
 let job = null;
 let jobSeq = 0;
 
-function startJob(input, work) {
-  if (job?.running) throw Object.assign(new Error('Đang có lượt chạy khác, chờ xong rồi chạy tiếp'), { status: 409 });
-  const current = { id: ++jobSeq, input, running: true, logs: [], result: null, error: null, authError: false, startedAt: Date.now() };
+const busy = () => Object.assign(new Error('Đang có lượt chạy khác, chờ xong rồi chạy tiếp'), { status: 409 });
+
+function startJob(kind, input, work) {
+  if (job?.running) throw busy();
+  const current = { id: ++jobSeq, kind, input, running: true, logs: [], result: null, error: null, authError: false, startedAt: Date.now() };
   job = current;
   const onLog = (msg) => {
     current.logs.push({ at: Date.now(), msg });
@@ -51,8 +55,11 @@ const routes = {
       account: user,
       credentialsConfigured: Boolean(user && password),
       browserOpen: isBrowserOpen(),
+      browserHeadless: browserHeadless(),
+      headless: config.headless,
       defaults: config.defaults,
-      combos: Object.keys(COMBOS),
+      customerTypes: CUSTOMER_TYPES,
+      defaultCustomerType: DEFAULT_CUSTOMER_TYPE,
     };
   },
 
@@ -70,18 +77,18 @@ const routes = {
   },
 
   // Đăng nhập thử (mở portal, tự đăng nhập nếu cần)
-  'POST /api/login': async () => {
-    if (job?.running) throw Object.assign(new Error('Đang chạy, thử lại sau'), { status: 409 });
-    const ctx = await getContext();
+  'POST /api/login': async ({ body }) => {
+    if (job?.running) throw busy();
+    const ctx = await getContext({ headless: body.headless });
     const page = ctx.pages()[0] || (await ctx.newPage());
     await openPortal(page, `${config.sopUrl}/quan-ly-khach-hang/khach-hang/danh-sach`);
     return { ok: true, account: credentials().user };
   },
 
   // Đăng nhập lại: xoá cookie phiên của portal rồi đăng nhập bằng tài khoản đang lưu
-  'POST /api/relogin': async () => {
-    if (job?.running) throw Object.assign(new Error('Đang chạy, thử lại sau'), { status: 409 });
-    const ctx = await getContext();
+  'POST /api/relogin': async ({ body }) => {
+    if (job?.running) throw busy();
+    const ctx = await getContext({ headless: body.headless });
     await ctx.clearCookies();
     await ctx.pages()[0]?.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} }).catch(() => {});
     const page = ctx.pages()[0] || (await ctx.newPage());
@@ -89,9 +96,9 @@ const routes = {
     return { ok: true, account: credentials().user };
   },
 
-  'POST /api/run': async ({ body }) => startJob(body, async (onLog) => {
+  'POST /api/run': async ({ body }) => startJob('order', body, async (onLog) => {
     try {
-      const record = await createInternetOrder(body, onLog);
+      const record = await createOrder(body, onLog, savePackages);
       saveRun(record);
       return record;
     } catch (err) {
@@ -100,12 +107,36 @@ const routes = {
     }
   }),
 
+  // Danh sách gói theo địa chỉ: đã lưu (hoặc danh sách khảo sát sẵn) / tải lại từ portal (~1 phút)
+  'GET /api/packages': async ({ query }) => loadPackages(query.get('address') || config.defaults.address),
+  'POST /api/packages': async ({ body }) => startJob('packages', body, async (onLog) => {
+    const r = await fetchPackages(body, onLog);
+    savePackages(r.address, r.packages);
+    return r;
+  }),
+
+  // SĐT KH trong "Khách hàng của tôi" của tài khoản đang lưu: đã lưu / đọc lại từ portal
+  'GET /api/customers': async () => loadCustomers(credentials().user),
+  'POST /api/customers': async ({ body }) => startJob('customers', body, async (onLog) => {
+    const customers = await fetchCustomers(body, onLog);
+    saveCustomers(credentials().user, customers);
+    return { customers };
+  }),
+
+  // Dịch vụ trên menu + gói từng dịch vụ (đã lưu / khảo sát sẵn); tải lại từ portal theo địa chỉ (~1 phút)
+  'GET /api/services': async () => ({ services: SERVICES, options: loadServiceOptions() }),
+  'POST /api/service-options': async ({ body }) => startJob('service-options', body, async (onLog) => {
+    const r = await fetchServiceOptions(body, onLog);
+    saveServiceOptions(r.id, r.options);
+    return r;
+  }),
+
   'GET /api/job': async () => job && { ...job, elapsedMs: (job.finishedAt || Date.now()) - job.startedAt },
 
   'GET /api/runs': async () => recentRuns(30),
 
   'POST /api/browser/close': async () => {
-    if (job?.running) throw Object.assign(new Error('Đang chạy, không đóng trình duyệt được'), { status: 409 });
+    if (job?.running) throw busy();
     await closeBrowser();
     return { browserOpen: false };
   },
@@ -139,6 +170,15 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
       return send(res, 200, await readFile(PAGE, 'utf8'), 'text/html; charset=utf-8');
+    }
+    // Ảnh chụp từng bước: chữ trong hộp cảnh báo của app chỉ xem được trên ảnh
+    if (req.method === 'GET' && url.pathname.startsWith('/debug/')) {
+      const file = path.basename(decodeURIComponent(url.pathname));
+      if (!file.endsWith('.png')) return send(res, 404, { error: 'Không tìm thấy' });
+      const img = await readFile(path.join(OUTPUT_DIR, 'debug', file)).catch(() => null);
+      if (!img) return send(res, 404, { error: 'Không tìm thấy' });
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+      return res.end(img);
     }
     const handler = routes[`${req.method} ${url.pathname}`];
     if (!handler) return send(res, 404, { error: 'Không tìm thấy' });

@@ -31,6 +31,39 @@ export async function nodes(page) {
   }).filter((n) => n.label && n.w > 0 && n.h > 0));
 }
 
+/**
+ * Ô nhập trong form (kể cả ô chọn dạng dropdown): {name (aria-label, có ô không tên), value, x, y, w, h}, theo thứ tự trên màn hình.
+ * Hộp thoại form mở ra hoặc đổi giá trị, Flutter chưa cập nhật cây semantics -> đổi viewport 1px để app dựng lại.
+ */
+export async function formFields(page, { refresh = true } = {}) {
+  // refresh = ép app dựng lại cây semantics (~1,5s) – chỉ cần khi vừa mở hộp thoại / đổi giá trị; sau khi cuộn thì cây tự cập nhật
+  if (refresh) {
+    const { width, height } = page.viewportSize() || { width: 1440, height: 813 };
+    await page.setViewportSize({ width, height: height + 1 });
+    await sleep(400);
+    await page.setViewportSize({ width, height });
+    await sleep(1000);
+  }
+  await nodes(page);
+  const list = await page.evaluate(() => [...document.querySelectorAll('flt-semantics')].flatMap((e) => {
+    const i = e.querySelector(':scope > input, :scope > textarea');
+    if (!i) return [];
+    const r = e.getBoundingClientRect();
+    return [{ name: i.getAttribute('aria-label') || '', value: i.value || '', x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }];
+  }));
+  return list.filter((f) => f.w > 0 && f.h > 0).sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+/** Nút không có nhãn (dấu +, thùng rác, X đóng sheet): {x, y, w, h}. */
+export async function plainButtons(page) {
+  await nodes(page);
+  return page.evaluate(() => [...document.querySelectorAll('flt-semantics[role=button]')].flatMap((e) => {
+    if (e.getAttribute('aria-label') || e.textContent.trim()) return [];
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 ? [{ x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }] : [];
+  }));
+}
+
 /** Node đầu tiên có nhãn khớp (chỉ lấy node nằm trong màn hình). */
 export async function findNode(page, re) {
   return (await nodes(page)).find((n) => re.test(n.label) && n.y > 0 && n.y < 813);
@@ -75,6 +108,30 @@ export async function clickUntilNode(page, x, y, pred, { tries = 4, wait = 3000 
     await page.mouse.click(x, y);
     for (const end = Date.now() + wait; Date.now() < end; await sleep(500)) {
       if ((await nodes(page)).some(pred)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Bấm ô nhập ở (x, y) rồi gõ text. Flutter chỉ tạo <input> thật khi ô đã focus -> chờ có input rồi mới gõ
+ * (gõ sớm sẽ mất mấy ký tự đầu), gõ xong kiểm tra giá trị, sai thì xoá gõ lại.
+ */
+export async function typeInto(page, x, y, text, tries = 3, { delay = 25 } = {}) {
+  const value = () => page.evaluate(() => {
+    const el = document.activeElement;
+    return el && /^(INPUT|TEXTAREA)$/.test(el.tagName) ? el.value : null;
+  }).catch(() => null);
+  for (let i = 0; i < tries; i++) {
+    await page.mouse.click(x, y);
+    for (const end = Date.now() + 5000; Date.now() < end && (await value()) === null; ) await sleep(300);
+    await sleep(300);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    // Gõ nhanh rồi chờ giá trị khớp (tối đa 1,5s); Flutter rớt ký tự thì lượt sau gõ chậm lại
+    await page.keyboard.type(text, { delay: i ? 60 : delay });
+    for (const end = Date.now() + 1500; Date.now() < end; await sleep(200)) {
+      if ((await value()) === text) return true;
     }
   }
   return false;

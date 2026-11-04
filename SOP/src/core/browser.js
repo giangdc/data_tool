@@ -14,15 +14,16 @@ export class AuthError extends Error {
 }
 
 let contextPromise = null;
+let contextHeadless = null;
 
-async function launch() {
+async function launch(headless) {
   mkdirSync(PROFILE_DIR, { recursive: true });
   const order = config.browser === 'auto' ? ['chrome', 'msedge', 'chromium'] : [config.browser];
   const errors = [];
   for (const channel of order) {
     try {
       return await chromium.launchPersistentContext(PROFILE_DIR, {
-        headless: config.headless,
+        headless,
         viewport: VIEWPORT,
         ...(channel !== 'chromium' && { channel }),
       });
@@ -33,19 +34,29 @@ async function launch() {
   throw new Error(`Không mở được trình duyệt (profile đang bị Chrome khác dùng?). Cài Google Chrome hoặc Microsoft Edge.\n   ${errors.join('\n   ')}`);
 }
 
-/** Context trình duyệt dùng chung (mở nếu chưa có / người dùng đã đóng cửa sổ). */
-export function getContext() {
+/**
+ * Context trình duyệt dùng chung (mở nếu chưa có / người dùng đã đóng cửa sổ).
+ * headless: true = chạy ngầm, false = hiện cửa sổ Chrome; bỏ trống = giữ chế độ đang mở (chưa mở thì theo .env).
+ * Đổi chế độ thì đóng trình duyệt cũ rồi mở lại (cùng profile nên vẫn giữ phiên đăng nhập).
+ */
+export async function getContext({ headless } = {}) {
+  const want = typeof headless === 'boolean' ? headless : (contextPromise ? contextHeadless : config.headless);
+  if (contextPromise && contextHeadless !== want) await closeBrowser();
   if (!contextPromise) {
-    contextPromise = launch().then((ctx) => {
-      ctx.on('close', () => { contextPromise = null; });
+    contextHeadless = want;
+    const current = launch(want).then((ctx) => {
+      ctx.on('close', () => { if (contextPromise === current) contextPromise = null; });
       return ctx;
     });
-    contextPromise.catch(() => { contextPromise = null; });
+    contextPromise = current;
+    current.catch(() => { if (contextPromise === current) contextPromise = null; });
   }
   return contextPromise;
 }
 
 export const isBrowserOpen = () => Boolean(contextPromise);
+/** Chế độ của trình duyệt đang mở: true = chạy ngầm, false = có cửa sổ, null = chưa mở. */
+export const browserHeadless = () => (contextPromise ? contextHeadless : null);
 
 export async function closeBrowser() {
   if (!contextPromise) return;
@@ -69,7 +80,10 @@ export async function openPortal(page, url, onLog = () => {}) {
   await page.goto(config.sopUrl + config.sopLoginPath, { waitUntil: 'domcontentloaded' });
   await page.fill('#basic_username', user);
   await page.fill('#basic_password', password);
-  await page.click('button[type=submit]');
+  // Nút đăng nhập: trước là button[type=submit], từ 11/2026 portal để type="Login" -> tìm theo chữ, không thấy thì Enter
+  const submit = page.locator('#basic button[type=submit], #basic button').filter({ hasText: /login|đăng nhập/i }).first();
+  if (await submit.count()) await submit.click();
+  else await page.press('#basic_password', 'Enter');
   try {
     await page.waitForURL((u) => !u.pathname.startsWith('/user/login'), { timeout: 30000 });
   } catch {

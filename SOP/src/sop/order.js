@@ -1,29 +1,47 @@
-// Luồng tạo đơn Internet + hợp đồng trên Portal SOP (khảo sát: khao-sat/KHAO_SAT.md).
+// Luồng tạo đơn (Internet / dịch vụ khác) + hợp đồng trên Portal SOP (khảo sát: khao-sat/KHAO_SAT.md).
 //  1. Portal (React): Khách hàng của tôi -> tìm theo SĐT -> chi tiết KH -> tab Đơn hàng -> Thêm đơn hàng -> Bán mới
 //  2. Tab mới /ban-hang/order/create = app Sale Platform (Flutter): địa chỉ (tìm kiếm) -> combo -> PTTT -> lưu KH
 //     -> Tạo báo giá (bỏ qua cảnh báo trùng đơn) -> Tạo hợp đồng -> khảo sát Định danh KH
+//     Dịch vụ khác: thay combo bằng form dịch vụ + giỏ hàng (services.js), có thể mua kèm combo Internet
 // Mã đơn / mã HĐ / link báo giá / bookport đọc từ response API của app (màn Flutter không có chữ trong DOM).
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { config, OUTPUT_DIR } from '../core/env.js';
 import { getContext, openPortal } from '../core/browser.js';
-import { sleep, nodes, findNode, waitNode, tapLabel, shooter, clickUntilChange, clickUntilNode } from './flutter.js';
+import { sleep, nodes, findNode, waitNode, tapLabel, shooter, clickUntilChange, clickUntilNode, typeInto } from './flutter.js';
+import { findService, addService, openCart, readServiceOptions } from './services.js';
+import { findCustomerType, isOrgType, chooseCustomerType, fillOrgCustomer, randomTaxCode, quoteGroups, DEFAULT_CUSTOMER_TYPE, CUSTOMER_TYPES } from './customer.js';
 
 const LIST_PATH = '/quan-ly-khach-hang/khach-hang/danh-sach';
 
-// Combo gợi ý: toạ độ tab (y=423) và thẻ gói (y=500) trên màn Tạo báo giá
-export const COMBOS = { GigaF1: 69, GigaF2: 163, MetaF1: 256, MetaF2: 351, SkyF1: 441, SkyF2: 539 };
-const CARD_X = [125, 355, 584, 813, 1042, 1271];
-
 // Nhận diện mã trong response
-const ORDER_RE = /^[A-Z]{3}SF[0-9A-Z]{4,}$/; // HCMSF0026TIZ
+const ORDER_RE = /^[A-Z]{5}\d{4}[0-9A-Z]{3}$/; // HCMSF0026TIZ, HCMSI0026TMZ, HCMUO0026UQG
 const CONTRACT_RE = /^[A-Z]{5}\d{3,}$/; // SGABP5146
 const QUOTE_RE = /^https?:\/\/[^/]*fpt\.vn\/shop\/bao-gia\/\w+$/;
 const BOOKPORT_RE = /^[A-Z]{3}P\d{3}\.\d{3,}\/\w+$/; // HCMP005.0315/HU
 
+/** Thông báo lỗi trong response API (nếu có). Chữ trong hộp cảnh báo của app không đọc được từ semantics. */
+export function apiMessage(json) {
+  // Rule chặn của portal nằm ở Data.Result.Reason (vd order/validate: "Số phone … đã được kích hoạt dịch vụ FPT Play cho hợp đồng …")
+  const reason = json?.Data?.Result?.Reason;
+  const reasons = (Array.isArray(reason) ? reason : [reason]).filter((r) => typeof r === 'string' && r.trim());
+  if (json?.Data?.Result?.IsValid === false && reasons.length) {
+    const m = json?.Message;
+    const head = typeof m === 'string' ? m : m?.Message || m?.Vi || '';
+    return `${head ? head.trim() + ' ' : ''}Lý do: ${reasons.join('; ')}`;
+  }
+  for (const m of [json?.Data?.Message, json?.Message, json?.Data?.Error?.Message]) {
+    if (typeof m === 'string' && m && !/success|thành công|^ok\.?$/i.test(m)) return m.trim();
+    if (m && typeof m === 'object' && typeof (m.Vi || m.vi || m.Message) === 'string') return (m.Vi || m.vi || m.Message).trim();
+  }
+  return '';
+}
+
 /** Gom các giá trị dạng mã trong response JSON của app (kèm đường dẫn key) theo từng giai đoạn. */
-function codeCollector(page) {
+export function codeCollector(page) {
   const found = [];
+  const messages = [];
+  const traceLines = [];
   let phase = 'init';
   const walk = (o, keyPath, endpoint) => {
     if (o && typeof o === 'object') {
@@ -32,11 +50,30 @@ function codeCollector(page) {
       found.push({ phase, endpoint, keyPath, value: o });
     }
   };
+  const t0 = Date.now();
+  const timing = [];
+  if (process.env.SOP_API_TIMING) {
+    page.on('requestfinished', (q) => {
+      if (!q.url().includes('sapi.fpt.vn')) return;
+      const t = q.timing();
+      timing.push({ phase, endpoint: q.url().split('?')[0].split('/api/').pop(), at: Math.round((t.startTime - t0) / 100) / 10, ms: Math.round(t.responseEnd) });
+    });
+  }
   page.on('response', async (r) => {
     if (!r.url().includes('sapi.fpt.vn')) return;
     const endpoint = r.url().split('?')[0].split('/api/').pop();
     try {
-      walk(await r.json(), '', endpoint);
+      const json = await r.json();
+      if (process.env.SOP_API_TRACE && phase === 'quote') {
+        const mask = (k, v) => (/token|auth|pass|secret|cookie|otp/i.test(k) ? '***' : v);
+        const req = r.request().postData() || '';
+        let body = req;
+        try { body = JSON.parse(req, mask); } catch { /* không phải JSON */ }
+        traceLines.push(JSON.stringify({ endpoint, status: r.status(), request: body, response: JSON.parse(JSON.stringify(json), mask) }));
+      }
+      walk(json, '', endpoint);
+      const msg = apiMessage(json);
+      if (msg) messages.push(msg);
     } catch {
       // không phải JSON
     }
@@ -47,7 +84,10 @@ function codeCollector(page) {
   };
   return {
     setPhase: (p) => { phase = p; },
+    trace: () => traceLines,
+    timing: () => timing,
     found,
+    lastMessage: () => messages.at(-1) || '',
     orderCode: () => pick(ORDER_RE, ['quote', 'contract'], /order/i),
     contractCode: () => pick(CONTRACT_RE, ['contract'], /contract/i),
     quoteLink: () => pick(QUOTE_RE, ['quote', 'contract']),
@@ -59,12 +99,47 @@ function codeCollector(page) {
 const waitApi = (page, re, timeout = 15000) =>
   page.waitForResponse((r) => r.url().includes('sapi.fpt.vn') && re.test(r.url()), { timeout }).catch(() => null);
 
-async function openCustomer(page, phone, onLog) {
+/** Request sapi.fpt.vn đang chạy dở của trang (gắn 1 lần / trang): Map request -> {endpoint, start}. */
+const inflightMap = new WeakMap();
+function inflight(page) {
+  if (!inflightMap.has(page)) {
+    const m = new Map();
+    const done = (r) => m.delete(r);
+    page.on('request', (r) => {
+      if (r.url().includes('sapi.fpt.vn')) m.set(r, { endpoint: r.url().split('?')[0].split('/api/').pop(), start: Date.now() });
+    });
+    page.on('requestfinished', done);
+    page.on('requestfailed', done);
+    inflightMap.set(page, m);
+  }
+  return inflightMap.get(page);
+}
+
+/** Chờ app hết request sapi đang chạy (form phủ loading). Trả về danh sách endpoint còn treo khi hết giờ. */
+async function waitIdle(page, timeout = 45000, onLog = () => {}) {
+  const m = inflight(page);
+  let logged = false;
+  for (const end = Date.now() + timeout; Date.now() < end; await sleep(500)) {
+    // Request không bao giờ báo xong (> 90s) thì bỏ, không chờ theo
+    for (const [r, v] of m) if (Date.now() - v.start > 90000) m.delete(r);
+    if (!m.size) return [];
+    const slow = [...m.values()].filter((v) => Date.now() - v.start > 8000).map((v) => v.endpoint);
+    if (slow.length && !logged) {
+      onLog(`Chờ portal xử lý: ${[...new Set(slow)].join(', ')}`);
+      logged = true;
+    }
+  }
+  return [...new Set([...m.values()].map((v) => v.endpoint))];
+}
+
+export async function openCustomer(page, phone, onLog) {
   onLog(`Tìm khách hàng ${phone} trong "Khách hàng của tôi"`);
   await openPortal(page, config.sopUrl + LIST_PATH, onLog);
   await page.getByText(/^Tất cả/).first().click().catch(() => {});
   await sleep(1500);
   const row = () => page.locator('.ant-table-tbody tr', { hasText: phone }).first();
+  // Bảng tải chậm: chờ dòng của KH xuất hiện trước khi chuyển sang ô tìm kiếm
+  await row().waitFor({ timeout: 10000 }).catch(() => {});
   if (!(await row().count())) {
     const search = page.locator('.ant-select-selection-search-input').first();
     await search.click();
@@ -81,7 +156,7 @@ async function openCustomer(page, phone, onLog) {
   return name;
 }
 
-async function openNewSale(page, onLog) {
+export async function openNewSale(page, shot, onLog) {
   await page.getByText('Đơn hàng', { exact: true }).first().click();
   await sleep(2000);
   await page.getByRole('button', { name: 'Thêm đơn hàng' }).click();
@@ -95,66 +170,252 @@ async function openNewSale(page, onLog) {
   await app.bringToFront();
   await waitApi(app, /get-permission-services/, 40000);
   await sleep(4000);
+  // App tải xong khi thấy "Combo tùy chọn" (Internet, FPT Play…).
+  // Lượt trước dừng giữa chừng (hoặc Tải gói) để lại đơn nháp -> hộp thoại "đơn hàng trước đó chưa hoàn thành,
+  // tiếp tục tạo đơn đó?" [Không | Xác nhận] (có khi hiện muộn) -> Không (tạo đơn mới)
+  let errorSeen = 0; // số lần liên tiếp thấy hộp chỉ có [Xác nhận]
+  for (const end = Date.now() + 90000; ; await sleep(1000)) {
+    const list = await nodes(app);
+    if (list.some((n) => /^Internet$/.test(n.label))) break;
+    const button = (re) => list.find((n) => n.role === 'button' && re.test(n.label));
+    const no = button(/^Không$/);
+    if (no && button(/^Xác nhận$/)) {
+      onLog('Có đơn nháp chưa hoàn thành → Không (tạo đơn mới)');
+      await app.mouse.click(no.x, no.y);
+      await sleep(3000);
+      continue;
+    }
+    // Rule Sale Platform: tài khoản còn phiếu chưa nhập cọc / chưa xác nhận OTP -> "Cảnh báo!!! (0xb462392144)
+    // ... Bạn có muốn đi tiếp không?" [Hủy | Xác nhận] -> Xác nhận (đi tiếp)
+    const yes = button(/^Xác nhận$/);
+    if (yes && button(/^Hủy$/)) {
+      onLog('Cảnh báo còn phiếu chưa nhập cọc / chưa xác nhận OTP → Xác nhận (đi tiếp)');
+      await app.mouse.click(yes.x, yes.y);
+      await sleep(3000);
+      continue;
+    }
+    // Chỉ có [Xác nhận] = hộp thoại lỗi ("Đã có lỗi xảy ra" – backend Sale Platform stag lỗi).
+    // Phải thấy 2 lần liên tiếp: hộp cảnh báo cọc/OTP có khi hiện nút Xác nhận trước, nút Hủy sau 1 nhịp
+    errorSeen = yes ? errorSeen + 1 : 0;
+    const failed = errorSeen >= 2;
+    if (failed || Date.now() > end) {
+      const file = path.basename(await shot(app, 'mo-ban-moi-loi'));
+      throw new Error(failed
+        ? `Sale Platform báo lỗi khi mở Bán mới (stag lỗi / chậm) – thử lại sau. Ảnh: ${file}`
+        : `Màn Tạo báo giá không tải xong sau 1,5 phút. Ảnh: ${file}`);
+    }
+  }
   return app;
 }
 
-async function chooseAddress(app, address, shot, onLog) {
+/** Toạ độ "lat, lng" trong response place-detail (Google); stag hay bị OVER_QUERY_LIMIT -> rỗng. */
+async function placeCoords(res) {
+  const j = await res?.json().catch(() => null);
+  const loc = j?.Data?.Result?.result?.geometry?.location;
+  return Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng) ? `${loc.lat}, ${loc.lng}` : '';
+}
+
+/** Số nhà = phần đầu địa chỉ (trước dấu phẩy) nếu có chữ số, vd "123, Trương Định, …" -> "123". */
+const houseNumber = (address) => {
+  const first = address.split(',')[0].trim();
+  return /\d/.test(first) && first.length <= 20 ? first : '';
+};
+
+/**
+ * Khu vực bán (góc phải trên) phải khớp địa chỉ, sai thì app báo "không thể bán hàng trong khu vực đã chọn".
+ * App nhớ khu vực dùng lần trước -> đổi theo phần cuối địa chỉ; tên không có trong danh sách thì giữ nguyên.
+ */
+async function chooseRegion(app, address, onLog) {
+  const region = address.split(',').at(-1).trim();
+  const current = (await nodes(app)).find((n) => n.role === 'button' && n.label && n.y < 50 && n.x > 1200);
+  if (!region || !current || current.label === region) return;
+  await app.mouse.click(current.x, current.y);
+  if (!(await waitNode(app, /^Lựa chọn địa điểm$/, 8000))) return;
+  await typeInto(app, 743, 94, region);
+  await sleep(1500);
+  const hit = (await nodes(app)).find((n) => n.role === 'button' && n.label === region);
+  if (hit) {
+    onLog(`Đổi khu vực bán: ${current.label} → ${region}`);
+    await app.mouse.click(hit.x, hit.y);
+    await sleep(3000);
+  }
+  // Chọn trúng thì tự về màn trước; không có tên / khu vực đang chọn thì phải đóng tay
+  if ((await nodes(app)).some((n) => /^Lựa chọn địa điểm$/.test(n.label))) await app.mouse.click(34, 28);
+  await sleep(2000);
+}
+
+export async function chooseAddress(app, address, coords, shot, onLog) {
+  inflight(app);
+  await chooseRegion(app, address, onLog);
   onLog(`Chọn địa chỉ: ${address}`);
   const fail = async (what) => {
     await shot(app, 'dia-chi-ket');
-    throw new Error(`Màn địa chỉ không phản hồi ở bước "${what}" (xem ảnh trong output/debug)`);
+    const pending = [...new Set([...inflight(app).values()].map((v) => v.endpoint))];
+    throw new Error(`Màn địa chỉ không phản hồi ở bước "${what}"${pending.length ? ` (portal còn đang chờ API: ${pending.join(', ')})` : ''} (xem ảnh trong output/debug)`);
   };
   const is = (role, re) => (n) => n.role === role && re.test(n.label);
-  // App tải xong khi thấy "Combo tùy chọn" (Internet, FPT Play…)
-  if (!(await waitNode(app, /^Internet$/, 40000))) await fail('tải màn Tạo báo giá');
   if (!(await clickUntilNode(app, 1399, 96, is('tab', /^Nhập địa chỉ$/)))) await fail('mở Thông tin địa chỉ'); // kính lúp
+  // App nhớ tab dùng lần trước: đang ở "Nhập địa chỉ" thì về tab "Tìm kiếm" (bản đồ)
+  const searchTab = (await nodes(app)).find(is('tab', /^Tìm kiếm$/));
+  if (searchTab) {
+    await app.mouse.click(searchTab.x, searchTab.y);
+    await sleep(1200);
+  }
   // Ô tìm kiếm trên bản đồ -> màn "Tìm kiếm địa chỉ" (có nút Tìm kiếm ở đáy)
   if (!(await clickUntilNode(app, 720, 164, is('button', /^Tìm kiếm$/)))) await fail('mở ô tìm kiếm');
-  await app.mouse.click(700, 95);
-  await sleep(800);
-  await app.keyboard.type(address, { delay: 60 });
-  await sleep(800);
+  if (!(await typeInto(app, 700, 95, address))) await fail('nhập địa chỉ tìm kiếm');
   const search = waitApi(app, /autocomplete-search|geocode/);
   await tapLabel(app, /^Tìm kiếm$/, [720, 774]);
   await search;
-  await sleep(2500);
+  await sleep(1500);
+  // Google stag chập chờn -> "Không có kết quả phù hợp!" [Nhập thủ công | Thử lại] dù địa chỉ đúng -> Thử lại
+  for (let i = 0; i < 4; i++) {
+    const retry = (await nodes(app)).find((n) => n.role === 'button' && /^Thử lại$/.test(n.label));
+    if (!retry) break;
+    onLog(`Tìm địa chỉ không có kết quả (Google stag chập chờn) → Thử lại (${i + 1})`);
+    // "Thử lại" chỉ đóng hộp, không tự tìm lại -> bấm lại nút Tìm kiếm ở đáy
+    await app.mouse.click(retry.x, retry.y);
+    await sleep(1500);
+    const again = waitApi(app, /autocomplete-search|geocode/);
+    await tapLabel(app, /^Tìm kiếm$/, [720, 774]);
+    await again;
+    await sleep(3000);
+  }
+  if ((await nodes(app)).some((n) => n.role === 'button' && /^Thử lại$/.test(n.label))) {
+    await shot(app, 'ket-qua-dia-chi');
+    throw new Error(`Tìm địa chỉ "${address}" vẫn "Không có kết quả phù hợp" sau 4 lần thử lại (Google stag lỗi / địa chỉ sai) – chạy lại sau`);
+  }
   await shot(app, 'ket-qua-dia-chi');
   const detail = waitApi(app, /place-detail/);
   await app.mouse.click(300, 159); // dòng kết quả đầu tiên
-  if (!(await detail)) throw new Error(`Không tìm thấy địa chỉ "${address}" (Tìm kiếm không có kết quả)`);
-  await sleep(3000);
+  const detailRes = await detail;
+  if (!detailRes) throw new Error(`Không tìm thấy địa chỉ "${address}" (Tìm kiếm không có kết quả)`);
+  await sleep(1500); // bản đồ dời tới điểm (bước sau tự bấm lại nếu màn chưa đổi)
   const convert = waitApi(app, /get-address-convert|check-address/, 20000);
-  // Thanh địa chỉ dưới bản đồ -> form "Nhập địa chỉ" tự điền + toạ độ
+  // Thanh địa chỉ dưới bản đồ -> form "Nhập địa chỉ" tự điền Xã/Đường (+ Số nhà, toạ độ nếu Google trả được)
   if (!(await clickUntilChange(app, 400, 769))) await fail('chọn địa chỉ trên bản đồ');
   await convert;
-  await sleep(5000);
+  await sleep(1000);
+  await waitIdle(app, 45000, onLog);
+  await sleep(800);
+  // Google trên stag hay hết hạn mức (OVER_QUERY_LIMIT) -> form thiếu Số nhà + toạ độ -> tự điền (điền đè cũng không sao)
+  const house = houseNumber(address);
+  const latLng = coords || (await placeCoords(detailRes));
+  if (house && !(await typeInto(app, 720, 517, house))) await fail('nhập Số nhà');
+  if (latLng && !(await typeInto(app, 700, 625, latLng))) await fail('nhập Toạ độ');
+  if (!latLng) onLog('⚠ Không có toạ độ (Google không trả, chưa nhập ô Toạ độ) – portal có thể không nhận địa chỉ');
   await shot(app, 'form-dia-chi');
-  // Xác nhận -> về màn Tạo báo giá, có combo gợi ý
+  // Xác nhận -> về màn Tạo báo giá, có combo gợi ý (API package-view/list)
+  const packages = waitApi(app, /package-view\/list/, 30000);
   if (!(await clickUntilNode(app, 720, 769, (n) => /^Internet$/.test(n.label), { wait: 6000 }))) await fail('Xác nhận địa chỉ');
-  await sleep(2000);
+  const list = parsePackages(await (await packages)?.json().catch(() => null));
+  await sleep(1000);
   await shot(app, 'combo');
+  if (!list.length) throw new Error('Không có gói cước nào ở địa chỉ này (Combo gợi ý trống – xem ảnh trong output/debug)');
+  return list;
 }
 
-async function chooseCombo(app, combo, index, onLog) {
-  const tabX = COMBOS[combo];
-  if (!tabX) throw new Error(`Combo "${combo}" không hỗ trợ. Có: ${Object.keys(COMBOS).join(', ')}`);
-  const cardX = CARD_X[index - 1];
-  if (!cardX) throw new Error('Số thứ tự gói chỉ từ 1 đến 6');
-  onLog(`Chọn combo ${combo}, gói thứ ${index}`);
-  await app.mouse.click(tabX, 423);
-  await sleep(2500);
-  if (!(await clickUntilChange(app, cardX, 500, { wait: 4000 }))) throw new Error('Không chọn được gói (combo trống? xem ảnh trong output/debug)');
-  await sleep(2000);
+/** Danh sách gói từ response package-view/list, đúng thứ tự thẻ trên hàng "Combo gợi ý cho bạn". */
+export function parsePackages(json) {
+  const list = json?.Data?.Result?.Packages;
+  return Array.isArray(list) ? list.map((p) => ({
+    group: p.PackageGroupTypeName, index: p.PackageIndex, name: p.PackageName,
+    monthly: p.MonthlyFee, setup: p.ExtraFee, total: p.Total, products: p.ProductListName || '', services: p.ServiceListName || '',
+  })) : [];
 }
 
+const CARD_W = 229; // bề rộng 1 thẻ gói trên hàng combo (cuộn ngang)
+const pkgKey = (p) => `${p.name}|${p.total}`;
+// Nhãn thẻ: "Giga F1 - 1T / 210.000 đ/ 1 tháng / Phí lắp đặt / 399.000 đ / Tổng / 399.000 đ"
+const cardKey = (label) => {
+  const parts = label.split(' / ');
+  return `${parts[0].trim()}|${parts.at(-1).replace(/\D/g, '')}`;
+};
+
+/**
+ * Chọn gói (nhóm combo + thứ tự trong nhóm, như API package-view/list).
+ * Hàng thẻ là 1 danh sách ngang liền mạch cho mọi nhóm (tab chỉ cuộn tới đầu nhóm) -> đọc các thẻ đang hiện,
+ * dò vị trí của chúng trong danh sách gói, cuộn ngang tới thẻ cần rồi bấm.
+ */
+export async function choosePackage(app, packages, combo, index, onLog) {
+  const t = packages.findIndex((p) => p.group === combo && p.index === index);
+  if (t < 0) {
+    const groups = [...new Set(packages.map((p) => p.group))].join(', ');
+    throw new Error(`Không có gói "${combo}" thứ ${index} ở địa chỉ này. Nhóm hiện có: ${groups} – bấm "Tải gói" để lấy lại danh sách`);
+  }
+  const target = packages[t];
+  onLog(`Chọn gói ${target.name} (${combo} #${index}) – tổng ${target.total.toLocaleString('vi-VN')}đ`);
+  const tab = await findNode(app, new RegExp(`^${combo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+  if (tab) {
+    await app.mouse.click(tab.x, tab.y);
+    await sleep(2500);
+  }
+  let expect = packages.findIndex((p) => p.group === combo);
+  for (let i = 0; i < 10; i++) {
+    const cards = (await nodes(app))
+      .filter((n) => n.role === 'group' && / \/ Tổng \/ /.test(n.label) && n.y > 450 && n.y < 720)
+      .sort((a, b) => a.x - b.x);
+    // Vị trí s trong danh sách gói mà dãy thẻ đang hiện khớp, gần chỗ dự đoán nhất
+    let s = -1;
+    for (let k = 0; k + cards.length <= packages.length; k++) {
+      if (cards.length && cards.every((c, j) => cardKey(c.label) === pkgKey(packages[k + j])) && (s < 0 || Math.abs(k - expect) < Math.abs(s - expect))) s = k;
+    }
+    if (s >= 0) {
+      const card = cards[t - s];
+      if (card && card.w >= CARD_W - 10) {
+        if (await openQuote(app, card, onLog)) return target;
+        break;
+      }
+      // Cuộn để thẻ cần chọn nằm thứ 3 từ trái
+      const delta = (t - s - 2) * CARD_W;
+      await app.mouse.move(720, 577);
+      await app.mouse.wheel(delta, 0);
+      expect = s + Math.round(delta / CARD_W);
+    }
+    await sleep(1500);
+  }
+  throw new Error(`Không chọn được gói ${target.name} trên màn combo (xem ảnh trong output/debug)`);
+}
+
+const ERROR_RE = /Đã có lỗi xảy ra|Thời gian phản hồi quá lâu/;
+
+/**
+ * Bấm thẻ gói rồi chờ sang màn báo giá (hết hàng thẻ combo). Stag chậm hay báo "Thời gian phản hồi quá lâu"
+ * -> đóng hộp lỗi, bấm lại (tối đa 3 lần).
+ */
+async function openQuote(app, card, onLog) {
+  for (let i = 0; i < 3; i++) {
+    await app.mouse.click(card.x, card.y);
+    for (const end = Date.now() + 45000; Date.now() < end; await sleep(1500)) {
+      const ns = await nodes(app);
+      if (ns.some((n) => ERROR_RE.test(n.label))) {
+        onLog('Sale Platform báo lỗi/chậm khi chọn gói – đóng thông báo, thử lại');
+        const ok = ns.find((n) => /^Xác nhận$/.test(n.label));
+        if (ok) await app.mouse.click(ok.x, ok.y);
+        await sleep(3000);
+        break;
+      }
+      if (!ns.some((n) => n.role === 'group' && / \/ Tổng \/ /.test(n.label))) return true;
+    }
+  }
+  return false;
+}
+
+export /** Trả về phương thức đã dùng. Danh sách khác nhau theo dịch vụ -> không có phương thức đã chọn thì giữ mặc định của portal. */
 async function choosePayment(app, payment, onLog) {
   onLog(`Phương thức thanh toán: ${payment}`);
-  const current = await waitNode(app, /^Gia đình$|Đối tượng khách hàng/, 20000);
+  // Màn báo giá: có đủ ô Đối tượng KH + ô PTTT (nhãn ô đối tượng đổi theo loại KH: Gia đình, Doanh nghiệp…)
+  let current = null;
+  for (const end = Date.now() + 20000; !current && Date.now() < end; await sleep(1000)) {
+    if ((await quoteGroups(app)).length >= 2) current = true;
+  }
   if (!current) throw new Error('Không vào được màn báo giá sau khi chọn gói (xem ảnh trong output/debug)');
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, -3000);
   await sleep(1000);
-  await app.mouse.click(720, 640); // ô phương thức thanh toán (mặc định FRT Thu Hộ)
+  // Ô phương thức thanh toán = ô chọn thứ 2 trên màn (sau Đối tượng KH); vị trí đổi theo đối tượng KH
+  const pay = (await quoteGroups(app))[1];
+  await app.mouse.click(720, pay ? pay.y : 640);
   await sleep(2000);
   const re = new RegExp(`^${payment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
   for (let i = 0; i < 12; i++) {
@@ -162,16 +423,22 @@ async function choosePayment(app, payment, onLog) {
     if (n && n.y > 150 && n.y < 790) {
       await app.mouse.click(n.x, n.y);
       await sleep(2000);
-      return;
+      return payment;
     }
     await app.mouse.move(720, 500);
     await app.mouse.wheel(0, 250);
     await sleep(700);
   }
-  throw new Error(`Không thấy phương thức thanh toán "${payment}" trong danh sách`);
+  const list = (await nodes(app)).filter((n) => n.role === 'button' && n.label);
+  if (!list.length) throw new Error(`Không thấy phương thức thanh toán "${payment}" trong danh sách`);
+  const first = list[0];
+  onLog(`⚠ Dịch vụ này không có "${payment}" (có: ${list.map((n) => n.label).join(', ')}) → dùng ${first.label}`);
+  await app.mouse.click(first.x, first.y);
+  await sleep(2000);
+  return first.label;
 }
 
-async function saveCustomer(app, onLog) {
+export async function saveCustomer(app, onLog) {
   onLog('Lưu thông tin khách hàng (Họ tên + SĐT)');
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, -3000);
@@ -187,8 +454,11 @@ async function createQuote(app, codes, shot, onLog) {
   codes.setPhase('quote');
   await tapLabel(app, /^Tạo báo giá$/, [1072, 759]);
   // Chữ trong hộp thoại không có trong semantics, chỉ có nút: [Hủy + Xác nhận] = cảnh báo trùng đơn, [Xác nhận] = lỗi
-  for (let i = 0; i < 8; i++) {
-    await sleep(4000);
+  // Kiểm tra mỗi 1,5s (trước: chờ cố định 4s/vòng). Hộp chỉ có [Xác nhận] phải thấy 2 lần liên tiếp mới coi là lỗi
+  // (hộp cảnh báo trùng đơn có lúc hiện nút Xác nhận trước, nút Hủy sau)
+  let errorSeen = 0;
+  for (const end = Date.now() + 32000; Date.now() < end; ) {
+    await sleep(1500);
     const list = await nodes(app);
     if (list.some((n) => /^Tạo hợp đồng$/.test(n.label))) return;
     const ok = list.find((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
@@ -196,11 +466,15 @@ async function createQuote(app, codes, shot, onLog) {
     if (ok && cancel) {
       onLog('Cảnh báo trùng đơn (địa chỉ/SĐT test dùng chung) → Xác nhận');
       await app.mouse.click(ok.x, ok.y);
+      errorSeen = 0;
+      await sleep(1000);
       continue;
     }
-    if (ok) {
+    errorSeen = ok ? errorSeen + 1 : 0;
+    if (errorSeen >= 2) {
       const file = await shot(app, 'loi-bao-gia');
-      throw new Error(`Portal báo lỗi khi tạo báo giá – xem ảnh ${path.basename(file)} trong output/debug`);
+      const why = codes.lastMessage();
+      throw new Error(`Portal báo lỗi khi tạo báo giá${why ? `: ${why}` : ''} – xem ảnh ${path.basename(file)}`);
     }
   }
   await shot(app, 'bao-gia-cho-lau');
@@ -213,10 +487,18 @@ async function createContract(app, codes, shot, onLog) {
   await tapLabel(app, /^Tạo hợp đồng$/, [720, 766]);
   // Màn "Đang tạo hợp đồng" (Kiểm tra đơn -> Tạo phiếu KH -> Tạo HĐ) rồi khảo sát "Định danh khách hàng"
   let surveyed = false;
-  for (const end = Date.now() + 150000; Date.now() < end; await sleep(3000)) {
+  let hdErrorSeen = 0;
+  let surveyRetries = 0;
+  for (const end = Date.now() + 150000; Date.now() < end; await sleep(1500)) {
     const list = await nodes(app);
     const has = (re) => list.find((n) => re.test(n.label));
     if (has(/^Thanh toán$/)) return;
+    // Màn "Cảnh báo!!! / Đã có lỗi xảy ra! (mã)" + bước bị lỗi + nút "Quay lại" = backend từ chối tạo HĐ -> báo luôn lý do
+    if (has(/^Quay lại$/) && has(/^(Cảnh báo|Đã có lỗi xảy ra)/)) {
+      const file = await shot(app, 'loi-hop-dong');
+      const why = [...new Set(list.filter((n) => /không hợp lệ|Đã xảy ra lỗi/i.test(n.label)).map((n) => n.label))].join(' – ');
+      throw new Error(`Portal báo lỗi khi tạo hợp đồng: ${why || 'không rõ lý do'} – báo giá đã tạo, xem ảnh ${path.basename(file)}`);
+    }
     const done = has(/^Đóng$/);
     if (done) {
       await app.mouse.click(done.x, done.y);
@@ -237,48 +519,208 @@ async function createContract(app, codes, shot, onLog) {
       continue;
     }
     const ok = list.find((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
-    if (ok && !has(/^Hủy$/)) {
+    hdErrorSeen = ok && !has(/^Hủy$/) ? hdErrorSeen + 1 : 0;
+    // Lỗi khi gửi khảo sát Định danh (API update-contract-identify stag hay quá giờ) – HĐ đã tạo: đóng hộp, gửi lại khảo sát
+    if (hdErrorSeen >= 2 && surveyed && surveyRetries < 2) {
+      surveyRetries += 1;
+      onLog(`Portal lỗi khi lưu khảo sát Định danh (stag chậm) → gửi lại (${surveyRetries}/2)`);
+      await shot(app, 'loi-khao-sat');
+      await app.mouse.click(ok.x, ok.y);
+      await sleep(1500);
+      await tapLabel(app, /^Hoàn tất$/, [720, 774]);
+      hdErrorSeen = 0;
+      continue;
+    }
+    if (hdErrorSeen >= 2) {
+      const hd = codes.contractCode();
+      if (hd && surveyed) {
+        const file = await shot(app, 'loi-khao-sat');
+        throw new Error(`Đã tạo HĐ ${hd} nhưng portal lỗi khi lưu khảo sát Định danh KH (đã thử lại 2 lần) – vào HĐ làm lại khảo sát. Ảnh ${path.basename(file)}`);
+      }
       const file = await shot(app, 'loi-hop-dong');
       throw new Error(`Portal báo lỗi khi tạo hợp đồng – xem ảnh ${path.basename(file)} trong output/debug`);
     }
   }
-  await shot(app, 'hd-cho-lau');
+  const file = await shot(app, 'hd-cho-lau');
+  writeFileSync(file.replace(/\.png$/, '.json'), JSON.stringify(await nodes(app), null, 1));
   throw new Error('Tạo hợp đồng chưa xong sau 2,5 phút (xem ảnh trong output/debug)');
 }
 
-/**
- * Tạo 1 đơn Internet (+ hợp đồng) cho KH có sẵn.
- * input: { phone, address, combo, comboIndex, payment, contract (bool, mặc định true) }
- */
-export async function createInternetOrder(input, onLog = () => {}) {
+function orderOptions(input) {
   const d = config.defaults;
   const opts = {
     phone: String(input.phone || d.phone).trim(),
     address: String(input.address || d.address).trim(),
-    combo: input.combo || d.combo,
+    coords: String(input.coords ?? d.coords).trim(),
+    combo: String(input.combo || d.combo).trim(),
     comboIndex: Number(input.comboIndex) || d.comboIndex,
     payment: String(input.payment || d.payment).trim(),
     contract: input.contract !== false,
+    service: String(input.service || 'internet'),
+    fields: input.fields && typeof input.fields === 'object' ? input.fields : {},
+    withInternet: Boolean(input.withInternet),
+    customerType: String(input.customerType || DEFAULT_CUSTOMER_TYPE).trim(),
+    org: input.org && typeof input.org === 'object' ? input.org : {},
   };
+  const ctype = findCustomerType(opts.customerType);
+  if (!ctype) {
+    throw Object.assign(new Error(`Không có đối tượng khách hàng "${opts.customerType}" (có: ${CUSTOMER_TYPES.map((t) => t.name).join(', ')})`), { status: 400 });
+  }
+  opts.customerType = ctype.name;
+  if (ctype.group !== 'Cá nhân') {
+    for (const k of ['orgPhone', 'contactPhone']) {
+      if (opts.org[k] && !/^0\d{9}$/.test(String(opts.org[k]).trim())) throw Object.assign(new Error('SĐT doanh nghiệp / liên hệ cần 10 số, bắt đầu bằng 0'), { status: 400 });
+    }
+    if (opts.org.taxCode && !/^\d{10}(-\d{3})?$/.test(String(opts.org.taxCode).trim())) {
+      throw Object.assign(new Error('Mã số thuế dạng 10 số (hoặc 10 số-3 số chi nhánh)'), { status: 400 });
+    }
+  }
+  if (opts.service !== 'internet' && !findService(opts.service)) throw Object.assign(new Error(`Không có dịch vụ "${opts.service}"`), { status: 400 });
   if (!/^0\d{9}$/.test(opts.phone)) throw Object.assign(new Error('SĐT khách hàng cần 10 số, bắt đầu bằng 0'), { status: 400 });
+  if (opts.coords && !/^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$/.test(opts.coords)) {
+    throw Object.assign(new Error('Toạ độ dạng "vĩ độ, kinh độ", vd 10.7733664, 106.6944494'), { status: 400 });
+  }
+  return opts;
+}
 
+/** Trang portal để chạy: đóng các tab Tạo báo giá của lượt trước (không để dồn tab khi chạy ngầm). */
+export async function portalPage(headless) {
+  const ctx = await getContext({ headless });
+  for (const p of ctx.pages()) if (p.url().includes('/ban-hang/')) await p.close().catch(() => {});
+  return ctx.pages().find((p) => p.url() === 'about:blank' || p.url().includes('portal-sop')) || (await ctx.newPage());
+}
+
+/**
+ * Lấy danh sách gói (Combo gợi ý) ở 1 địa chỉ: mở Bán mới cho KH -> chọn địa chỉ -> đọc API package-view/list.
+ * Không tạo gì trên portal (đóng tab Tạo báo giá khi xong). input: { phone, address, coords, headless }
+ */
+export async function fetchPackages(input, onLog = () => {}) {
+  const opts = orderOptions(input);
+  const shot = shooter(`goi-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}`);
+  const page = await portalPage(input.headless);
+  let app = null;
+  try {
+    await openCustomer(page, opts.phone, onLog);
+    app = await openNewSale(page, shot, onLog);
+    const packages = await chooseAddress(app, opts.address, opts.coords, shot, onLog);
+    onLog(`✔ ${packages.length} gói ở địa chỉ này`);
+    return { address: opts.address, packages };
+  } catch (err) {
+    await shot(app || page, 'loi');
+    throw err;
+  } finally {
+    await app?.close().catch(() => {});
+  }
+}
+
+/** Danh sách KH trong "Khách hàng của tôi" (tab Tất cả, mọi trang): [{ name, phone }] */
+export async function fetchCustomers(input = {}, onLog = () => {}) {
+  const page = await portalPage(input.headless);
+  onLog('Đọc danh sách "Khách hàng của tôi"');
+  await openPortal(page, config.sopUrl + LIST_PATH, onLog);
+  await page.getByText(/^Tất cả/).first().click().catch(() => {});
+  await sleep(2000);
+  const list = [];
+  for (let i = 0; i < 30; i++) {
+    // Cột "Tên khách hàng": dòng 1 tên, dòng 2 SĐT
+    for (const cell of await page.locator('.ant-table-tbody tr td:nth-child(2)').allInnerTexts()) {
+      const [name = '', phone = ''] = cell.split('\n').map((x) => x.trim()).filter(Boolean);
+      if (/^0\d{9}$/.test(phone) && !list.some((c) => c.phone === phone)) list.push({ name, phone });
+    }
+    const next = page.locator('.ant-pagination-next').first();
+    if (!(await next.count()) || (await next.getAttribute('aria-disabled')) === 'true' || /disabled/.test((await next.getAttribute('class')) || '')) break;
+    await next.click();
+    await sleep(2000);
+  }
+  onLog(`✔ ${list.length} khách hàng`);
+  return list;
+}
+
+/** Danh sách gói + chu kỳ cước của 1 dịch vụ (API của form dịch vụ, theo địa chỉ). Không tạo gì trên portal. */
+export async function fetchServiceOptions(input, onLog = () => {}) {
+  const opts = orderOptions(input);
+  const service = findService(opts.service);
+  if (!service) throw Object.assign(new Error('Chọn dịch vụ trước'), { status: 400 });
+  const shot = shooter(`dv-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}`);
+  const page = await portalPage(input.headless);
+  let app = null;
+  try {
+    await openCustomer(page, opts.phone, onLog);
+    app = await openNewSale(page, shot, onLog);
+    await chooseAddress(app, opts.address, opts.coords, shot, onLog);
+    const options = await readServiceOptions(app, service, codeCollector(app), shot, onLog);
+    onLog(`✔ ${options.length} gói ${service.name}`);
+    return { id: service.id, options };
+  } catch (err) {
+    await shot(app || page, 'loi');
+    throw err;
+  } finally {
+    await app?.close().catch(() => {});
+  }
+}
+
+/**
+ * Tạo 1 đơn (+ hợp đồng) cho KH có sẵn.
+ * input: { phone, address, coords, payment, contract (bool, mặc định true), headless (bool: chạy ngầm / hiện cửa sổ),
+ *          service ('internet' hoặc id trong SERVICES), combo (nhóm gói), comboIndex (thứ tự gói trong nhóm),
+ *          fields ({ tên ô form dịch vụ: giá trị }), withInternet (dịch vụ mua kèm combo Internet) }
+ * onPackages(address, packages): nhận danh sách gói đọc được ở địa chỉ này (để lưu lại cho giao diện)
+ */
+export async function createOrder(input, onLog = () => {}, onPackages = () => {}) {
+  const opts = orderOptions(input);
+  const service = findService(opts.service);
+  const needInternet = !service || opts.withInternet || service.needsInternet;
   const runId = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
   const shot = shooter(runId);
-  const record = { runId, startedAt: new Date().toISOString(), ...opts, customer: '', orderCode: '', contractCode: '', quoteLink: '', bookport: '', error: '' };
-  const ctx = await getContext();
-  const page = ctx.pages().find((p) => p.url() === 'about:blank') || (await ctx.newPage());
+  const record = {
+    runId, startedAt: new Date().toISOString(), ...opts, serviceName: service?.name || 'Internet', packageName: '', customer: '', orderCode: '', contractCode: '', quoteLink: '', bookport: '', error: '',
+  };
+  const page = await portalPage(input.headless);
   let app = null;
   let codes = null;
   try {
     record.customer = await openCustomer(page, opts.phone, onLog);
-    app = await openNewSale(page, onLog);
+    app = await openNewSale(page, shot, onLog);
     codes = codeCollector(app);
     await shot(app, 'tao-bao-gia');
-    await chooseAddress(app, opts.address, shot, onLog);
-    await chooseCombo(app, opts.combo, opts.comboIndex, onLog);
+    const packages = await chooseAddress(app, opts.address, opts.coords, shot, onLog);
+    onPackages(opts.address, packages);
+    if (needInternet) record.packageName = (await choosePackage(app, packages, opts.combo, opts.comboIndex, onLog)).name;
+    if (service) {
+      if (needInternet) {
+        // Chọn combo nhảy thẳng sang màn báo giá -> quay lại để thêm dịch vụ vào giỏ (combo vẫn trong giỏ)
+        await waitNode(app, /^Đối tượng khách hàng$|^Gia đình$/, 20000);
+        await sleep(3000); // màn báo giá còn tải (spinner) thì nút quay lại chưa ăn
+        if (!(await clickUntilNode(app, 23, 25, (n) => /^Internet$/.test(n.label), { wait: 6000 }))) throw new Error('Không quay lại được màn chọn dịch vụ sau khi chọn combo');
+      }
+      const { chosen } = await addService(app, service, opts, codes, shot, onLog);
+      const detail = `${service.name}: ${Object.values(chosen).slice(0, 2).join(' · ')}`;
+      record.packageName = record.packageName ? `${record.packageName} + ${detail}` : detail;
+      await openCart(app, codes, shot, onLog);
+    }
     await shot(app, 'man-bao-gia');
-    await choosePayment(app, opts.payment, onLog);
-    await saveCustomer(app, onLog);
+    record.customerType = await chooseCustomerType(app, opts.customerType, onLog);
+    if (isOrgType(opts.customerType)) {
+      // Doanh nghiệp / tổ chức: thông tin KH bị xoá khi đổi đối tượng -> nhập form doanh nghiệp (ô trống = dữ liệu test)
+      const o = opts.org;
+      const org = {
+        company: String(o.company || 'Công ty TNHH QC Test').trim(),
+        taxCode: String(o.taxCode || randomTaxCode()).trim(),
+        issuePlace: String(o.issuePlace || 'Sở KH&ĐT TP.HCM').trim(),
+        gpkdAddress: String(o.gpkdAddress || opts.address).trim(),
+        orgPhone: String(o.orgPhone || opts.phone).trim(),
+        contactPhone: String(o.contactPhone || opts.phone).trim(),
+        email: String(o.email || '').trim(),
+        representative: String(o.representative || record.customer || 'QC Test').trim(),
+      };
+      record.company = org.company;
+      record.taxCode = org.taxCode;
+      await fillOrgCustomer(app, org, shot, onLog);
+      record.payment = await choosePayment(app, opts.payment, onLog);
+    } else {
+      record.payment = await choosePayment(app, opts.payment, onLog);
+      await saveCustomer(app, onLog);
+    }
     await shot(app, 'truoc-tao-bao-gia');
     await createQuote(app, codes, shot, onLog);
     Object.assign(record, { orderCode: codes.orderCode(), quoteLink: codes.quoteLink(), bookport: codes.bookport() });
@@ -312,5 +754,7 @@ export async function createInternetOrder(input, onLog = () => {}) {
     record.finishedAt = new Date().toISOString();
     // Ghi lại nơi tìm thấy mã (key path + giá trị mã, không có dữ liệu khác) để tinh chỉnh khi app đổi API
     if (codes?.found.length) writeFileSync(path.join(OUTPUT_DIR, 'debug', `${runId}-codes.json`), JSON.stringify(codes.found, null, 2));
+    if (codes?.timing().length) writeFileSync(path.join(OUTPUT_DIR, 'debug', `${runId}-api-timing.json`), JSON.stringify(codes.timing(), null, 1));
+    if (codes?.trace().length) writeFileSync(path.join(OUTPUT_DIR, 'debug', `${runId}-api-trace.jsonl`), codes.trace().join('\n'));
   }
 }

@@ -29,12 +29,33 @@
   .who.on .dot { background: var(--ok); }
   #acctForm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   #acctForm input { width: 160px; padding: 6px 10px; }
-  main { max-width: 1400px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; align-items: start; }
+  nav.menu { display: flex; gap: 2px; padding: 0 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; position: relative; z-index: 5; }
+  .menu-item { position: relative; }
+  .menu-btn { background: transparent; color: var(--muted); border-radius: 0; padding: 9px 14px; font-weight: 600; border-bottom: 2px solid transparent; }
+  .menu-btn:hover:not(:disabled) { background: var(--row-hover); color: var(--text); }
+  .menu-btn[aria-current=true] { color: var(--primary); border-bottom-color: var(--primary); }
+  .menu-btn .caret { font-size: 10px; margin-left: 4px; }
+  .menu-drop { position: absolute; top: 100%; left: 0; min-width: 290px; background: var(--card); border: 1px solid var(--line); border-radius: 0 0 8px 8px; box-shadow: 0 6px 20px rgb(0 0 0 / .14); padding: 4px; }
+  .menu-drop button { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; color: var(--text); font-weight: 500; text-align: left; padding: 7px 10px; }
+  .menu-drop button:hover:not(:disabled) { background: var(--row-hover); }
+  .menu-drop button[aria-current=true] { background: var(--row-active); }
+  .menu-drop .sub { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--muted); }
+  .dot-s { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .dot-s.warn { background: #d99a00; }
+  main { max-width: 1680px; margin: 0 auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+  /* Form tạo đơn: các khối xếp ngang (4 cột màn rộng, 2 cột màn vừa, 1 cột màn hẹp) */
+  form.run.blocks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  .blk { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .blk h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: .3px; }
+  .blk .opts { max-height: 420px; }
+  .bottom { display: flex; flex-direction: column; gap: 16px; }
+  @media (max-width: 1280px) { form.run.blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { form.run.blocks { grid-template-columns: 1fr; } }
   .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
   .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
-  form.run { display: flex; flex-direction: column; gap: 10px; }
+  form.run:not(.blocks) { display: flex; flex-direction: column; gap: 10px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   label { font-size: 13px; color: var(--muted); }
@@ -42,6 +63,23 @@
   input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
   input#phone { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
   .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .inline { display: flex; gap: 6px; }
+  .inline > select, .inline > input { flex: 1; min-width: 0; }
+  .inline > button { flex: none; white-space: nowrap; }
+  .radios { display: flex; gap: 16px; flex-wrap: wrap; }
+  .radios label, .opt { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: 14px; cursor: pointer; }
+  .radios input, .opt input { width: auto; margin: 0; }
+  .opts { border: 1px solid var(--line); border-radius: 8px; max-height: 330px; overflow: auto; }
+  .opts .grp { position: sticky; top: 0; z-index: 1; padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--muted); background: color-mix(in srgb, var(--primary) 6%, var(--card)); border-top: 1px solid var(--line); }
+  .opts > .grp:first-child { border-top: 0; }
+  .opt { padding: 8px 12px; border-top: 1px solid var(--line); }
+  .opts > .grp + .opt { border-top: 0; }
+  .opt:hover { background: var(--row-hover); }
+  .opt:has(input:checked) { background: var(--row-active); }
+  .opt .name { flex: 1; min-width: 0; }
+  .opt .price { color: var(--primary); font-weight: 600; white-space: nowrap; text-align: right; }
+  .opt .sub { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+  .opts .hint { padding: 8px 12px; }
   .check input { width: auto; }
   button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   button:hover:not(:disabled) { background: var(--primary-hover); }
@@ -70,7 +108,6 @@
   .empty { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
   .hidden { display: none !important; }
   @media (max-width: 900px) {
-    main { grid-template-columns: 1fr; }
     header { padding: 10px 16px; }
     .bar { margin-left: 0; }
   }
@@ -78,7 +115,7 @@
 </head>
 <body>
 <header>
-  <h1>SOP – Tạo đơn Internet</h1>
+  <h1 id="title">SOP – Tạo đơn Internet</h1>
   <span class="badge" id="envBadge">stag</span>
   <div class="bar">
     <span class="who" id="who"><span class="dot"></span><span id="whoText">Chưa có tài khoản</span></span>
@@ -93,30 +130,87 @@
     <a id="portalLink" href="#" target="_blank" rel="noopener">Mở portal ↗</a>
   </div>
 </header>
+<nav class="menu" id="menu" aria-label="Dịch vụ"></nav>
 
 <main>
-  <div class="col">
     <section class="card">
-      <h2>Tạo đơn <span class="sub">KH có sẵn trong "Khách hàng của tôi"</span></h2>
-      <form class="run" id="runForm">
+      <h2><span id="formTitle">Tạo đơn Internet</span> <span class="sub">KH có sẵn trong "Khách hàng của tôi"</span></h2>
+      <form class="run blocks" id="runForm">
+       <div class="blk">
+        <h3>1 · Khách hàng &amp; địa chỉ</h3>
         <div class="field">
-          <label for="phone">SĐT khách hàng *</label>
-          <input id="phone" inputmode="numeric" maxlength="10" placeholder="vd: 0964633310" required>
+          <label for="phoneSel">Khách hàng * <span class="hint" id="custHint"></span></label>
+          <div class="inline">
+            <select id="phoneSel"><option value="">— Đang tải danh sách KH —</option></select>
+            <button type="button" class="ghost" id="btnCustomers" title="Đọc lại danh sách &quot;Khách hàng của tôi&quot; trên portal">↻ Tải lại</button>
+          </div>
+          <input id="phone" class="hidden" inputmode="numeric" maxlength="10" placeholder="SĐT KH có trong &quot;Khách hàng của tôi&quot;, vd 0964633310">
         </div>
         <div class="field">
           <label for="address">Địa chỉ lắp đặt (tìm theo bản đồ, lấy kết quả đầu tiên)</label>
           <input id="address">
         </div>
-        <div class="row2">
-          <div class="field">
-            <label for="combo">Combo gợi ý</label>
-            <select id="combo"></select>
-          </div>
-          <div class="field">
-            <label for="comboIndex">Gói thứ (trong combo)</label>
-            <select id="comboIndex"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
-          </div>
+        <div class="field">
+          <label for="coords">Toạ độ (điền khi Google trên stag không trả toạ độ; đổi địa chỉ thì sửa theo)</label>
+          <input id="coords" placeholder="vĩ độ, kinh độ – vd 10.7733664, 106.6944494">
         </div>
+       </div>
+       <div class="blk">
+        <h3>2 · Gói cước / dịch vụ</h3>
+        <div class="field hidden" id="svcBox">
+          <p class="status info hidden" id="svcNote"></p>
+          <label for="svcPkg">Gói dịch vụ <span class="hint" id="svcHint"></span></label>
+          <div class="inline">
+            <select id="svcPkg"></select>
+            <button type="button" class="ghost" id="btnSvcOptions" title="Mở form dịch vụ ở địa chỉ trên để lấy danh sách gói (~1 phút, không tạo đơn)">↻ Tải gói</button>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="svcTerm">Gói tính cước</label><select id="svcTerm"></select></div>
+            <div class="field"><label for="svcQty">Số lượng</label><input id="svcQty" type="number" min="1" max="99" value="1"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="withInternet"> <span id="withInternetText">Mua kèm combo Internet</span></label>
+        </div>
+        <div class="field" id="pkgBox">
+          <label>Gói cước Internet * <span class="hint" id="pkgHint"></span></label>
+          <div class="inline">
+            <input id="pkgFilter" placeholder="Lọc gói: Giga, 6T, 1.659…" aria-label="Lọc gói">
+            <button type="button" class="ghost" id="btnPackages" title="Mở Bán mới ở địa chỉ trên để lấy danh sách Combo gợi ý (~1 phút, không tạo đơn)">↻ Tải gói</button>
+          </div>
+          <div class="opts" id="pkgList"><div class="hint">Đang tải…</div></div>
+        </div>
+       </div>
+       <div class="blk">
+        <h3>3 · Đối tượng khách hàng</h3>
+        <div class="field">
+          <label for="customerType">Đối tượng khách hàng</label>
+          <select id="customerType"></select>
+        </div>
+        <div class="field hidden" id="orgBox">
+          <p class="hint">Chọn Doanh nghiệp thì portal xoá thông tin KH → tool nhập form này. Đã điền sẵn dữ liệu test (người đại diện, SĐT,
+            địa chỉ GPKD theo KH + địa chỉ đang chọn) – sửa ô nào thì giữ ô đó.</p>
+          <label for="orgCompany">Tên Tổ chức/Hộ kinh doanh *</label>
+          <input id="orgCompany">
+          <div class="row2">
+            <div class="field"><label for="orgTaxCode">Mã số thuế / ĐKKD *</label>
+              <div class="inline"><input id="orgTaxCode" inputmode="numeric" maxlength="14">
+                <button type="button" class="ghost" id="btnTaxCode" title="Sinh MST ngẫu nhiên hợp lệ khác">↻</button></div></div>
+            <div class="field"><label for="orgRep">Người đại diện *</label><input id="orgRep"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="orgPhone">SĐT tổ chức *</label><input id="orgPhone" inputmode="numeric" maxlength="10"></div>
+            <div class="field"><label for="orgContactPhone">SĐT liên hệ (SMS) *</label><input id="orgContactPhone" inputmode="numeric" maxlength="10"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="orgIssuePlace">Nơi cấp *</label><input id="orgIssuePlace"></div>
+            <div class="field"><label for="orgEmail">Email</label><input id="orgEmail" type="email" placeholder="(không bắt buộc)"></div>
+          </div>
+          <label for="orgGpkd">Địa chỉ trên GPKD *</label>
+          <input id="orgGpkd">
+          <button type="button" class="ghost" id="btnOrgReset" title="Điền lại toàn bộ dữ liệu test mặc định">↺ Điền lại mặc định</button>
+        </div>
+       </div>
+       <div class="blk">
+        <h3>4 · Thanh toán &amp; chạy</h3>
         <div class="field">
           <label for="payment">Phương thức thanh toán (đúng tên trên màn báo giá)</label>
           <input id="payment" list="paymentList">
@@ -126,14 +220,21 @@
           </datalist>
         </div>
         <label class="check"><input type="checkbox" id="contract" checked> Tạo luôn hợp đồng (+ khảo sát Định danh KH)</label>
+        <div class="field">
+          <label>Chế độ chạy</label>
+          <div class="radios">
+            <label><input type="radio" name="mode" value="headless"> Chạy ngầm (không hiện Chrome)</label>
+            <label><input type="radio" name="mode" value="ui"> Hiện cửa sổ Chrome</label>
+          </div>
+        </div>
         <button id="btnRun" type="submit">Tạo đơn</button>
-        <p class="hint">Tool điều khiển 1 cửa sổ Chrome riêng – <b>đừng thao tác / thu nhỏ cửa sổ đó</b> khi đang chạy (màn tạo đơn bấm theo toạ độ). Chạy 1 đơn ~2–3 phút.</p>
+        <p class="hint" id="modeHint"></p>
+       </div>
       </form>
     </section>
     <div class="status hidden" id="msg"></div>
-  </div>
 
-  <div class="col">
+  <div class="bottom">
     <section class="card">
       <h2>Kết quả <span class="sub" id="elapsed"></span></h2>
       <dl class="kv" id="result"><dt>–</dt><dd class="hint">Chưa chạy</dd></dl>
@@ -143,7 +244,7 @@
       <h2>Lịch sử <span class="sub">output/orders.csv</span></h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Thời gian</th><th>SĐT</th><th>KH</th><th>Combo</th><th>Mã đơn</th><th>Mã HĐ</th><th>Bookport</th><th>Lỗi</th></tr></thead>
+          <thead><tr><th>Thời gian</th><th>SĐT</th><th>KH</th><th>Dịch vụ / Gói</th><th>Mã đơn</th><th>Mã HĐ</th><th>Bookport</th><th>Lỗi</th></tr></thead>
           <tbody id="runs"><tr><td colspan="8" class="empty">Chưa có</td></tr></tbody>
         </table>
       </div>
@@ -194,9 +295,10 @@ function showAcctForm(show) {
 async function login(path, label) {
   showMsg('info', `<span class="spinner"></span>${esc(label)}…`);
   try {
-    const r = await api('POST', path);
+    const r = await api('POST', path, { headless: headless() });
     setWho(`Đã đăng nhập: ${r.account}`, true);
     showMsg('ok', 'Đăng nhập Portal SOP thành công');
+    return true;
   } catch (err) {
     setWho(cfg.account ? `Tài khoản: ${cfg.account}` : 'Chưa có tài khoản', false);
     showMsg('err', esc(err.message));
@@ -211,7 +313,7 @@ $('acctForm').onsubmit = async (e) => {
     const r = await api('POST', '/api/settings', { user: $('acctUser').value, password: $('acctPassword').value });
     cfg = { ...cfg, ...r };
     showAcctForm(false);
-    await login('/api/relogin', 'Đã lưu tài khoản (lần sau mở tool không cần nhập). Đang đăng nhập');
+    if (await login('/api/relogin', 'Đã lưu tài khoản (lần sau mở tool không cần nhập). Đang đăng nhập')) loadCustomers(true); // DS KH theo tài khoản
   } catch (err) {
     showMsg('err', esc(err.message));
   } finally {
@@ -222,61 +324,343 @@ $('btnCancelAcct').onclick = () => { showAcctForm(false); showMsg('', ''); };
 $('acctEditLink').onclick = (e) => { e.preventDefault(); showAcctForm(true); };
 $('btnRelogin').onclick = () => login('/api/relogin', 'Đang đăng nhập lại');
 
-// ---- Chạy ----
+// ---- Chế độ chạy: ngầm (mặc định) / hiện cửa sổ Chrome ----
+const headless = () => document.querySelector('input[name=mode]:checked')?.value !== 'ui';
+function showModeHint() {
+  $('modeHint').innerHTML = headless()
+    ? 'Chrome chạy ngầm, không hiện cửa sổ – theo dõi qua nhật ký + ảnh ở <code>output/debug</code>. Chạy 1 đơn ~2–3 phút.'
+    : 'Tool mở 1 cửa sổ Chrome riêng – <b>đừng thao tác / thu nhỏ cửa sổ đó</b> khi đang chạy (màn tạo đơn bấm theo toạ độ). Chạy 1 đơn ~2–3 phút.';
+}
+document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { store.set('mode', r.value); showModeHint(); }));
+
+// ---- Khách hàng: danh sách SĐT trong "Khách hàng của tôi" (lưu ở output/customers.json), chọn lại hoặc nhập số khác ----
+const OTHER = '__other';
+let customers = [];
+function renderCustomers(list, updatedAt) {
+  customers = list || [];
+  const want = $('phoneSel').value && $('phoneSel').value !== OTHER ? $('phoneSel').value : (store.get('phone') || cfg.defaults.phone);
+  $('phoneSel').innerHTML = customers.map((c) => `<option value="${esc(c.phone)}">${esc(c.phone)} – ${esc(c.name)}</option>`).join('')
+    + `<option value="${OTHER}">✎ Nhập SĐT khác…</option>`;
+  // Mặc định: số đã dùng lần trước nếu còn trong danh sách, không thì KH đầu tiên; số ngoài danh sách -> ô nhập
+  if (customers.some((c) => c.phone === want)) $('phoneSel').value = want;
+  else if (want) { $('phoneSel').value = OTHER; $('phone').value = want; }
+  else $('phoneSel').value = customers.length ? customers[0].phone : OTHER;
+  $('custHint').textContent = customers.length ? `· ${customers.length} KH${updatedAt ? ', tải ' + new Date(updatedAt).toLocaleString('vi-VN') : ''}` : '· chưa có danh sách';
+  onPhoneSel();
+  syncOrgLinked();
+}
+function onPhoneSel() {
+  const other = $('phoneSel').value === OTHER;
+  $('phone').classList.toggle('hidden', !other);
+  if (!other) $('phone').value = $('phoneSel').value;
+}
+$('phoneSel').onchange = () => { onPhoneSel(); if ($('phoneSel').value === OTHER) $('phone').focus(); };
+const currentPhone = () => ($('phoneSel').value === OTHER ? $('phone').value : $('phoneSel').value).trim();
+
+// ---- Gói cước: danh sách theo địa chỉ (API package-view/list), mặc định gói đã chọn lần trước / gói đầu tiên ----
+let packages = [];
+const pkgId = (p) => `${p.group}#${p.index}`;
+const money = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+function renderPackages(r) {
+  packages = r?.packages || [];
+  const keep = document.querySelector('input[name=pkg]:checked')?.value || store.get('pkg') || `${cfg.defaults.combo}#${cfg.defaults.comboIndex}`;
+  const sel = packages.some((p) => pkgId(p) === keep) ? keep : (packages[0] ? pkgId(packages[0]) : '');
+  let grp = null;
+  $('pkgList').innerHTML = packages.length ? packages.map((p) => {
+    const head = p.group !== grp ? `<div class="grp" data-grp="${esc(p.group)}">${esc(p.group)}</div>` : '';
+    grp = p.group;
+    return `${head}<label class="opt" data-q="${esc(`${p.group} ${p.name} ${p.total} ${money(p.total)} ${p.products}`.toLowerCase())}">
+      <input type="radio" name="pkg" value="${esc(pkgId(p))}" ${pkgId(p) === sel ? 'checked' : ''}>
+      <span class="name">${esc(p.name)} <span class="sub">#${esc(p.index)} · ${esc(p.products || p.services)}</span></span>
+      <span class="price">${money(p.total)}<span class="sub">${money(p.monthly)}/tháng · lắp ${money(p.setup)}</span></span></label>`;
+  }).join('') : '<div class="hint">Không có gói – bấm "↻ Tải gói"</div>';
+  $('pkgHint').textContent = !packages.length ? '' : r.sample
+    ? '· danh sách khảo sát sẵn (123 Trương Định) – đổi địa chỉ thì bấm Tải gói'
+    : `· ${packages.length} gói, tải ${new Date(r.updatedAt).toLocaleString('vi-VN')}`;
+  filterPackages();
+  document.querySelector('input[name=pkg]:checked')?.scrollIntoView({ block: 'nearest' });
+}
+function filterPackages() {
+  const q = $('pkgFilter').value.trim().toLowerCase();
+  const opts = [...$('pkgList').querySelectorAll('.opt')];
+  for (const o of opts) o.classList.toggle('hidden', Boolean(q) && !q.split(/\s+/).every((w) => o.dataset.q.includes(w)));
+  for (const g of $('pkgList').querySelectorAll('.grp')) {
+    g.classList.toggle('hidden', !opts.some((o) => !o.classList.contains('hidden') && o.querySelector('input').value.startsWith(g.dataset.grp + '#')));
+  }
+}
+$('pkgFilter').oninput = filterPackages;
+$('pkgList').onchange = (e) => store.set('pkg', e.target.value);
+async function loadPackages() {
+  renderPackages(await api('GET', '/api/packages?address=' + encodeURIComponent($('address').value.trim())).catch(() => null));
+}
+$('address').addEventListener('change', loadPackages);
+
+// ---- Menu dịch vụ trên header: Internet + các nhóm dịch vụ khác (GET /api/services) ----
+const INTERNET = { id: 'internet', name: 'Internet' };
+let services = [];
+let svcOptions = {};
+let current = INTERNET;
+const svcHash = () => decodeURIComponent(location.hash.slice(1));
+function renderMenu() {
+  const groups = [...new Set(services.map((s) => s.group))];
+  const item = (s) => `<button type="button" data-svc="${esc(s.id)}" aria-current="${s.id === current.id}"><span class="dot-s ${s.note ? 'warn' : ''}"></span>${esc(s.name)}${s.note ? `<span class="sub">${esc(s.note)}</span>` : ''}</button>`;
+  $('menu').innerHTML = `<div class="menu-item"><button type="button" class="menu-btn" data-svc="internet" aria-current="${current.id === 'internet'}">Internet</button></div>`
+    + groups.map((g) => `<div class="menu-item">
+      <button type="button" class="menu-btn" data-group="${esc(g)}" aria-expanded="false" aria-current="${current.group === g}">${esc(g)}${current.group === g ? ': ' + esc(current.name) : ''}<span class="caret">▾</span></button>
+      <div class="menu-drop hidden">${services.filter((s) => s.group === g).map(item).join('')}</div></div>`).join('');
+}
+function closeMenus() {
+  document.querySelectorAll('.menu-drop').forEach((d) => d.classList.add('hidden'));
+  document.querySelectorAll('[data-group]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+}
+function selectService(id) {
+  current = services.find((s) => s.id === id) || INTERNET;
+  const internet = current === INTERNET;
+  store.set('service', current.id);
+  history.replaceState(null, '', internet ? location.pathname : '#' + current.id);
+  document.title = `SOP – ${current.name}`;
+  $('title').textContent = `SOP – Tạo đơn ${current.name}`;
+  $('formTitle').textContent = `Tạo đơn ${current.name}`;
+  $('svcBox').classList.toggle('hidden', internet);
+  if (!internet) {
+    $('svcNote').textContent = current.note ? `Trên stag: ${current.detail || current.note}` : '';
+    $('svcNote').classList.toggle('hidden', !current.note);
+    $('withInternet').checked = Boolean(current.needsInternet);
+    $('withInternet').disabled = Boolean(current.needsInternet);
+    $('withInternetText').textContent = current.needsInternet ? 'Bắt buộc mua kèm combo Internet' : 'Mua kèm combo Internet';
+    renderSvcOptions();
+  }
+  showPkgBox();
+  renderMenu();
+  closeMenus();
+}
+function showPkgBox() { $('pkgBox').classList.toggle('hidden', current !== INTERNET && !$('withInternet').checked); }
+$('withInternet').onchange = showPkgBox;
+$('menu').onclick = (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.svc) return selectService(b.dataset.svc);
+  const drop = b.nextElementSibling;
+  const open = drop.classList.contains('hidden');
+  closeMenus();
+  drop.classList.toggle('hidden', !open);
+  b.setAttribute('aria-expanded', String(open));
+};
+document.addEventListener('click', (e) => { if (!e.target.closest('#menu')) closeMenus(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
+
+/** Gói dịch vụ + gói tính cước: danh sách theo dịch vụ, "(mặc định)" = để tool chọn dòng đầu trên portal. */
+function renderSvcOptions() {
+  const r = svcOptions[current.id];
+  const list = r?.options || [];
+  const main = list.filter((o) => o.section === list[0].section);
+  const keep = store.get('svc:' + current.id) || '';
+  $('svcPkg').innerHTML = '<option value="">(mặc định – dòng đầu trên portal)</option>' + main.map((o) => `<option>${esc(o.name)}</option>`).join('');
+  if (main.some((o) => o.name === keep)) $('svcPkg').value = keep;
+  $('svcHint').textContent = !list.length ? '· chưa có danh sách, bấm Tải gói' : r.updatedAt ? `· ${main.length} gói, tải ${new Date(r.updatedAt).toLocaleString('vi-VN')}` : `· ${main.length} gói (danh sách khảo sát sẵn)`;
+  renderSvcTerms();
+}
+function renderSvcTerms() {
+  const o = (svcOptions[current.id]?.options || []).find((x) => x.name === $('svcPkg').value);
+  $('svcTerm').innerHTML = '<option value="">(mặc định)</option>' + (o?.terms || []).map((t) => `<option>${esc(t)}</option>`).join('');
+}
+$('svcPkg').onchange = () => { store.set('svc:' + current.id, $('svcPkg').value); renderSvcTerms(); };
+async function loadServices() {
+  const r = await api('GET', '/api/services').catch(() => null);
+  services = r?.services || [];
+  svcOptions = r?.options || {};
+  selectService(svcHash() || store.get('service') || 'internet');
+}
+
+// ---- Lượt chạy (tạo đơn / tải gói / tải DS KH): server chỉ chạy 1 lượt 1 lúc ----
 let poll = null;
+let busy = false;
+function setBusy(on) {
+  busy = on;
+  for (const id of ['btnRun', 'btnPackages', 'btnCustomers', 'btnSvcOptions']) $(id).disabled = on;
+}
 function renderResult(r) {
   if (!r) return;
   const rows = [
     ['Khách hàng', r.customer ? `${r.customer} – ${r.phone}` : r.phone],
+    ['Đối tượng', r.customerType], ...(r.company ? [['Doanh nghiệp', `${r.company} · MST ${r.taxCode}`]] : []),
     ['Mã đơn hàng', r.orderCode, true], ['Mã hợp đồng', r.contractCode, true], ['Bookport', r.bookport, true],
     ['Link báo giá', r.quoteLink ? `<a href="${esc(r.quoteLink)}" target="_blank" rel="noopener">${esc(r.quoteLink)}</a>` : '', false, true],
-    ['Combo', `${r.combo} – gói ${r.comboIndex}`], ['Thanh toán', r.payment], ['Địa chỉ', r.address],
+    ['Dịch vụ', r.serviceName], ['Gói', r.service && r.service !== 'internet' ? r.packageName : `${r.packageName || ''} (${r.combo} #${r.comboIndex})`], ['Thanh toán', r.payment], ['Địa chỉ', r.address],
   ];
   $('result').innerHTML = rows.map(([k, v, copy, html]) => `<dt>${k}</dt><dd>${v ? (html ? v : esc(v)) + (copy ? ` <span class="copy" data-copy="${esc(v)}">copy</span>` : '') : '–'}</dd>`).join('');
 }
 
+const JOB_LABEL = { order: 'Đang tạo đơn', packages: 'Đang tải danh sách gói', customers: 'Đang tải danh sách khách hàng', 'service-options': 'Đang tải gói dịch vụ' };
+/** Lỗi kèm tên ảnh -> link mở ảnh (chữ cảnh báo của app chỉ có trên ảnh). */
+const errHtml = (msg) => esc(msg).replace(/[\w.-]+\.png/g, (f) => `<a href="/debug/${encodeURIComponent(f)}" target="_blank" rel="noopener">${f}</a>`);
+let lastJob = 0;
 async function refreshJob() {
   const j = await api('GET', '/api/job').catch(() => null);
   if (!j) return;
   $('log').innerHTML = j.logs.map((l) => `<span class="t">${new Date(l.at).toLocaleTimeString('vi-VN')}</span> ${esc(l.msg)}`).join('\n');
   $('log').scrollTop = $('log').scrollHeight;
   $('elapsed').textContent = `${Math.round(j.elapsedMs / 1000)}s`;
-  renderResult(j.result);
-  $('btnRun').disabled = j.running;
-  if (j.running) return showMsg('info', '<span class="spinner"></span>Đang chạy… (đừng thao tác trên cửa sổ Chrome của tool)');
+  if (j.kind === 'order') renderResult(j.result);
+  setBusy(j.running);
+  if (j.running) return showMsg('info', `<span class="spinner"></span>${JOB_LABEL[j.kind] || 'Đang chạy'}…${j.input?.headless === false ? ' (đừng thao tác trên cửa sổ Chrome của tool)' : ''}`);
   clearInterval(poll);
   poll = null;
+  const fresh = j.id !== lastJob;
+  lastJob = j.id;
   if (j.error) {
-    showMsg('err', esc(j.error));
+    showMsg('err', errHtml(j.error));
     if (j.authError) showAcctForm(true);
+  } else if (j.kind === 'packages') {
+    showMsg('ok', `Đã tải ${j.result.packages.length} gói`);
+    if (fresh) loadPackages();
+  } else if (j.kind === 'service-options') {
+    showMsg('ok', `Đã tải ${j.result.options.length} gói`);
+    if (fresh) {
+      svcOptions = (await api('GET', '/api/services').catch(() => ({}))).options || svcOptions;
+      if (current !== INTERNET) renderSvcOptions();
+    }
+  } else if (j.kind === 'customers') {
+    showMsg('ok', `Đã tải ${j.result.customers.length} khách hàng`);
+    if (fresh) loadCustomers(false);
   } else showMsg('ok', 'Xong');
-  loadRuns();
+  if (j.kind === 'order') {
+    loadRuns();
+    loadPackages();
+    if (fresh && j.result?.taxCode && $('orgTaxCode').value === j.result.taxCode) $('btnTaxCode').click();
+  }
 }
 
-$('runForm').onsubmit = async (e) => {
-  e.preventDefault();
+async function startJob(path, body, before) {
   if (!cfg.credentialsConfigured) return showAcctForm(true);
-  const body = {
-    phone: $('phone').value.trim(), address: $('address').value.trim(), combo: $('combo').value,
-    comboIndex: Number($('comboIndex').value), payment: $('payment').value.trim(), contract: $('contract').checked,
-  };
-  for (const k of ['phone', 'address', 'combo', 'comboIndex', 'payment']) store.set(k, body[k]);
   try {
-    await api('POST', '/api/run', body);
-    $('log').textContent = '';
-    $('result').innerHTML = '<dt>–</dt><dd class="hint">Đang chạy</dd>';
+    await api('POST', path, { ...body, headless: headless() });
+    before?.();
     poll = poll || setInterval(refreshJob, 1500);
     refreshJob();
   } catch (err) {
     showMsg('err', esc(err.message));
   }
+}
+
+$('runForm').onsubmit = (e) => {
+  e.preventDefault();
+  const pkg = document.querySelector('input[name=pkg]:checked')?.value;
+  const internet = current === INTERNET || $('withInternet').checked;
+  if (internet && !pkg) return showMsg('err', 'Chọn gói cước Internet');
+  const [combo, comboIndex] = internet ? [pkg.slice(0, pkg.lastIndexOf('#')), Number(pkg.slice(pkg.lastIndexOf('#') + 1))] : [];
+  const body = {
+    phone: currentPhone(), address: $('address').value.trim(), coords: $('coords').value.trim(), combo, comboIndex,
+    payment: $('payment').value.trim(), contract: $('contract').checked, service: current.id,
+    customerType: $('customerType').value,
+  };
+  if (isOrg()) {
+    syncOrgLinked();
+    body.org = Object.fromEntries(ORG_FIELDS.map(([id, k]) => [k, $(id).value.trim()]));
+    for (const k of ['orgPhone', 'contactPhone']) {
+      if (body.org[k] && !/^0\d{9}$/.test(body.org[k])) return showMsg('err', 'SĐT tổ chức / liên hệ cần 10 số, bắt đầu bằng 0');
+    }
+    if (body.org.taxCode && !/^\d{10}(-\d{3})?$/.test(body.org.taxCode)) return showMsg('err', 'Mã số thuế dạng 10 số (hoặc 10 số-3 số chi nhánh)');
+  }
+  if (current !== INTERNET) {
+    body.withInternet = $('withInternet').checked;
+    body.fields = { 'Số lượng': $('svcQty').value || '1' };
+    if ($('svcPkg').value) body.fields['Gói dịch vụ'] = $('svcPkg').value;
+    if ($('svcTerm').value) body.fields['Gói tính cước'] = $('svcTerm').value;
+  }
+  if (!/^0\d{9}$/.test(body.phone)) return showMsg('err', 'SĐT khách hàng cần 10 số, bắt đầu bằng 0');
+  for (const k of ['phone', 'address', 'coords', 'payment']) store.set(k, body[k]);
+  startJob('/api/run', body, () => {
+    $('log').textContent = '';
+    $('result').innerHTML = '<dt>–</dt><dd class="hint">Đang chạy</dd>';
+  });
 };
+
+// ---- Đối tượng khách hàng: Cá nhân (mặc định) / Doanh nghiệp. Danh sách từ server, server cũ chưa có thì dùng danh sách dự phòng ----
+const FALLBACK_TYPES = [
+  { group: 'Cá nhân', name: 'Gia đình', label: 'Cá nhân', default: true },
+  { group: 'Tổ chức/Hộ kinh doanh', name: 'Doanh nghiệp', label: 'Doanh nghiệp' },
+];
+const customerTypes = () => (cfg.customerTypes?.length ? cfg.customerTypes : FALLBACK_TYPES);
+const ORG_FIELDS = [['orgCompany', 'company'], ['orgTaxCode', 'taxCode'], ['orgRep', 'representative'], ['orgPhone', 'orgPhone'],
+  ['orgContactPhone', 'contactPhone'], ['orgIssuePlace', 'issuePlace'], ['orgEmail', 'email'], ['orgGpkd', 'gpkdAddress']];
+const isOrg = () => customerTypes().find((t) => t.name === $('customerType').value)?.group !== 'Cá nhân';
+
+/** MST 10 số đúng số kiểm tra (dữ liệu test). */
+function randomTaxCode() {
+  const w = [31, 29, 23, 19, 17, 13, 7, 5, 3];
+  for (;;) {
+    const d = [0, 3, ...Array.from({ length: 7 }, () => Math.floor(Math.random() * 10))];
+    const c = 10 - (d.reduce((sum, x, i) => sum + x * w[i], 0) % 11);
+    if (c < 10) return d.join('') + c;
+  }
+}
+// Giá trị mặc định của form DN: ô nối với KH / địa chỉ tự đổi theo, trừ khi người dùng đã sửa tay (data-edited)
+const ORG_DEFAULTS = {
+  orgCompany: () => 'Công ty TNHH QC Test',
+  orgTaxCode: () => randomTaxCode(),
+  orgRep: () => customers.find((c) => c.phone === currentPhone())?.name || 'QC Test',
+  orgPhone: () => currentPhone(),
+  orgContactPhone: () => currentPhone(),
+  orgIssuePlace: () => 'Sở KH&ĐT TP.HCM',
+  orgEmail: () => '',
+  orgGpkd: () => $('address').value.trim(),
+};
+const LINKED = ['orgRep', 'orgPhone', 'orgContactPhone', 'orgGpkd'];
+function fillOrgDefaults(ids = Object.keys(ORG_DEFAULTS), force = false) {
+  for (const id of ids) {
+    const el = $(id);
+    if (el && (force || !el.dataset.edited || !el.value.trim())) {
+      el.value = ORG_DEFAULTS[id]();
+      delete el.dataset.edited;
+    }
+  }
+}
+for (const [id] of ORG_FIELDS) $(id).addEventListener('input', (e) => { e.target.dataset.edited = '1'; });
+$('btnOrgReset').onclick = () => fillOrgDefaults(undefined, true);
+$('btnTaxCode').onclick = () => { $('orgTaxCode').value = randomTaxCode(); delete $('orgTaxCode').dataset.edited; };
+const syncOrgLinked = () => fillOrgDefaults(LINKED);
+$('phoneSel').addEventListener('change', syncOrgLinked);
+$('phone').addEventListener('input', syncOrgLinked);
+$('address').addEventListener('input', syncOrgLinked);
+
+function renderCustomerTypes() {
+  const types = customerTypes();
+  $('customerType').innerHTML = types.map((t) => `<option value="${esc(t.name)}">${esc(t.label || t.name)}${t.default ? ' (mặc định)' : ''}</option>`).join('');
+  // Mỗi lần mở giao diện: mặc định Cá nhân
+  $('customerType').value = (types.find((t) => t.default) || types[0]).name;
+  fillOrgDefaults(undefined, true);
+  $('customerType').onchange = () => {
+    $('orgBox').classList.toggle('hidden', !isOrg());
+    if (isOrg()) syncOrgLinked();
+  };
+  $('customerType').onchange();
+}
+
+$('btnPackages').onclick = () => {
+  const phone = currentPhone();
+  if (!/^0\d{9}$/.test(phone)) return showMsg('err', 'Chọn khách hàng trước (Bán mới cần 1 KH để mở màn Tạo báo giá)');
+  startJob('/api/packages', { phone, address: $('address').value.trim(), coords: $('coords').value.trim() }, () => { $('log').textContent = ''; });
+};
+$('btnSvcOptions').onclick = () => {
+  const phone = currentPhone();
+  if (!/^0\d{9}$/.test(phone)) return showMsg('err', 'Chọn khách hàng trước (Bán mới cần 1 KH để mở màn Tạo báo giá)');
+  startJob('/api/service-options', { phone, address: $('address').value.trim(), coords: $('coords').value.trim(), service: current.id }, () => { $('log').textContent = ''; });
+};
+$('btnCustomers').onclick = () => startJob('/api/customers', {}, () => { $('log').textContent = ''; });
+
+/** Danh sách KH đã lưu; chưa có thì tự đọc từ portal (auto = true). */
+async function loadCustomers(auto) {
+  const r = await api('GET', '/api/customers').catch(() => null);
+  renderCustomers(r?.customers, r?.updatedAt);
+  if (!r && auto && cfg.credentialsConfigured && !busy) $('btnCustomers').click();
+}
 
 async function loadRuns() {
   const runs = await api('GET', '/api/runs').catch(() => []);
   $('runs').innerHTML = runs.length ? runs.map((r) => `<tr>
     <td>${esc(new Date(r.finishedAt || r.startedAt).toLocaleString('vi-VN'))}</td><td>${esc(r.phone)}</td><td>${esc(r.customer)}</td>
-    <td>${esc(r.combo)} #${esc(r.comboIndex)}</td><td>${esc(r.orderCode)}</td><td>${esc(r.contractCode)}</td><td>${esc(r.bookport)}</td>
+    <td>${esc(r.packageName || r.serviceName || r.combo)}${r.service && r.service !== 'internet' ? '' : ` #${esc(r.comboIndex)}`}</td><td>${esc(r.orderCode)}</td><td>${esc(r.contractCode)}</td><td>${esc(r.bookport)}</td>
     <td class="err">${esc(r.error)}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">Chưa có</td></tr>';
 }
 
@@ -294,21 +678,27 @@ document.addEventListener('click', async (e) => {
   }
   $('envBadge').textContent = cfg.env;
   $('portalLink').href = cfg.portalUrl + '/quan-ly-khach-hang/khach-hang/danh-sach';
-  $('combo').innerHTML = cfg.combos.map((c) => `<option>${esc(c)}</option>`).join('');
   const d = cfg.defaults;
-  $('phone').value = store.get('phone') || d.phone || '';
   $('address').value = store.get('address') || d.address;
-  $('combo').value = store.get('combo') || d.combo;
-  $('comboIndex').value = store.get('comboIndex') || d.comboIndex;
+  $('coords').value = store.get('coords') ?? d.coords;
   $('payment').value = store.get('payment') || d.payment;
+  renderCustomerTypes();
+  const mode = store.get('mode') || (cfg.headless ? 'headless' : 'ui');
+  document.querySelector(`input[name=mode][value="${mode}"]`).checked = true;
+  showModeHint();
+  await loadServices();
   loadRuns();
-  refreshJob().then(() => { if ($('btnRun').disabled) poll = setInterval(refreshJob, 1500); });
+  loadPackages();
+  await refreshJob();
+  if (busy) poll = setInterval(refreshJob, 1500);
   if (!cfg.credentialsConfigured) {
+    renderCustomers([]);
     showAcctForm(true);
     showMsg('info', 'Máy này chưa có tài khoản Portal SOP. Nhập Tài khoản + Mật khẩu rồi bấm "Lưu & đăng nhập" (lưu lại cho lần sau).');
   } else {
     showAcctForm(false);
     setWho(`Tài khoản: ${cfg.account}`, false);
+    loadCustomers(true);
   }
 })();
 </script>
