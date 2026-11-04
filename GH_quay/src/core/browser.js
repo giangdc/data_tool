@@ -1,14 +1,14 @@
-// Trình duyệt dùng chung cho cả luồng: 1 profile cố định trong .cache/ để giữ phiên đăng nhập Fox ERP / SCM / GHTK.
-// Luôn hiện cửa sổ (headed): lần đầu (hoặc khi phiên hết hạn) người dùng có thể tự đăng nhập ngay trong cửa sổ đó.
+// Trình duyệt dùng chung cho cả luồng, chạy kiểu ẩn danh: không lưu profile/cookie xuống đĩa,
+// mỗi lần mở lại trình duyệt là phiên mới -> phải đăng nhập lại Fox ERP / SCM / GHTK.
+// Luôn hiện cửa sổ (headed) để người dùng đăng nhập ngay trong cửa sổ đó.
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
-import { config, CACHE_DIR, OUTPUT_DIR } from './env.js';
-
-const PROFILE_DIR = path.join(CACHE_DIR, 'browser-profile');
+import { config, OUTPUT_DIR } from './env.js';
 
 let contextPromise = null;
 let external = null;
+let owned = null;
 
 // Ưu tiên trình duyệt có sẵn trên máy (không phải tải Chromium); BROWSER=chrome|msedge|chromium để ép
 async function launch() {
@@ -17,17 +17,17 @@ async function launch() {
     external = await chromium.connectOverCDP(config.cdpUrl);
     return external.contexts()[0] || external.newContext();
   }
-  mkdirSync(PROFILE_DIR, { recursive: true });
   const order = config.browser === 'auto' ? ['chrome', 'msedge', 'chromium'] : [config.browser];
   const errors = [];
   for (const channel of order) {
     try {
-      return await chromium.launchPersistentContext(PROFILE_DIR, {
+      owned = await chromium.launch({
         headless: false,
-        viewport: null,
         args: ['--start-maximized'],
         ...(channel !== 'chromium' && { channel }),
       });
+      // Context mới = phiên ẩn danh, đóng là mất hết cookie/đăng nhập
+      return await owned.newContext({ viewport: null });
     } catch (err) {
       errors.push(`${channel}: ${err.message.split('\n')[0]}`);
     }
@@ -35,11 +35,26 @@ async function launch() {
   throw new Error(`Không mở được trình duyệt. Cài Google Chrome hoặc Microsoft Edge.\n   ${errors.join('\n   ')}`);
 }
 
+// Người dùng bấm "Dừng": mọi chờ/sleep và lần mở trình duyệt sau đó ném lỗi -> luồng thoát ngay
+const STOP_MESSAGE = 'Đã dừng theo yêu cầu';
+let stopRequested = false;
+export function requestStop() { stopRequested = true; }
+export function clearStop() { stopRequested = false; }
+export const isStopRequested = () => stopRequested;
+function checkStop() {
+  if (stopRequested) throw new Error(STOP_MESSAGE);
+}
+
 /** Context trình duyệt dùng chung (mở nếu chưa có / người dùng đã đóng cửa sổ). */
 export function getContext() {
+  if (stopRequested) return Promise.reject(new Error(STOP_MESSAGE));
   if (!contextPromise) {
     contextPromise = launch().then((ctx) => {
-      ctx.on('close', () => { contextPromise = null; });
+      const reset = () => { contextPromise = null; };
+      ctx.on('close', reset);
+      owned?.on('disconnected', reset);
+      // Người dùng đóng hết tab -> bỏ phiên, lần sau mở lại là phiên mới (phải đăng nhập lại)
+      if (owned) ctx.on('page', (p) => p.on('close', () => { if (!ctx.pages().length) closeBrowser(); }));
       return ctx;
     });
     contextPromise.catch(() => { contextPromise = null; });
@@ -57,7 +72,11 @@ export async function closeBrowser() {
   if (external) {
     await external.close().catch(() => {});
     external = null;
-  } else await ctx?.close().catch(() => {});
+  } else {
+    await ctx?.close().catch(() => {});
+    await owned?.close().catch(() => {});
+  }
+  owned = null;
 }
 
 /** Tìm tab đang mở khớp điều kiện, không có thì mở tab mới tới url. */
@@ -72,13 +91,19 @@ export async function pageFor(match, url) {
   return page;
 }
 
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export async function sleep(ms) {
+  checkStop();
+  await new Promise((r) => setTimeout(r, ms));
+  checkStop();
+}
 
 /** Chờ tới khi fn() trả về giá trị truthy (poll), hết giờ thì ném lỗi với thông báo message. */
 export async function waitUntil(fn, { timeout = 30000, interval = 500, message = 'Hết thời gian chờ' } = {}) {
   const end = Date.now() + timeout;
   for (;;) {
+    checkStop();
     const value = await fn().catch(() => undefined);
+    checkStop();
     if (value) return value;
     if (Date.now() > end) throw new Error(message);
     await sleep(interval);

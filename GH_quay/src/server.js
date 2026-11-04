@@ -7,7 +7,7 @@ import path from 'node:path';
 import { config, ROOT_DIR } from './core/env.js';
 import { log } from './core/logger.js';
 import { saveRun, recentRuns } from './core/store.js';
-import { getContext, closeBrowser, isBrowserOpen } from './core/browser.js';
+import { getContext, closeBrowser, isBrowserOpen, requestStop, clearStop } from './core/browser.js';
 import { runFlow, STOP_POINTS } from './flow.js';
 import { pushStatus, GHTK_STATUSES } from './systems/ghtk.js';
 
@@ -23,6 +23,7 @@ function startJob(kind, input, work) {
   if (job?.running) throw Object.assign(new Error('Đang có lượt chạy khác, chờ xong rồi chạy tiếp'), { status: 409 });
   const current = { id: ++jobSeq, kind, input, running: true, logs: [], result: null, error: null, startedAt: Date.now() };
   job = current;
+  clearStop();
   const onLog = (msg) => {
     current.logs.push({ at: Date.now(), msg });
     log.step(msg);
@@ -31,11 +32,14 @@ function startJob(kind, input, work) {
   work(onLog, onState)
     .then((result) => { current.result = result; })
     .catch((err) => {
-      log.error(err.message);
-      current.error = err.message;
-      if (err.record) current.result = err.record;
+      // Dừng giữa chừng: lỗi thật là "trình duyệt bị đóng" -> báo rõ là do người dùng dừng
+      const message = current.stopping ? 'Đã dừng theo yêu cầu' : err.message;
+      log.error(message);
+      current.error = message;
+      if (err.record) current.result = { ...err.record, ...(current.stopping && { error: message }) };
     })
     .finally(() => {
+      clearStop();
       current.running = false;
       current.finishedAt = Date.now();
     });
@@ -73,6 +77,18 @@ const routes = {
     const codes = String(body.codes ?? '').split(/[\s,]+/).filter(Boolean).join(',');
     if (!codes) throw Object.assign(new Error('Chưa nhập mã vận đơn'), { status: 400 });
     return startJob('ghtk', body, async (onLog) => ({ trackingCode: codes, ghtkStatus: await pushStatus(codes, String(body.status), onLog) }));
+  },
+
+  // Dừng lượt đang chạy: bật cờ dừng + đóng trình duyệt để cắt thao tác đang dở
+  'POST /api/stop': async () => {
+    if (!job?.running) return { stopped: false };
+    if (!job.stopping) {
+      job.stopping = true;
+      job.logs.push({ at: Date.now(), msg: '⏹ Đang dừng theo yêu cầu…' });
+      requestStop();
+      await closeBrowser();
+    }
+    return { stopped: true };
   },
 
   'GET /api/job': async () => job && { ...job, elapsedMs: (job.finishedAt || Date.now()) - job.startedAt },

@@ -98,7 +98,7 @@ export async function runFlow(opts, onLog = () => {}, onState = () => {}) {
       let wanted;
       try {
         onLog(`[SCM] Đọc thiết bị cần MAC của phiếu ${record.advanceCode} (chỉ xem, không nhập)`);
-        wanted = (await scm.readMacCategories(record.advanceCode, onLog)).filter((c) => c.need > 0);
+        wanted = (await scm.readMacCategories(record.advanceCode, onLog)).filter((c) => c.want > 0);
       } catch (err) {
         // Dự phòng: thiết bị trong lịch sử phiếu có khai trong ITEM_CODES
         onLog(`⚠ Không đọc được từ SCM (${err.message}) – dùng ITEM_CODES trong .env`);
@@ -107,29 +107,60 @@ export async function runFlow(opts, onLog = () => {}, onState = () => {}) {
       const macNames = new Set(wanted.map((w) => w.name.toLowerCase()));
       const others = t.advanceItems.map((i) => i.name).filter((n) => !macNames.has(n.toLowerCase()));
       if (others.length) onLog(`[SCM] Không cần MAC: ${others.join(', ')}`);
-      // Mỗi lần chạy luôn tạo phiếu nhập MỚI với MAC mới (không trùng MAC đã dùng ở các lần trước)
       const used = usedMacs();
-      const items = wanted.map((c) => ({
-        name: c.name, code: itemCodeFor(c.name), equipmentId: c.equipmentId,
-        macs: Array.from({ length: c.need }, () => randomMac(used)),
-      }));
-      let macs = items.flatMap((i) => i.macs);
-      if (items.length) {
-        set({ macs: formatMacs(items) });
-        onLog(`[SCM] Tạo phiếu nhập kho cho ${macs.length} thiết bị: ${record.macs}`);
-        const importCode = await scm.createImport(items, onLog, () => randomMac(used));
-        // MAC có thể đã được đổi nếu SCM báo trùng
-        set({ importCode, macs: formatMacs(items) });
-        macs = items.flatMap((i) => i.macs);
-        onLog(`[SCM] ✔ Tạo phiếu nhập ${importCode}`);
-      } else {
-        onLog('[SCM] Phiếu tạm ứng không có vật tư cần MAC');
+
+      // Xác nhận V2 không rõ/không thành công -> xem phiếu giao hàng tại quầy (Fox ERP) đã ghi nhận chưa:
+      // rồi -> làm tiếp; chưa -> tạo phiếu nhập MỚI (MAC mới, thay MAC cũ trong phiếu tạm ứng) rồi xác nhận lại.
+      const MAX_ROUNDS = 2;
+      for (let round = 1; ; round++) {
+        // Mỗi lượt luôn tạo phiếu nhập MỚI với MAC mới (không trùng MAC đã dùng) cho đủ SL đề nghị
+        const items = wanted.map((c) => ({
+          name: c.name, code: itemCodeFor(c.name), equipmentId: c.equipmentId,
+          macs: Array.from({ length: c.want ?? c.need }, () => randomMac(used)),
+        }));
+        let macs = items.flatMap((i) => i.macs);
+        if (items.length) {
+          set({ macs: formatMacs(items) });
+          onLog(`[SCM] Tạo phiếu nhập kho cho ${macs.length} thiết bị: ${record.macs}`);
+          const importCode = await scm.createImport(items, onLog, () => randomMac(used));
+          // MAC có thể đã được đổi nếu SCM báo trùng
+          set({ importCode, macs: formatMacs(items) });
+          macs = items.flatMap((i) => i.macs);
+          onLog(`[SCM] ✔ Tạo phiếu nhập ${importCode}`);
+        } else {
+          onLog('[SCM] Phiếu tạm ứng không có vật tư cần MAC');
+        }
+
+        let result;
+        let failure = '';
+        try {
+          result = await scm.confirmAdvance(record.advanceCode, macs, onLog);
+        } catch (err) {
+          result = 'error';
+          failure = err.message;
+          onLog(`⚠ [SCM] ${failure}`);
+        }
+        system = config.erpUrl;
+        await page.bringToFront();
+        if (result === 'ok') {
+          onLog('[SCM] ✔ Xác nhận tạm ứng – chờ Fox ERP đồng bộ');
+          t = await erp.waitAdvanceConfirmed(page, record.deliveryCode, onLog);
+          break;
+        }
+        onLog(`[Fox ERP] Kiểm tra phiếu giao hàng ${record.deliveryCode} đã ghi nhận xác nhận tạm ứng chưa`);
+        const checked = await erp.waitAdvanceConfirmed(page, record.deliveryCode, onLog, Math.min(config.syncWaitMs, 60000))
+          .catch(() => null);
+        if (checked) {
+          onLog('[Fox ERP] ✔ Phiếu giao hàng đã ghi nhận xác nhận tạm ứng – làm tiếp');
+          t = checked;
+          break;
+        }
+        if (round >= MAX_ROUNDS) {
+          throw new Error(`Xác nhận tạm ứng ${record.advanceCode} không thành công sau ${MAX_ROUNDS} lần${failure ? `: ${failure}` : ''}`);
+        }
+        onLog('[Fox ERP] Chưa ghi nhận – tạo phiếu nhập mới và xác nhận lại');
+        system = config.scmUrl;
       }
-      await scm.confirmAdvance(record.advanceCode, macs, onLog);
-      onLog('[SCM] ✔ Xác nhận tạm ứng – chờ Fox ERP đồng bộ');
-      system = config.erpUrl;
-      await page.bringToFront();
-      t = await erp.waitAdvanceConfirmed(page, record.deliveryCode, onLog);
       set(pick(t));
     }
     if (o.until === 'scm') return finish();

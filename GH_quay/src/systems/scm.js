@@ -174,61 +174,83 @@ export async function readMacCategories(advanceCode, onLog) {
   return popup.categories.map((c) => ({ ...c, need: Math.max(c.want - c.got, 0) }));
 }
 
-/** Bước 6: nhập MAC vào phiếu tạm ứng -> Lưu -> Xác nhận V2. */
+/**
+ * Bước 6: nhập MAC vào phiếu tạm ứng -> Lưu -> Xác nhận V2.
+ * MAC đang có trong phiếu khác bộ `macs` (vd MAC của phiếu nhập lần trước) -> Xóa hết rồi nhập lại đúng `macs`.
+ * Trả 'ok' khi SCM trả rtResult = true; 'unknown' khi không đọc được kết quả (để luồng kiểm tra lại ở Fox ERP).
+ * SCM trả lỗi rõ ràng -> ném lỗi kèm thông báo của SCM.
+ */
 export async function confirmAdvance(advanceCode, macs, onLog) {
   const page = await openScm(config.scmAdvancePath, onLog);
   const subgrid = await openAdvance(page, advanceCode);
-  let popup = await openMacPopup(page, subgrid);
-  const win = macWindow(page);
-  const existing = new Set(popup.macs.map((m) => m.mac.toUpperCase()));
 
-  for (const mac of macs.filter((m) => !existing.has(m.toUpperCase()))) {
-    await win.locator('textarea:visible').first().fill(mac);
-    await page.click('#btn_add');
-    await sleep(1500);
-    const msg = await messagerText(page);
-    if (msg) {
-      await closeMessager(page);
-      if (!/đã tồn tại trong phiếu/i.test(msg)) throw new Error(`Nhập MAC ${mac} lỗi: ${msg}`);
+  if (macs.length) {
+    let popup = await openMacPopup(page, subgrid);
+    const win = macWindow(page);
+    const want = new Set(macs.map((m) => m.toUpperCase()));
+    const stale = popup.macs.filter((m) => !want.has(m.mac.toUpperCase()));
+    if (stale.length) {
+      // Nút "Xóa" của popup xoá TẤT CẢ MAC đang nhập (Lưu mới ghi nhận xoá)
+      onLog(`Xóa MAC cũ trong phiếu tạm ứng: ${stale.map((m) => m.mac).join(', ')}`);
+      await page.click('#btn_delete');
+      await waitUntil(() => page.evaluate(() => $('#dgMACofInside').datagrid('getRows').length === 0), {
+        timeout: 15000, message: 'Không xóa được MAC cũ trong popup Nhập MAC',
+      });
+      await sleep(800);
+      popup = await readMacPopup(page);
     }
-  }
-  popup = await readMacPopup(page);
-  const missing = popup.categories.filter((c) => c.got < c.want);
-  if (missing.length) {
-    throw new Error(`Còn chủng loại thiếu MAC: ${missing.map((c) => `${c.name} ${c.got}/${c.want}`).join(', ')}`);
-  }
-  onLog(`Nhập MAC: ${popup.macs.map((m) => `${m.name} = ${m.mac}`).join('; ')}`);
+    const existing = new Set(popup.macs.map((m) => m.mac.toUpperCase()));
 
-  await page.click('#btn_save');
-  await waitUntil(async () => !(await win.isVisible()) || (await messagerText(page)), {
-    timeout: 30000, message: 'Lưu MAC quá lâu',
-  });
-  const saveMsg = await messagerText(page);
-  if (saveMsg) {
-    await closeMessager(page);
-    throw new Error(`Lưu MAC lỗi: ${saveMsg}`);
-  }
-  if (await win.isVisible()) {
-    await win.locator('a.l-btn').filter({ hasText: /^\s*Đóng\s*$/ }).click();
-    await sleep(800);
-    if (await messagerText(page)) await closeMessager(page);
-  }
-  await waitUnblocked(page); // lưới chi tiết tải lại sau khi lưu
+    for (const mac of macs.filter((m) => !existing.has(m.toUpperCase()))) {
+      await win.locator('textarea:visible').first().fill(mac);
+      await page.click('#btn_add');
+      await sleep(1500);
+      const msg = await messagerText(page);
+      if (msg) {
+        await closeMessager(page);
+        if (!/đã tồn tại trong phiếu/i.test(msg)) throw new Error(`Nhập MAC ${mac} lỗi: ${msg}`);
+      }
+    }
+    popup = await readMacPopup(page);
+    const missing = popup.categories.filter((c) => c.got < c.want);
+    if (missing.length) {
+      throw new Error(`Còn chủng loại thiếu MAC: ${missing.map((c) => `${c.name} ${c.got}/${c.want}`).join(', ')}`);
+    }
+    onLog(`Nhập MAC: ${popup.macs.map((m) => `${m.name} = ${m.mac}`).join('; ')}`);
 
+    await page.click('#btn_save');
+    await waitUntil(async () => !(await win.isVisible()) || (await messagerText(page)), {
+      timeout: 30000, message: 'Lưu MAC quá lâu',
+    });
+    const saveMsg = await messagerText(page);
+    if (saveMsg) {
+      await closeMessager(page);
+      throw new Error(`Lưu MAC lỗi: ${saveMsg}`);
+    }
+    if (await win.isVisible()) {
+      await win.locator('a.l-btn').filter({ hasText: /^\s*Đóng\s*$/ }).click();
+      await sleep(800);
+      if (await messagerText(page)) await closeMessager(page);
+    }
+    await waitUnblocked(page); // lưới chi tiết tải lại sau khi lưu
+  }
+
+  // Nút Xác nhận V2 gọi POST /Inside/TamUng/ConfirmInside_MultiMACV2 -> { rtResult, MsgAll }. Lỗi chỉ hiện toast
+  // (NotifyJs), thành công thì xoá dòng khỏi lưới nhưng có lúc lưới không cập nhật -> đọc thẳng kết quả trả về.
+  const response = page.waitForResponse((r) => /ConfirmInside_MultiMACV2/i.test(r.url()), { timeout: 90000 }).catch(() => null);
   await page.locator(`#${subgrid}-confirm-V2`).click();
-  await sleep(3000);
-  const confirmMsg = await messagerText(page);
-  if (confirmMsg) {
-    // Hộp hỏi xác nhận -> đồng ý; thông báo lỗi -> báo lại
-    if (/có chắc|xác nhận\?|đồng ý/i.test(confirmMsg)) await closeMessager(page);
-    else { await closeMessager(page); throw new Error(`Xác nhận tạm ứng lỗi: ${confirmMsg}`); }
+  const res = await response;
+  const data = res ? await res.json().catch(() => null) : null;
+  await waitUnblocked(page).catch(() => {});
+  if (data?.rtResult) {
+    onLog(`Xác nhận V2 thành công – phiếu ${advanceCode}`);
+    return 'ok';
   }
-  // Xác nhận xong phiếu biến khỏi danh sách chờ (trang không hiện thông báo)
-  await waitUntil(() => page.evaluate((code) => !$('.datagrid-mask:visible').length
-    && !$('#dgInsideTickets').datagrid('getRows').some((r) => r.RequireId === code), advanceCode), {
-    timeout: 60000, message: `Bấm Xác nhận V2 nhưng phiếu ${advanceCode} vẫn còn trong danh sách chờ`,
-  });
-  onLog(`Xác nhận tạm ứng ${advanceCode}`);
+  if (data && !data.rtResult) throw new Error(`Xác nhận tạm ứng lỗi: ${String(data.MsgAll || 'SCM trả về không thành công').trim()}`);
+  // Không bắt được kết quả: lỗi chặn trước khi gửi (toast) hoặc mạng
+  const toast = await toastText(page).catch(() => '');
+  onLog(`⚠ Không đọc được kết quả Xác nhận V2${toast ? ` (${toast})` : ''} – sẽ kiểm tra lại ở Fox ERP`);
+  return 'unknown';
 }
 
 // ---------------------------------------------------------------- Tạo phiếu nhập kho

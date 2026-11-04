@@ -126,6 +126,7 @@
           <div class="field" style="margin-top:8px"><label for="carrier">Đơn vị vận chuyển</label><input id="carrier"></div>
         </details>
         <button type="submit" id="btnRun">Chạy</button>
+        <button type="button" id="btnStop" class="ghost hidden" title="Dừng lượt đang chạy (đóng trình duyệt của tool)">Dừng</button>
         <p class="hint">Tool mở 1 cửa sổ trình duyệt và tự thao tác. Hệ thống nào chưa đăng nhập thì đăng nhập ngay trong cửa sổ đó, tool sẽ tự chạy tiếp.
           Chạy lại cùng HĐ sẽ tiếp tục từ bước còn dở. MAC được sinh ngẫu nhiên (12 ký tự hex).</p>
       </form>
@@ -276,6 +277,9 @@ function renderJob(job) {
   const busy = job.running;
   $('btnRun').disabled = busy;
   $('btnGhtk').disabled = busy;
+  $('btnStop').classList.toggle('hidden', !busy);
+  $('btnStop').disabled = Boolean(job.stopping);
+  $('btnStop').textContent = job.stopping ? 'Đang dừng…' : 'Dừng';
   if (busy) setBrowser(true);
 }
 
@@ -331,6 +335,12 @@ document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('clic
   catch (err) { alertBox(err.message); }
   finally { b.disabled = false; }
 }));
+
+$('btnStop').addEventListener('click', async () => {
+  $('btnStop').disabled = true;
+  try { await api('/api/stop', {}); } catch (err) { alertBox(err.message); }
+  poll();
+});
 
 $('btnClose').addEventListener('click', async () => {
   try { setBrowser((await api('/api/browser/close', {})).browserOpen); } catch (err) { alertBox(err.message); }

@@ -1,7 +1,7 @@
 // Fox ERP – màn "Thông tin phiếu giao dịch thiết bị" (Blazor Server + Radzen). Không có REST API -> điều khiển UI.
 // Mọi bước đều đọc trạng thái phiếu + "Lịch sử xử lý" trước, bước nào đã làm thì bỏ qua (chạy lại an toàn).
 import { config } from '../core/env.js';
-import { getContext, pageFor, ensureLoggedIn, waitUntil, sleep } from '../core/browser.js';
+import { getContext, pageFor, ensureLoggedIn, waitUntil, sleep, debugShot } from '../core/browser.js';
 
 const SEARCH_URL = () => config.erpUrl + config.erpSearchPath;
 const SEARCH_BOX = 'input[placeholder="Nhập số hợp đồng"]';
@@ -121,29 +121,130 @@ async function notifications(page) {
 
 const formField = (page, labelRe) => page.locator('.rz-form-field', { has: page.locator('label', { hasText: labelRe }) }).first();
 
+// ---------------------------------------------------------------- Mở trang tìm HĐ
+// Các trang /service/... (Blazor) KHÔNG chuyển sang trang đăng nhập khi không nhận phiên: trang phủ lớp
+// "Phiên đăng nhập đã hết hạn" (.session-overlay) chặn mọi thao tác (bấm tìm HĐ không mở tab phiếu).
+const overlayShown = (page) => page.locator('.session-overlay').first().isVisible().catch(() => false);
+
+const EXPIRED_MESSAGE = 'Fox ERP báo "Phiên đăng nhập đã hết hạn" – chạy lại (tool mở lại qua menu Quản lý chuỗi cung ứng);'
+  + ' vẫn lỗi thì đăng xuất/đăng nhập lại Fox-ERP trong cửa sổ trình duyệt của tool';
+
+/** Trang Fox ERP (tab phiếu) đang báo hết phiên -> dừng với thông báo rõ ràng thay vì chờ hết giờ. */
+async function assertSession(page, waitMs) {
+  const expired = await waitUntil(() => overlayShown(page), { timeout: waitMs, interval: 500 }).then(() => true, () => false);
+  if (expired) throw new Error(EXPIRED_MESSAGE);
+}
+
+const APP_URL = () => `${config.erpUrl}/app/supply-chain`;
+const MENU_TEXT = 'Quản lý giao dịch thiết bị';
+
+/**
+ * Mở trang tìm HĐ ĐÚNG ĐƯỜNG: Fox-ERP -> Quản lý chuỗi cung ứng -> menu "Quản lý giao dịch thiết bị".
+ * Trang tìm HĐ (/service/retail-counter) chạy trong iframe của app và chỉ nhận phiên khi mở theo đường này;
+ * mở thẳng link /service/retail-counter thì luôn báo "Phiên đăng nhập đã hết hạn". Trả { page, frame }.
+ */
+async function openSearchFrame(onLog, { reload = false } = {}) {
+  const page = await pageFor((u) => u.startsWith(APP_URL()) || isLoginPage(u), APP_URL());
+  if (reload && page.url().startsWith(APP_URL())) await page.reload({ waitUntil: 'domcontentloaded' });
+  // Chưa đăng nhập: app chuyển sang IAM (có thể trễ). Đăng nhập xong portal về trang chủ -> vào lại app.
+  for (let i = 1; ; i++) {
+    await waitUntil(() => isLoginPage(page.url()) || page.url().startsWith(APP_URL()), { timeout: 20000 }).catch(() => {});
+    await sleep(2500);
+    if (!isLoginPage(page.url())) {
+      if (page.url().startsWith(APP_URL())) break;
+      await page.goto(APP_URL(), { waitUntil: 'domcontentloaded' });
+      continue;
+    }
+    if (i > 3) throw new Error('Không đăng nhập được Fox ERP (vẫn ở trang đăng nhập IAM) – hãy đăng nhập tay trong cửa sổ trình duyệt rồi chạy lại');
+    await page.locator('#username, input[name="username"]').first().waitFor({ timeout: 15000 }).catch(() => {});
+    await sleep(1000); // form IAM vẽ xong mới điền, điền sớm bị xoá
+    await ensureLoggedIn(page, { system: 'Fox ERP', isLoginPage, autoLogin, onLog });
+    await waitUntil(() => !isLoginPage(page.url()), { timeout: 30000 }).catch(() => {});
+    await sleep(3000);
+    if (!isLoginPage(page.url()) && !page.url().startsWith(APP_URL())) await page.goto(APP_URL(), { waitUntil: 'domcontentloaded' });
+  }
+  await sleep(3000); // app vẽ menu
+
+  const searchFrame = async () => page.frames().find((f) => f.url().replace(/\/$/, '').startsWith(SEARCH_URL()));
+  if (!(await searchFrame())) {
+    onLog(`[Fox ERP] Mở Quản lý chuỗi cung ứng → ${MENU_TEXT}`);
+    const findMenu = async () => {
+      const h = await page.evaluateHandle((t) => [...document.querySelectorAll('body *')].find((e) => e.children.length === 0
+        && e.offsetParent !== null && e.textContent.normalize('NFC').trim() === t), MENU_TEXT.normalize('NFC'));
+      return h.asElement();
+    };
+    let item = await waitUntil(findMenu, { timeout: 10000 }).catch(() => null);
+    if (!item) {
+      // Menu đang thu gọn (chỉ hiện icon) -> bấm nút mở rộng ở đầu thanh bên trái
+      await page.mouse.click(32, 80);
+      item = await waitUntil(findMenu, { timeout: 20000 }).catch(() => null);
+      if (!item) {
+        const shot = await debugShot(page, 'menu');
+        throw new Error(`Không thấy menu "${MENU_TEXT}" trong Quản lý chuỗi cung ứng (${page.url()})${shot ? ` – ảnh: ${shot}` : ''}`);
+      }
+    }
+    await item.click();
+  }
+  const frame = await waitUntil(searchFrame, { timeout: 30000, message: `Bấm "${MENU_TEXT}" nhưng không mở được trang tìm HĐ` });
+  await frame.locator(SEARCH_BOX).waitFor({ timeout: 30000 });
+  return { page, frame };
+}
+
+/** Tab phiếu của HĐ đã mở sẵn trong cửa sổ của tool (người dùng tự mở / lần chạy trước) và đang hiện phiếu. */
+async function findOpenTicket(contract) {
+  const ctx = await getContext();
+  for (const p of ctx.pages()) {
+    const u = p.url().replace(/\/$/, '');
+    if (!u.startsWith(`${config.erpUrl}/service`) || u === SEARCH_URL()) continue;
+    if (await overlayShown(p)) continue;
+    if (!(await ticketButtons(p).count().catch(() => 0))) continue;
+    const text = await p.locator('body').innerText().catch(() => '');
+    if (text.toUpperCase().includes(contract.toUpperCase())) return p;
+  }
+  return null;
+}
+
 /** Bước 1: tìm HĐ -> mở tab phiếu (q1 là token mã hoá, không mở thẳng bằng số HĐ được). */
 export async function openTicketPage(contract, onLog) {
-  const page = await pageFor((u) => u.replace(/\/$/, '') === SEARCH_URL(), SEARCH_URL());
-  await ensureLoggedIn(page, { system: 'Fox ERP', isLoginPage, autoLogin, onLog });
-  if (page.url().replace(/\/$/, '') !== SEARCH_URL()) await page.goto(SEARCH_URL(), { waitUntil: 'domcontentloaded' });
-  const box = page.locator(SEARCH_BOX);
-  await box.waitFor({ timeout: 30000 });
-  await sleep(1500); // chờ Blazor nối circuit, gõ sớm quá sẽ mất ký tự
-  await box.fill(contract);
-  await box.press('Tab');
+  const opened = await findOpenTicket(contract);
+  if (opened) {
+    onLog(`[Fox ERP] Dùng tab phiếu HĐ ${contract} đang mở sẵn`);
+    await opened.bringToFront();
+    return opened;
+  }
+  let ticket = null;
+  for (let attempt = 1; attempt <= 2 && !ticket; attempt++) {
+    const { page, frame } = await openSearchFrame(onLog, { reload: attempt > 1 });
+    const box = frame.locator(SEARCH_BOX);
+    await sleep(1500); // chờ Blazor nối circuit, gõ sớm quá sẽ mất ký tự
+    await box.fill(contract);
+    await box.press('Tab');
 
-  const popup = (await getContext()).waitForEvent('page', { timeout: 20000 }).catch(() => null);
-  await page.locator(`${SEARCH_BOX} + button`).click();
-  const ticket = await popup;
-  if (!ticket) {
-    const msg = (await notifications(page)).join(' | ');
+    const popup = (await getContext()).waitForEvent('page', { timeout: 20000 }).catch(() => null);
+    await frame.locator(`${SEARCH_BOX} + button`).click({ timeout: 10000 }).catch(() => {});
+    ticket = await popup;
+    if (ticket) break;
+    if (attempt === 1) {
+      onLog(`…chưa mở được tab phiếu${(await overlayShown(frame)) ? ' (báo hết phiên)' : ''} – mở lại ${MENU_TEXT} và thử lại`);
+      continue;
+    }
+    const msg = (await notifications(frame)).join(' | ');
+    const expired = await overlayShown(frame);
+    await debugShot(page, `search-${contract}`);
+    if (!msg && expired) throw new Error(EXPIRED_MESSAGE);
     throw new Error(`Không mở được phiếu của HĐ ${contract}${msg ? `: ${msg}` : ' (sai số HĐ hoặc tài khoản không có quyền?)'}`);
   }
   await ticket.waitForLoadState('domcontentloaded');
   await ticket.bringToFront();
-  await waitUntil(async () => (await ticketButtons(ticket).count()) > 0 || /Dữ liệu không đúng/.test(await ticket.locator('body').innerText()), {
-    timeout: 40000, message: 'Trang phiếu không hiện danh sách phiếu',
-  });
+  await assertSession(ticket, 3000);
+  const listed = await waitUntil(async () => (await ticketButtons(ticket).count()) > 0 || /Dữ liệu không đúng/.test(await ticket.locator('body').innerText()), {
+    timeout: 40000,
+  }).catch(() => false);
+  if (!listed) {
+    const shot = await debugShot(ticket, `ticket-${contract}`);
+    const text = (await ticket.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 200);
+    throw new Error(`Trang phiếu không hiện danh sách phiếu${text ? ` – trang hiện: "${text}"` : ''}${shot ? ` (ảnh: ${shot})` : ''}`);
+  }
   if (!(await ticketButtons(ticket).count())) throw new Error(`HĐ ${contract}: ${await ticket.locator('body').innerText()}`.slice(0, 300));
   return ticket;
 }
@@ -182,6 +283,8 @@ export async function selectTicket(page, { deliveryCode, onLog }) {
 /** Tải lại trang phiếu (Blazor không tự cập nhật dữ liệu đồng bộ từ SCM/GHTK) rồi mở lại đúng phiếu. */
 export async function reloadTicket(page, deliveryCode) {
   await page.reload({ waitUntil: 'domcontentloaded' });
+  // Chạy lâu (chờ SCM/GHTK) phiên Fox ERP có thể hết hạn giữa chừng
+  await assertSession(page, 2000);
   await waitIdle(page);
   return selectTicket(page, { deliveryCode });
 }
@@ -260,14 +363,14 @@ export async function requestAdvance(page, onLog) {
 }
 
 /** Chờ SCM xác nhận tạm ứng đồng bộ về phiếu (Lịch sử: "Xác nhận tạm ứng thành công"). */
-export async function waitAdvanceConfirmed(page, deliveryCode, onLog) {
+export async function waitAdvanceConfirmed(page, deliveryCode, onLog, timeout = config.syncWaitMs) {
   return waitUntil(async () => {
     const t = await reloadTicket(page, deliveryCode);
     if (t.advanceConfirmed) return t;
     onLog('…chờ SCM đồng bộ xác nhận tạm ứng về Fox ERP');
     await sleep(5000);
     return null;
-  }, { timeout: config.syncWaitMs, interval: 0, message: `Quá ${config.syncWaitMs / 1000}s Fox ERP chưa nhận xác nhận tạm ứng từ SCM` });
+  }, { timeout, interval: 0, message: `Quá ${timeout / 1000}s Fox ERP chưa nhận xác nhận tạm ứng từ SCM` });
 }
 
 /** Bước 7: chọn đơn vị vận chuyển -> Lưu phiếu -> Đóng hàng hoàn tất (tạo vận đơn). Trả mã vận đơn. */
