@@ -2,6 +2,7 @@
 // Mỗi dịch vụ mở 1 form riêng, nhưng ô nhập nào cũng có tên (aria-label) trong semantics -> dùng chung 1 bộ điền form,
 // không cần toạ độ riêng từng dịch vụ. Xác nhận form = thêm vào giỏ ("Dịch vụ được mua"), rồi Chi tiết giỏ hàng -> Xác nhận -> màn báo giá.
 import path from 'node:path';
+import { writeFileSync } from 'node:fs';
 import { sleep, nodes, formFields, plainButtons, waitNode } from './flutter.js';
 
 /** group: nhóm trên thanh menu; unnamed: giá trị chọn cho ô không có tên (vd Hình thức nạp code); sections: mục phải bấm + mới hiện ô;
@@ -78,75 +79,181 @@ async function expandSection(app, title) {
   return true;
 }
 
+/** Cuộn form dịch vụ (hộp thoại giữa màn) lên đầu / xuống 1 đoạn. */
+async function scrollForm(app, dy) {
+  await app.mouse.move(720, 400);
+  await app.mouse.wheel(0, dy);
+  await sleep(900);
+}
+
+// Nút cột phải của form: + ở tiêu đề mục (~40x25, x≈998); thùng rác nhỏ hơn (~25x25). Chữ tiêu đề mục KHÔNG có trong semantics.
+const isHead = (b) => b.x > 960 && b.w >= 34 && b.h <= 30;
+
+/** Các mục của form theo thứ tự (kể cả phần khuất): [{ i, x, y, empty }]; empty = không có ô nào tới mục sau = mục thu gọn (Extra, Box 2…). */
+async function formSections(app) {
+  const fields = await formFields(app);
+  const heads = (await plainButtons(app)).filter(isHead).sort((a, b) => a.y - b.y);
+  return heads.map((h, k) => {
+    const next = heads[k + 1]?.y ?? Infinity;
+    return { i: k + 1, x: h.x, y: h.y, empty: !fields.some((f) => f.y > h.y && f.y < next) };
+  });
+}
+const sectionNo = (heads, y) => heads.filter((h) => h.y < y).length; // 0 = trước nút mục đầu tiên
+
+/** Bấm + mở các mục thu gọn số `want` (all = mở hết, dùng khi đọc form). Trả về số các mục đã mở. */
+async function openSections(app, want = [], all = false) {
+  const opened = [];
+  await scrollForm(app, -5000);
+  for (let k = 0; k < 8; k++) {
+    const target = (await formSections(app)).find((x) => x.empty && !opened.includes(x.i) && (all || want.includes(x.i)));
+    if (!target) break;
+    opened.push(target.i);
+    let t = target;
+    if (t.y > BOTTOM || t.y < 150) {
+      await scrollForm(app, t.y - 400);
+      t = (await formSections(app)).find((x) => x.i === target.i) || t;
+    }
+    await app.mouse.click(t.x, t.y);
+    await sleep(2000);
+  }
+  await scrollForm(app, -5000);
+  return opened;
+}
+
+/** Tên mục đoán theo ô bên trong (portal không cho đọc chữ tiêu đề). */
+const sectionTitle = (names, i, serviceName, collapsed) =>
+  names.includes('Loại thiết bị') ? (collapsed ? 'Thiết bị thêm' : 'Thiết bị')
+  : names.includes('Đơn vị triển khai') ? 'Triển khai'
+  : collapsed ? 'Gói thêm (Extra)'
+  : i <= 1 ? serviceName : `Mục ${i}`;
+
+// Dòng lựa chọn của sheet đang mở (form dịch vụ chỉ có 1 nút có nhãn là "Xác nhận" -> có nút nhãn khác = sheet đang mở)
+const sheetOpts = (list) => list.filter((n) => n.role === 'button' && n.label && n.y > 120 && n.label !== 'Xác nhận');
+
+/** Chờ sheet mở (open = true) / đóng (false) thay vì chờ cố định; trả về true nếu đạt trong timeout. */
+async function waitSheet(app, open, timeout = 4000) {
+  for (const end = Date.now() + timeout; Date.now() < end; await sleep(150)) {
+    if ((sheetOpts(await nodes(app)).length > 0) === open) return true;
+  }
+  return false;
+}
+
+/** Bấm ô Số lượng rồi chờ có ô nhập thật (Flutter chỉ tạo <input> khi focus). */
+async function focusInput(app, x, y, timeout = 3000) {
+  await app.mouse.click(x, y);
+  for (const end = Date.now() + timeout; Date.now() < end; await sleep(150)) {
+    if (await app.evaluate(() => /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '')).catch(() => false)) return;
+  }
+}
+
+/** Đọc hết lựa chọn trong sheet đang mở (cuộn xuống tới khi không thêm dòng mới), rồi cuộn về đầu. */
+async function readSheetOptions(app) {
+  const seen = [];
+  for (let i = 0; i < 12; i++) {
+    const list = (await nodes(app)).filter((n) => n.role === 'button' && n.label && n.y > 120 && n.y < 790 && n.label !== 'Xác nhận');
+    let added = 0;
+    for (const n of list) if (!seen.includes(n.label)) { seen.push(n.label); added++; }
+    if (!added && i > 0) break;
+    await app.mouse.move(720, 600);
+    await app.mouse.wheel(0, 300);
+    await sleep(350);
+  }
+  await app.mouse.move(720, 600);
+  await app.mouse.wheel(0, -5000);
+  await sleep(400);
+  return seen;
+}
+
 /** Chọn trong sheet đang mở: khớp `want` (tên đầy đủ, hoặc 1 phần), trống = dòng đầu. Trả về nhãn đã chọn, '' nếu sheet rỗng. */
 async function pickOption(app, want) {
   const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 10; i++) {
-    const list = (await nodes(app)).filter((n) => n.role === 'button' && n.label && n.y > 120 && n.label !== 'Xác nhận');
+    const list = sheetOpts(await nodes(app));
     const visible = list.filter((n) => n.y < 790);
     const hit = want
       ? visible.find((n) => norm(n.label) === norm(want)) || visible.find((n) => norm(n.label).includes(norm(want)))
       : visible[0];
     if (hit) {
       await app.mouse.click(hit.x, hit.y);
-      await sleep(2200);
+      await waitSheet(app, false, 5000);
+      await sleep(300);
       return hit.label;
     }
     if (!want || !list.length) return '';
     await app.mouse.move(720, 600);
     await app.mouse.wheel(0, 250);
-    await sleep(600);
+    await sleep(400);
   }
   return '';
 }
 
 /**
- * Điền form dịch vụ: lần lượt mọi ô còn trống (ô Số lượng gõ 1, còn lại mở sheet chọn).
- * prefs: { 'Gói dịch vụ': 'Max', 'Gói tính cước': '6T', ... } – không có thì lấy dòng đầu.
- * Ô đã điền đổi nhãn thành chính giá trị (value luôn rỗng), ô Số lượng đã điền biến khỏi danh sách
- * -> ô còn trống = ô có nhãn chưa từng chọn, chưa thử ở vị trí đó. Trả về các lựa chọn { tên ô: giá trị }.
+ * Điền form dịch vụ theo thứ tự trên màn hình (ô Số lượng gõ số, còn lại mở sheet chọn).
+ * prefs: { '1.Gói dịch vụ': 'An Tâm 7', '1.Gói tính cước': 'Gói 3T (3T+0)', '2.Thiết bị': 'FCAM-Play 4', '2.Số lượng': 1, … }
+ *   – khoá = "<số mục>.<tên ô>" (mục đếm theo nút + bên phải, kể cả mục thu gọn chưa mở; trùng tên trong 1 mục thêm "#2");
+ *     khoá chỉ có tên ô (kiểu cũ) = ô đầu tiên có tên đó. Không có = dòng đầu (ô portal đã điền sẵn thì giữ nguyên).
+ * Ô đã điền đổi nhãn thành chính giá trị -> nhớ tên thật theo id semantics (id giữ nguyên khi đổi giá trị) lúc ô còn trống.
+ * survey: mảng nhận mô tả từng ô { key, name, section, qty | options, value } (đọc form cho giao diện).
+ * onlyEmpty: chỉ điền ô còn trống (lượt điền bù khi Xác nhận chưa qua). Trả về { khoá: giá trị đã chọn }.
  */
-async function fillForm(app, prefs) {
+async function fillForm(app, prefs, { survey = null, state = { real: new Map() }, onlyEmpty = false } = {}) {
   const chosen = {};
-  const picked = new Set();
   const tried = new Set();
-  const key = (f) => `${f.name}@${Math.round(f.y / 10)}`;
-  for (let i = 0; i < 40; i++) {
-    const pending = (list) => list.find((x) => x.name && !tried.has(key(x)) && !picked.has(x.name) && !/^SL:/.test(x.name));
-    let f = pending(await formFields(app));
+  const occ = new Map();
+  const { real } = state;
+  const read = async () => {
+    const list = await formFields(app);
+    for (const f of list) if (f.id && !real.has(f.id) && f.name && !/^SL:/.test(f.name)) real.set(f.id, f.name);
+    return list;
+  };
+  const pending = (list) => list.find((x) => real.has(x.id) && !tried.has(x.id) && x.name && !/^SL:/.test(x.name)
+    && (!onlyEmpty || x.name === real.get(x.id)));
+  for (let i = 0; i < 50; i++) {
+    let f = pending(await read());
     // Sheet vừa đóng / chọn gói xong form tải lại (vd FPT Play đổi gói -> ô Số lượng, Thiết bị Box hiện lại sau): đọc lại vài lần cho chắc
-    for (let k = 0; !f && k < 3; k++) {
-      await sleep(1500);
-      f = pending(await formFields(app));
+    for (let k = 0; !f && k < 2; k++) {
+      await sleep(1000);
+      f = pending(await read());
     }
     if (!f) return chosen;
+    tried.add(f.id); // mỗi ô điền 1 lần (không điền được thì để portal báo khi Xác nhận)
+    const name = real.get(f.id);
+    const section = sectionNo((await plainButtons(app)).filter(isHead), f.y);
+    const first = !occ.has(name);
+    const n = (occ.get(`${section}.${name}`) || 0) + 1;
+    occ.set(name, true);
+    occ.set(`${section}.${name}`, n);
+    const k = `${section}.${name}${n > 1 ? '#' + n : ''}`;
+    const raw = prefs[k] ?? (first ? prefs[name] : undefined);
+    const want = raw != null && raw !== '' ? String(raw) : '';
+    const filled = f.name !== name; // portal đã điền sẵn (vd Tình trạng = Mới)
+    // Không chọn gì + portal đã điền sẵn -> giữ nguyên
+    if (!survey && !want && filled) continue;
     // Ô khuất sau nút Xác nhận / tiêu đề form -> cuộn form
     if (f.y > BOTTOM || f.y < 150) {
-      await app.mouse.move(720, 400);
-      await app.mouse.wheel(0, f.y - 350);
-      await sleep(900);
-      const again = (await formFields(app)).find((x) => x.name === f.name);
-      if (!again || again.y > BOTTOM || again.y < 150) { tried.add(key(f)); continue; }
+      await scrollForm(app, f.y - 350);
+      const again = (await read()).find((x) => x.id === f.id);
+      if (!again || again.y > BOTTOM || again.y < 150) continue;
       Object.assign(f, again);
     }
-    tried.add(key(f)); // mỗi ô điền 1 lần (không điền được thì để portal báo khi Xác nhận)
-    if (/số lượng/i.test(f.name)) {
-      const qty = String((!chosen[f.name] && prefs[f.name]) || 1);
-      await app.mouse.click(f.x - 40, f.y);
-      await sleep(1800);
+    if (/số lượng/i.test(name)) {
+      const qty = want || '1';
+      survey?.push({ key: k, name, section, qty: true });
+      await focusInput(app, f.x - 40, f.y);
+      await sleep(200);
       await app.keyboard.press('Control+A');
-      await app.keyboard.type(qty, { delay: 80 });
-      await sleep(800);
-      chosen[f.name] = qty;
+      await app.keyboard.type(qty, { delay: 40 });
+      await sleep(500);
+      chosen[k] = qty;
       continue;
     }
     await app.mouse.click(f.x, f.y);
-    await sleep(2300);
-    // Ô trùng tên ở mục sau (Thiết bị, Extra…) có danh sách khác -> lựa chọn của người dùng chỉ áp cho ô đầu tiên
-    const label = await pickOption(app, chosen[f.name] ? '' : prefs[f.name]);
+    // Chờ sheet hiện dòng lựa chọn (sheet tải danh sách qua API) – sheet rỗng thì hết giờ rồi đóng như cũ
+    if (await waitSheet(app, true)) await sleep(400);
+    if (survey) survey.push({ key: k, name, section, options: await readSheetOptions(app), ...(filled ? { value: f.name } : {}) });
+    const label = await pickOption(app, want || (filled ? f.name : ''));
     if (label) {
-      chosen[f.name] ??= label;
-      picked.add(label);
+      chosen[k] = label;
     } else {
       // Sheet rỗng (không có lựa chọn) -> đóng, bỏ qua ô này
       const close = (await plainButtons(app)).find((b) => b.x < 460 && b.w < 40);
@@ -176,22 +283,27 @@ async function openForm(app, service, codes, shot) {
  * input: { fields: { tên ô: giá trị muốn chọn } }. Trả về { name, chosen }.
  */
 export async function addService(app, service, input, codes, shot, onLog) {
-  const prefs = input.fields || {};
+  const { __open: open = [], ...prefs } = input.fields || {};
+  const state = { real: new Map() };
   onLog(`Mở dịch vụ ${service.name}`);
   await openForm(app, service, codes, shot);
   for (const title of service.sections || []) await expandSection(app, title);
+  if (open.length) {
+    onLog(`Mở thêm mục số: ${open.join(', ')}`);
+    await openSections(app, open.map(Number));
+  }
   // Form chưa có ô nào = các mục đều thu gọn -> mở mục đầu tiên
   if (!(await formFields(app)).length) {
     const plus = (await plainButtons(app)).find((b) => b.x > 950 && b.y > 150 && b.y < 700);
     if (plus) await app.mouse.click(plus.x, plus.y);
     await sleep(2000);
   }
-  const chosen = await fillForm(app, prefs);
+  const chosen = await fillForm(app, prefs, { state });
   if (service.unnamed) {
     const f = (await formFields(app)).filter((x) => !x.name).at(-1); // ô Số lượng đã điền cũng mất tên -> lấy ô cuối
     if (f) {
       await app.mouse.click(f.x, f.y);
-      await sleep(2300);
+      if (await waitSheet(app, true)) await sleep(400);
       const label = await pickOption(app, service.unnamed);
       if (label) chosen[service.unnamed] = label;
     }
@@ -202,7 +314,7 @@ export async function addService(app, service, input, codes, shot, onLog) {
   for (let i = 0; i < 3; i++) {
     if (i > 0) {
       // Bấm Xác nhận mà form chưa đóng = còn ô trống (portal tô đỏ) -> điền tiếp các ô còn trống (lựa chọn dòng đầu) rồi bấm lại
-      const more = await fillForm(app, {});
+      const more = await fillForm(app, {}, { state, onlyEmpty: true });
       for (const [k, v] of Object.entries(more)) chosen[k] ??= v;
       if (Object.keys(more).length) onLog(`Điền thêm: ${Object.values(more).join(' · ')}`);
     }
@@ -237,8 +349,31 @@ export async function readServiceOptions(app, service, codes, shot, onLog) {
   app.on('response', onResponse);
   onLog(`Mở dịch vụ ${service.name}`);
   await openForm(app, service, codes, shot);
+  for (const title of service.sections || []) await expandSection(app, title);
+  {
+    // Ghi cây semantics của form (nhãn + nút không nhãn + ô nhập) để chỉnh bộ đọc form khi portal đổi bố cục
+    const file = await shot(app, 'form-goc');
+    writeFileSync(file.replace(/\.png$/, '.json'), JSON.stringify({ nodes: await nodes(app), buttons: await plainButtons(app), fields: await formFields(app) }, null, 1));
+  }
+  onLog('Đọc các mục của form (mở hết mục thu gọn)');
+  const state = { real: new Map() };
+  await formFields(app).then((list) => list.forEach((f) => f.id && f.name && state.real.set(f.id, f.name)));
+  const opened = await openSections(app, [], true);
+  onLog('Đọc từng ô + danh sách lựa chọn (chọn dòng đầu để hiện ô phụ thuộc)');
+  const fields = [];
+  await fillForm(app, {}, { survey: fields, state });
   app.off('response', onResponse);
-  return options;
+  await shot(app, 'doc-form');
+  const count = Math.max(0, ...fields.map((f) => f.section), ...opened);
+  const sections = Array.from({ length: count + 1 }, (_, i) => {
+    const names = fields.filter((f) => f.section === i).map((f) => f.name);
+    // Tên mục thật lấy từ API gói (SubServiceTypeName: Cloud, Extra, Triển khai CMR Combo…) qua ô Gói dịch vụ của mục
+    const pkgs = fields.find((f) => f.section === i && f.name === 'Gói dịch vụ')?.options || [];
+    const api = options.find((o) => pkgs.includes(o.name))?.section;
+    return { i, title: api || sectionTitle(names, i, service.name, opened.includes(i)), collapsed: opened.includes(i) };
+  }).filter((x) => x.collapsed || fields.some((f) => f.section === x.i));
+  onLog(`✔ Form ${service.name}: ${fields.length} ô, ${opened.length} mục thu gọn`);
+  return { options, form: { fields, sections } };
 }
 
 /** Từ màn Tạo báo giá có giỏ hàng -> Chi tiết giỏ hàng -> Xác nhận -> màn báo giá. */
@@ -254,7 +389,18 @@ export async function openCart(app, codes, shot, onLog) {
   await shot(app, 'gio-hang');
   await app.mouse.click(detail.x, detail.y);
   // Màn báo giá tính chính sách giá sau khi vào (vd "Không tìm được chính sách phù hợp…") -> chờ thấy ô Đối tượng KH hoặc cảnh báo
-  for (const end = Date.now() + 20000; Date.now() < end; await sleep(1000)) {
+  let asked = 0;
+  for (const end = Date.now() + 30000; Date.now() < end; await sleep(1000)) {
+    // Hộp hỏi [Hủy | Xác nhận] (vd "Chính sách giá hiện tại đã không còn phù hợp. Bạn có muốn tìm chính sách giá mới nhất?") -> Xác nhận, đi tiếp
+    const list = await nodes(app);
+    const ok = dialogOk(list);
+    if (ok && asked < 3 && list.some((n) => n.role === 'button' && /^Hủy$/.test(n.label) && Math.abs(n.y - ok.y) < 20)) {
+      asked++;
+      onLog(`Portal hỏi: ${codes?.lastMessage() || '(hộp Hủy / Xác nhận)'} → Xác nhận`);
+      await app.mouse.click(ok.x, ok.y);
+      await sleep(3000);
+      continue;
+    }
     await failOnDialog(app, 'Giỏ hàng', codes, shot, 'xác nhận giỏ (thường do gói chưa có chính sách giá trên stag – chọn gói khác)');
     if ((await nodes(app)).some((n) => /^Đối tượng khách hàng$/.test(n.label))) {
       await sleep(1500);

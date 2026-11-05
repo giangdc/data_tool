@@ -55,8 +55,19 @@ export async function chooseCustomerType(app, typeName, onLog) {
   await scrollTop(app);
   const field = () => quoteGroups(app).then((g) => (g.length >= 2 ? g[0] : null));
   let cur = await field();
-  for (const end = Date.now() + 25000; !cur && Date.now() < end; ) {
-    await sleep(1000);
+  let retries = 0;
+  for (let end = Date.now() + 25000; !cur && Date.now() < end; ) {
+    await sleep(500);
+    // Stag tính giá quá giờ (get-price-quotation) -> hộp "Đã có lỗi xảy ra!" [Thử lại] -> bấm Thử lại, chờ thêm
+    const retry = (await nodes(app)).find((n) => n.role === 'button' && /^Thử lại$/.test(n.label));
+    if (retry && retries < 3) {
+      retries += 1;
+      onLog(`Portal lỗi khi tính giá gói (stag chậm) → Thử lại (${retries}/3)`);
+      await app.mouse.click(retry.x, retry.y);
+      await sleep(1500);
+      end += 25000;
+      continue;
+    }
     cur = await field();
   }
   if (!cur) throw new Error('Không vào được màn báo giá sau khi chọn gói (không thấy ô Đối tượng khách hàng – xem ảnh trong output/debug)');

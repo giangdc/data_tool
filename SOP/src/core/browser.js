@@ -69,9 +69,17 @@ export async function closeBrowser() {
  * Mở url trong portal, đăng nhập bằng tài khoản trong .env nếu bị đá về trang login.
  * Luôn dùng trang basic-auth (tài khoản + mật khẩu), không dùng trang đăng nhập mặc định.
  */
+/** Sau khi mở trang: chờ tới khi bị đá về login HOẶC trang đã có bảng dữ liệu (tối đa 2,5s, thay cho chờ cố định). */
+async function settle(page) {
+  await Promise.race([
+    page.waitForURL((u) => u.pathname.startsWith('/user/login'), { timeout: 2500 }),
+    page.locator('.ant-table-tbody tr').first().waitFor({ timeout: 2500 }),
+  ]).catch(() => {});
+}
+
 export async function openPortal(page, url, onLog = () => {}) {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForTimeout(2500);
+  await settle(page);
   if (!page.url().includes('/user/login')) return;
 
   const { user, password } = credentials();
@@ -91,5 +99,5 @@ export async function openPortal(page, url, onLog = () => {}) {
     throw new AuthError(`Đăng nhập ${user} thất bại${msg.length ? ': ' + msg.join(' | ') : ' (kiểm tra tài khoản / mật khẩu)'}`);
   }
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2500);
+  await settle(page);
 }

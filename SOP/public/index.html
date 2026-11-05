@@ -57,6 +57,14 @@
   .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
   form.run:not(.blocks) { display: flex; flex-direction: column; gap: 10px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
+  .sec { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px 10px; margin: 0; background: var(--card); }
+  .sec + .sec { margin-top: 8px; }
+  .sec legend { font-size: 12px; font-weight: 600; color: var(--text); padding: 0 4px; }
+  .sec legend .sub { font-weight: 400; color: var(--muted); }
+  .sec .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .sec .grid2 label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+  .sec .grid2 input, .sec .grid2 select { width: 100%; }
+  .svc-head { justify-content: space-between; align-items: center; }
   .cart { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .cart li { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
   .cart li .sub { color: var(--muted); font-size: 12px; }
@@ -163,15 +171,19 @@
         <h3>2 · Gói cước / dịch vụ</h3>
         <div class="field hidden" id="svcBox">
           <p class="status info hidden" id="svcNote"></p>
-          <label for="svcPkg">Gói dịch vụ <span class="hint" id="svcHint"></span></label>
-          <div class="inline">
+          <div class="inline svc-head">
+            <span class="hint" id="svcHint"></span>
+            <button type="button" class="ghost" id="btnSvcOptions" title="Mở form dịch vụ trên portal ở địa chỉ trên, đọc mọi ô (gói, chu kỳ, số lượng, thiết bị, triển khai, Extra…) + lựa chọn của từng ô (~2 phút, không tạo đơn)">↻ Đọc form</button>
+          </div>
+          <div id="svcBasic">
+            <label for="svcPkg">Gói dịch vụ</label>
             <select id="svcPkg"></select>
-            <button type="button" class="ghost" id="btnSvcOptions" title="Mở form dịch vụ ở địa chỉ trên để lấy danh sách gói (~1 phút, không tạo đơn)">↻ Tải gói</button>
+            <div class="row2">
+              <div class="field"><label for="svcTerm">Gói tính cước</label><select id="svcTerm"></select></div>
+              <div class="field"><label for="svcQty">Số lượng</label><input id="svcQty" type="number" min="1" max="99" value="1"></div>
+            </div>
           </div>
-          <div class="row2">
-            <div class="field"><label for="svcTerm">Gói tính cước</label><select id="svcTerm"></select></div>
-            <div class="field"><label for="svcQty">Số lượng</label><input id="svcQty" type="number" min="1" max="99" value="1"></div>
-          </div>
+          <div id="svcForm" class="hidden"></div>
           <label class="check"><input type="checkbox" id="withInternet"> <span id="withInternetText">Mua kèm combo Internet</span></label>
           <button type="button" class="ghost" id="btnAddSvc" title="Đưa dịch vụ đang chọn (gói, chu kỳ, số lượng) vào danh sách, rồi chọn dịch vụ / gói khác để thêm tiếp">+ Thêm vào danh sách</button>
         </div>
@@ -428,6 +440,15 @@ function closeMenus() {
   document.querySelectorAll('.menu-drop').forEach((d) => d.classList.add('hidden'));
   document.querySelectorAll('[data-group]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
 }
+/** Dịch vụ chưa có form đã đọc -> tự bấm "Đọc form" (1 lần / dịch vụ, kết quả lưu lại cho các lần sau). */
+let initDone = false;
+function autoReadForm() {
+  if (!initDone || current === INTERNET || svcOptions[current.id]?.form?.fields?.length || busy || !cfg.credentialsConfigured) return;
+  if (/không mở form|thiếu chính sách/.test(current.note || '')) return;
+  if (!/^0\d{9}$/.test(currentPhone())) return;
+  $('svcHint').textContent = 'Chưa có form – đang tự đọc form trên portal (1 lần cho dịch vụ này)…';
+  $('btnSvcOptions').click();
+}
 function selectService(id) {
   current = services.find((s) => s.id === id) || INTERNET;
   const internet = current === INTERNET;
@@ -444,6 +465,7 @@ function selectService(id) {
     $('withInternet').disabled = Boolean(current.needsInternet);
     $('withInternetText').textContent = current.needsInternet ? 'Bắt buộc mua kèm combo Internet' : 'Mua kèm combo Internet';
     renderSvcOptions();
+    autoReadForm();
   }
   showPkgBox();
   renderMenu();
@@ -463,9 +485,11 @@ const selectedPkg = () => {
 const cartMode = () => document.querySelector('input[name=cartMode]:checked')?.value || 'split';
 /** Lựa chọn trên form của dịch vụ đang mở. */
 function svcConfig() {
-  const fields = { 'Số lượng': $('svcQty').value || '1' };
-  if ($('svcPkg').value) fields['Gói dịch vụ'] = $('svcPkg').value;
-  if ($('svcTerm').value) fields['Gói tính cước'] = $('svcTerm').value;
+  const fields = svcFormValues() || { 'Số lượng': $('svcQty').value || '1' };
+  if (!svcFormValues()) {
+    if ($('svcPkg').value) fields['Gói dịch vụ'] = $('svcPkg').value;
+    if ($('svcTerm').value) fields['Gói tính cước'] = $('svcTerm').value;
+  }
   const needsInternet = Boolean(current.needsInternet);
   const withInternet = needsInternet || $('withInternet').checked;
   return { kind: 'svc', id: current.id, name: current.name, fields, needsInternet, withInternet, net: withInternet ? selectedPkg() : null };
@@ -473,7 +497,8 @@ function svcConfig() {
 // Ô gói Net: hiện khi đang ở tab Internet, hoặc dịch vụ đang mở cần mua kèm Internet
 const needInternet = () => current === INTERNET || $('withInternet').checked || Boolean(current.needsInternet);
 const itemText = (x) => x.kind === 'net' ? `Net ${x.name}`
-  : `${x.name}${x.fields['Gói dịch vụ'] ? ' · ' + x.fields['Gói dịch vụ'] : ''}${x.fields['Gói tính cước'] ? ' · ' + x.fields['Gói tính cước'] : ''}${x.net ? ` (+ Net ${x.net.name})` : ''}`;
+  : `${x.name}: ${Object.entries(x.fields).filter(([k]) => k !== '__open').filter(([k, v]) => !(/Số lượng/.test(k) && String(v) === '1')).map(([k, v]) => /Số lượng/.test(k) ? `SL ${v}` : v).join(' · ')}`
+    + `${x.fields.__open?.length ? ` · + mục ${x.fields.__open.join(', ')}` : ''}${x.net ? ` (+ Net ${x.net.name})` : ''}`;
 function renderCart() {
   store.set('cart2', JSON.stringify(cart));
   $('cartBox').classList.toggle('hidden', !cart.length);
@@ -544,18 +569,115 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus
 function renderSvcOptions() {
   const r = svcOptions[current.id];
   const list = r?.options || [];
-  const main = list.filter((o) => o.section === list[0].section);
+  const main = list.filter((o) => o.section === list[0]?.section);
   const keep = store.get('svc:' + current.id) || '';
   $('svcPkg').innerHTML = '<option value="">(mặc định – dòng đầu trên portal)</option>' + main.map((o) => `<option>${esc(o.name)}</option>`).join('');
   if (main.some((o) => o.name === keep)) $('svcPkg').value = keep;
-  $('svcHint').textContent = !list.length ? '· chưa có danh sách, bấm Tải gói' : r.updatedAt ? `· ${main.length} gói, tải ${new Date(r.updatedAt).toLocaleString('vi-VN')}` : `· ${main.length} gói (danh sách khảo sát sẵn)`;
+  $('svcHint').textContent = r?.form?.fields?.length ? `Form ${r.form.fields.length} ô, đọc ${new Date(r.updatedAt).toLocaleString('vi-VN')}`
+    : !list.length ? 'Chưa đọc form – bấm Đọc form để hiện đủ các ô' : `${main.length} gói${r.updatedAt ? ', tải ' + new Date(r.updatedAt).toLocaleString('vi-VN') : ' (khảo sát sẵn)'} · bấm Đọc form để hiện đủ các ô`;
   renderSvcTerms();
+  renderSvcForm();
 }
 function renderSvcTerms() {
   const o = (svcOptions[current.id]?.options || []).find((x) => x.name === $('svcPkg').value);
   $('svcTerm').innerHTML = '<option value="">(mặc định)</option>' + (o?.terms || []).map((t) => `<option>${esc(t)}</option>`).join('');
 }
 $('svcPkg').onchange = () => { store.set('svc:' + current.id, $('svcPkg').value); renderSvcTerms(); };
+
+// ---- Form đầy đủ của dịch vụ (đọc từ portal bằng "↻ Đọc form"): mọi ô theo mục, mục thu gọn (Extra, Box 2…) tick mới thêm ----
+// Khoá ô = "<số mục>.<tên ô>" như tool dùng khi điền. Để trống = dòng đầu trên portal (ô portal điền sẵn thì giữ giá trị đó).
+const svcForm = () => svcOptions[current.id]?.form;
+const formStoreKey = () => 'svcf:' + current.id;
+function svcFormValues() {
+  if (current === INTERNET || !svcForm()?.fields?.length) return null;
+  const fields = {};
+  const open = [...$('svcForm').querySelectorAll('[data-open]:checked')].map((c) => Number(c.dataset.open));
+  for (const el of $('svcForm').querySelectorAll('[data-key]')) {
+    const sec = Number(el.dataset.sec);
+    if (svcForm().sections.find((x) => x.i === sec)?.collapsed && !open.includes(sec)) continue;
+    const v = el.value.trim();
+    if (!v || v === CUSTOM) continue;
+    // Bằng giá trị portal điền sẵn -> không gửi (tool giữ nguyên ô đó, đỡ mở sheet)
+    if (v === svcForm().fields.find((f) => f.key === el.dataset.key)?.value) continue;
+    fields[el.dataset.key] = v;
+  }
+  if (open.length) fields.__open = open;
+  return fields;
+}
+/** Gói tính cước theo gói dịch vụ đang chọn (API của portal), cùng mục. */
+function termOptions(f) {
+  const pkg = $('svcForm').querySelector(`[data-key="${f.section}.Gói dịch vụ"]`)?.value;
+  const o = (svcOptions[current.id]?.options || []).find((x) => x.name === pkg);
+  return o?.terms?.length ? o.terms : f.options;
+}
+const CUSTOM = '__custom';
+/** <option> của 1 ô: lựa chọn đọc được (+ giá trị đang chọn nếu ngoài danh sách) + "Gõ tay". */
+const optionHtml = (opts, v) => [...(v && !opts.includes(v) ? [v] : []), ...opts]
+  .map((o) => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('') + `<option value="${CUSTOM}">✎ Gõ tay…</option>`;
+// Ô mặc định hiện sẵn giá trị: đã chọn lần trước -> portal điền sẵn -> dòng đầu; chỉnh bằng danh sách hoặc "✎ Gõ tay…"
+function renderSvcForm() {
+  const form = svcForm();
+  const has = Boolean(form?.fields?.length);
+  $('svcBasic').classList.toggle('hidden', has);
+  $('svcForm').classList.toggle('hidden', !has);
+  if (!has) return;
+  let saved = {};
+  try { saved = JSON.parse(store.get(formStoreKey()) || '{}'); } catch {}
+  const open = saved.__open || [];
+  $('svcForm').innerHTML = form.sections.map((sec) => {
+    const on = !sec.collapsed || open.includes(sec.i);
+    const head = sec.collapsed
+      ? `<label class="check"><input type="checkbox" data-open="${sec.i}" ${on ? 'checked' : ''}> Thêm mục ${sec.i}: ${esc(sec.title)} <span class="sub">(portal để thu gọn)</span></label>`
+      : `Mục ${sec.i}: ${esc(sec.title)}`;
+    return `<fieldset class="sec"><legend>${head}</legend><div class="grid2${on ? '' : ' hidden'}" data-grid="${sec.i}"></div></fieldset>`;
+  }).join('') + '<p class="hint">Giá trị hiện sẵn = lựa chọn portal sẽ dùng (dòng đầu / portal điền sẵn) – đổi trong danh sách, hoặc chọn "✎ Gõ tay…" để nhập tên khác đúng như trên portal.</p>';
+  // Dựng theo thứ tự để Gói tính cước lấy được chu kỳ của Gói dịch vụ vừa dựng ở trên
+  for (const f of form.fields) {
+    const grid = $('svcForm').querySelector(`[data-grid="${f.section}"]`);
+    if (!grid) continue;
+    const label = document.createElement('label');
+    if (f.qty) {
+      label.innerHTML = `${esc(f.name)}<input type="number" min="0" max="99" data-key="${esc(f.key)}" data-sec="${f.section}" value="${esc(saved[f.key] || 1)}">`;
+    } else {
+      const opts = /^Gói tính cước/.test(f.name) ? termOptions(f) : f.options;
+      const v = saved[f.key] ?? f.value ?? opts[0] ?? '';
+      label.title = `${f.options.length} lựa chọn đọc được từ portal${f.value ? ' · portal điền sẵn: ' + f.value : ''}`;
+      label.innerHTML = opts.length
+        ? `${esc(f.name)}<select data-key="${esc(f.key)}" data-sec="${f.section}">${optionHtml(opts, v)}</select>`
+        : `${esc(f.name)}<input data-key="${esc(f.key)}" data-sec="${f.section}" value="${esc(v)}" placeholder="gõ đúng tên trên portal">`;
+    }
+    grid.appendChild(label);
+  }
+}
+$('svcForm').addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.dataset.open) el.closest('fieldset').querySelector('.grid2').classList.toggle('hidden', !el.checked);
+  // "✎ Gõ tay…" -> đổi ô chọn thành ô nhập
+  if (el.tagName === 'SELECT' && el.value === CUSTOM) {
+    const input = Object.assign(document.createElement('input'), { placeholder: 'gõ đúng tên trên portal' });
+    Object.assign(input.dataset, { key: el.dataset.key, sec: el.dataset.sec });
+    el.replaceWith(input);
+    input.focus();
+    return;
+  }
+  // Đổi gói dịch vụ -> nạp lại gói tính cước cùng mục (chọn dòng đầu)
+  const k = el.dataset.key;
+  if (k && /\.Gói dịch vụ$/.test(k)) {
+    const f = svcForm().fields.find((x) => x.key === k.replace('Gói dịch vụ', 'Gói tính cước'));
+    const term = f && $('svcForm').querySelector(`select[data-key="${f.key}"]`);
+    if (term) term.innerHTML = optionHtml(termOptions(f), termOptions(f)[0]);
+  }
+  store.set(formStoreKey(), JSON.stringify(svcFormAll()));
+});
+$('svcForm').addEventListener('input', (e) => { if (e.target.tagName === 'INPUT') store.set(formStoreKey(), JSON.stringify(svcFormAll())); });
+/** Mọi giá trị đang hiện (kể cả bằng giá trị portal điền sẵn) để nhớ cho lần mở sau. */
+function svcFormAll() {
+  const out = {};
+  for (const el of $('svcForm').querySelectorAll('[data-key]')) if (el.value && el.value !== CUSTOM) out[el.dataset.key] = el.value;
+  const open = [...$('svcForm').querySelectorAll('[data-open]:checked')].map((c) => Number(c.dataset.open));
+  if (open.length) out.__open = open;
+  return out;
+}
 async function loadServices() {
   const r = await api('GET', '/api/services').catch(() => null);
   services = r?.services || [];
@@ -586,7 +708,7 @@ function renderResult(r) {
   $('result').innerHTML = rows.map(([k, v, copy, html]) => `<dt>${k}</dt><dd>${v ? (html ? v : esc(v)) + (copy ? ` <span class="copy" data-copy="${esc(v)}">copy</span>` : '') : '–'}</dd>`).join('');
 }
 
-const JOB_LABEL = { order: 'Đang tạo đơn', packages: 'Đang tải danh sách gói', customers: 'Đang tải danh sách khách hàng', 'service-options': 'Đang tải gói dịch vụ' };
+const JOB_LABEL = { order: 'Đang tạo đơn', packages: 'Đang tải danh sách gói', customers: 'Đang tải danh sách khách hàng', 'service-options': 'Đang đọc form dịch vụ (~2 phút)' };
 /** Lỗi kèm tên ảnh -> link mở ảnh (chữ cảnh báo của app chỉ có trên ảnh). */
 const errHtml = (msg) => esc(msg).replace(/[\w.-]+\.png/g, (f) => `<a href="/debug/${encodeURIComponent(f)}" target="_blank" rel="noopener">${f}</a>`);
 let lastJob = 0;
@@ -610,7 +732,7 @@ async function refreshJob() {
     showMsg('ok', `Đã tải ${j.result.packages.length} gói`);
     if (fresh) loadPackages();
   } else if (j.kind === 'service-options') {
-    showMsg('ok', `Đã tải ${j.result.options.length} gói`);
+    showMsg('ok', `Đã đọc form: ${j.result.form?.fields?.length || 0} ô, ${j.result.options.length} gói`);
     if (fresh) {
       svcOptions = (await api('GET', '/api/services').catch(() => ({}))).options || svcOptions;
       if (current !== INTERNET) renderSvcOptions();
@@ -798,8 +920,10 @@ document.addEventListener('click', async (e) => {
   } else {
     showAcctForm(false);
     setWho(`Tài khoản: ${cfg.account}`, false);
-    loadCustomers(true);
+    await loadCustomers(true);
   }
+  initDone = true;
+  autoReadForm();
 })();
 </script>
 </body>

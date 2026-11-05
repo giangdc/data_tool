@@ -74,9 +74,9 @@ export const loadCustomers = (account) => readJson(CUSTOMERS_FILE, {})[account] 
 const SERVICE_OPTIONS_FILE = path.join(OUTPUT_DIR, 'service-options.json');
 const SERVICE_OPTIONS_SAMPLE = path.join(ROOT_DIR, 'config', 'service-options-default.json');
 
-export function saveServiceOptions(id, options) {
+export function saveServiceOptions(id, options, form) {
   const all = readJson(SERVICE_OPTIONS_FILE, {});
-  all[id] = { updatedAt: new Date().toISOString(), options };
+  all[id] = { updatedAt: new Date().toISOString(), options, ...(form ? { form } : {}) };
   writeJson(SERVICE_OPTIONS_FILE, all);
 }
 

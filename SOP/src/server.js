@@ -159,7 +159,7 @@ const routes = {
   'GET /api/services': async () => ({ services: SERVICES, options: loadServiceOptions() }),
   'POST /api/service-options': async ({ body }) => startJob('service-options', body, async (onLog) => {
     const r = await fetchServiceOptions(body, onLog);
-    saveServiceOptions(r.id, r.options);
+    saveServiceOptions(r.id, r.options, r.form);
     return r;
   }),
 

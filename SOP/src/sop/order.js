@@ -41,6 +41,7 @@ export function apiMessage(json) {
 export function codeCollector(page) {
   const found = [];
   const messages = [];
+  const okEndpoints = new Set(); // endpoint đã trả Code 200 (vd khảo sát Định danh đã lưu)
   const traceLines = [];
   let phase = 'init';
   const walk = (o, keyPath, endpoint) => {
@@ -64,14 +65,15 @@ export function codeCollector(page) {
     const endpoint = r.url().split('?')[0].split('/api/').pop();
     try {
       const json = await r.json();
-      if (process.env.SOP_API_TRACE && phase === 'quote') {
+      if (process.env.SOP_API_TRACE && (phase === 'quote' || process.env.SOP_API_TRACE === 'all')) {
         const mask = (k, v) => (/token|auth|pass|secret|cookie|otp/i.test(k) ? '***' : v);
         const req = r.request().postData() || '';
         let body = req;
         try { body = JSON.parse(req, mask); } catch { /* không phải JSON */ }
-        traceLines.push(JSON.stringify({ endpoint, status: r.status(), request: body, response: JSON.parse(JSON.stringify(json), mask) }));
+        traceLines.push(JSON.stringify({ phase, method: r.request().method(), url: r.url().replace(/([?&][^=]*(token|key|auth)[^=]*=)[^&]*/gi, '$1***'), headerNames: Object.keys(r.request().headers()), endpoint, status: r.status(), request: body, response: JSON.parse(JSON.stringify(json), mask) }));
       }
       walk(json, '', endpoint);
+      if (r.status() === 200 && json?.Code === 200) okEndpoints.add(endpoint);
       const msg = apiMessage(json);
       if (msg) messages.push(msg);
     } catch {
@@ -85,6 +87,7 @@ export function codeCollector(page) {
   return {
     setPhase: (p) => { phase = p; },
     trace: () => traceLines,
+    ok: (re) => [...okEndpoints].some((e) => re.test(e)),
     timing: () => timing,
     found,
     lastMessage: () => messages.at(-1) || '',
@@ -136,7 +139,6 @@ export async function openCustomer(page, phone, onLog) {
   onLog(`Tìm khách hàng ${phone} trong "Khách hàng của tôi"`);
   await openPortal(page, config.sopUrl + LIST_PATH, onLog);
   await page.getByText(/^Tất cả/).first().click().catch(() => {});
-  await sleep(1500);
   const row = () => page.locator('.ant-table-tbody tr', { hasText: phone }).first();
   // Bảng tải chậm: chờ dòng của KH xuất hiện trước khi chuyển sang ô tìm kiếm
   await row().waitFor({ timeout: 10000 }).catch(() => {});
@@ -151,32 +153,41 @@ export async function openCustomer(page, phone, onLog) {
   const name = (await row().locator('td').nth(1).innerText()).split('\n')[0].trim();
   await row().getByText(name, { exact: true }).first().click();
   await page.waitForURL(/chi-tiet/, { timeout: 20000 });
-  await sleep(3000);
+  await page.getByText('Đơn hàng', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
   onLog(`Mở chi tiết KH: ${name}`);
   return name;
 }
 
 export async function openNewSale(page, shot, onLog) {
   await page.getByText('Đơn hàng', { exact: true }).first().click();
-  await sleep(2000);
-  await page.getByRole('button', { name: 'Thêm đơn hàng' }).click();
-  await sleep(1500);
-  const [app] = await Promise.all([
-    page.context().waitForEvent('page', { timeout: 30000 }),
-    page.getByText('Bán mới', { exact: true }).click(),
-  ]);
+  await page.getByRole('button', { name: 'Thêm đơn hàng' }).click({ timeout: 15000 });
+  // Hộp "Lựa chọn hình thức bán" có hiệu ứng mở: bấm lúc đang mở có thể không ăn -> chờ 1 nhịp, không ra tab mới thì bấm lại
+  const saleNew = page.getByText('Bán mới', { exact: true });
+  await saleNew.waitFor({ timeout: 10000 }).catch(() => {});
+  await sleep(500);
+  let app = null;
+  for (let i = 0; i < 3 && !app; i++) {
+    const opened = page.context().waitForEvent('page', { timeout: i < 2 ? 6000 : 30000 }).catch(() => null);
+    await saleNew.click({ timeout: 5000 }).catch(() => {});
+    app = await opened;
+  }
+  if (!app) throw new Error('Bấm "Bán mới" không mở được màn Tạo báo giá (Sale Platform)');
   onLog('Bán mới → mở màn Tạo báo giá (Sale Platform)');
   await app.setViewportSize({ width: 1440, height: 813 });
   await app.bringToFront();
   await waitApi(app, /get-permission-services/, 40000);
-  await sleep(4000);
+  await sleep(1500);
   // App tải xong khi thấy "Combo tùy chọn" (Internet, FPT Play…).
   // Lượt trước dừng giữa chừng (hoặc Tải gói) để lại đơn nháp -> hộp thoại "đơn hàng trước đó chưa hoàn thành,
   // tiếp tục tạo đơn đó?" [Không | Xác nhận] (có khi hiện muộn) -> Không (tạo đơn mới)
   let errorSeen = 0; // số lần liên tiếp thấy hộp chỉ có [Xác nhận]
-  for (const end = Date.now() + 90000; ; await sleep(1000)) {
+  let readySeen = 0; // hộp đơn nháp / cảnh báo cọc có khi hiện muộn -> phải thấy màn sẵn sàng 2 lần (cách 1s)
+  for (const end = Date.now() + 90000; ; await sleep(readySeen ? 1000 : 400)) {
     const list = await nodes(app);
-    if (list.some((n) => /^Internet$/.test(n.label))) break;
+    const ready = list.some((n) => /^Internet$/.test(n.label)) && !list.some((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
+    readySeen = ready ? readySeen + 1 : 0;
+    if (readySeen >= 2) break;
+    if (ready) continue;
     const button = (re) => list.find((n) => n.role === 'button' && re.test(n.label));
     const no = button(/^Không$/);
     if (no && button(/^Xác nhận$/)) {
@@ -267,7 +278,7 @@ export async function chooseAddress(app, address, coords, shot, onLog) {
   const search = waitApi(app, /autocomplete-search|geocode/);
   await tapLabel(app, /^Tìm kiếm$/, [720, 774]);
   await search;
-  await sleep(1500);
+  await sleep(800);
   // Google stag chập chờn -> "Không có kết quả phù hợp!" [Nhập thủ công | Thử lại] dù địa chỉ đúng -> Thử lại
   for (let i = 0; i < 4; i++) {
     const retry = (await nodes(app)).find((n) => n.role === 'button' && /^Thử lại$/.test(n.label));
@@ -290,14 +301,14 @@ export async function chooseAddress(app, address, coords, shot, onLog) {
   await app.mouse.click(300, 159); // dòng kết quả đầu tiên
   const detailRes = await detail;
   if (!detailRes) throw new Error(`Không tìm thấy địa chỉ "${address}" (Tìm kiếm không có kết quả)`);
-  await sleep(1500); // bản đồ dời tới điểm (bước sau tự bấm lại nếu màn chưa đổi)
+  await sleep(1000); // bản đồ dời tới điểm (bước sau tự bấm lại nếu màn chưa đổi)
   const convert = waitApi(app, /get-address-convert|check-address/, 20000);
   // Thanh địa chỉ dưới bản đồ -> form "Nhập địa chỉ" tự điền Xã/Đường (+ Số nhà, toạ độ nếu Google trả được)
   if (!(await clickUntilChange(app, 400, 769))) await fail('chọn địa chỉ trên bản đồ');
   await convert;
-  await sleep(1000);
+  await sleep(500);
   await waitIdle(app, 45000, onLog);
-  await sleep(800);
+  await sleep(400);
   // Google trên stag hay hết hạn mức (OVER_QUERY_LIMIT) -> form thiếu Số nhà + toạ độ -> tự điền (điền đè cũng không sao)
   const house = houseNumber(address);
   const latLng = coords || (await placeCoords(detailRes));
@@ -309,7 +320,6 @@ export async function chooseAddress(app, address, coords, shot, onLog) {
   const packages = waitApi(app, /package-view\/list/, 30000);
   if (!(await clickUntilNode(app, 720, 769, (n) => /^Internet$/.test(n.label), { wait: 6000 }))) await fail('Xác nhận địa chỉ');
   const list = parsePackages(await (await packages)?.json().catch(() => null));
-  await sleep(1000);
   await shot(app, 'combo');
   if (!list.length) throw new Error('Không có gói cước nào ở địa chỉ này (Combo gợi ý trống – xem ảnh trong output/debug)');
   return list;
@@ -348,7 +358,7 @@ export async function choosePackage(app, packages, combo, index, onLog) {
   const tab = await findNode(app, new RegExp(`^${combo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
   if (tab) {
     await app.mouse.click(tab.x, tab.y);
-    await sleep(2500);
+    await sleep(1200);
   }
   let expect = packages.findIndex((p) => p.group === combo);
   for (let i = 0; i < 10; i++) {
@@ -386,7 +396,7 @@ const ERROR_RE = /Đã có lỗi xảy ra|Thời gian phản hồi quá lâu/;
 async function openQuote(app, card, onLog) {
   for (let i = 0; i < 3; i++) {
     await app.mouse.click(card.x, card.y);
-    for (const end = Date.now() + 45000; Date.now() < end; await sleep(1500)) {
+    for (const end = Date.now() + 45000; Date.now() < end; await sleep(600)) {
       const ns = await nodes(app);
       if (ns.some((n) => ERROR_RE.test(n.label))) {
         onLog('Sale Platform báo lỗi/chậm khi chọn gói – đóng thông báo, thử lại');
@@ -406,23 +416,27 @@ async function choosePayment(app, payment, onLog) {
   onLog(`Phương thức thanh toán: ${payment}`);
   // Màn báo giá: có đủ ô Đối tượng KH + ô PTTT (nhãn ô đối tượng đổi theo loại KH: Gia đình, Doanh nghiệp…)
   let current = null;
-  for (const end = Date.now() + 20000; !current && Date.now() < end; await sleep(1000)) {
+  for (const end = Date.now() + 20000; !current && Date.now() < end; await sleep(400)) {
     if ((await quoteGroups(app)).length >= 2) current = true;
   }
   if (!current) throw new Error('Không vào được màn báo giá sau khi chọn gói (xem ảnh trong output/debug)');
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, -3000);
-  await sleep(1000);
+  await sleep(500);
   // Ô phương thức thanh toán = ô chọn thứ 2 trên màn (sau Đối tượng KH); vị trí đổi theo đối tượng KH
   const pay = (await quoteGroups(app))[1];
   await app.mouse.click(720, pay ? pay.y : 640);
-  await sleep(2000);
   const re = new RegExp(`^${payment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  // Danh sách PTTT mở ra (chờ tối đa 3s thấy tên PTTT)
+  for (const end = Date.now() + 3000; Date.now() < end && !(await findNode(app, re)); ) await sleep(300);
   for (let i = 0; i < 12; i++) {
     const n = await findNode(app, re);
     if (n && n.y > 150 && n.y < 790) {
+      // Chọn PTTT -> app tính lại giá (order/validate-price + order/total) -> chờ API xong thay vì chờ cố định
+      const total = waitApi(app, /order\/total/, 6000);
       await app.mouse.click(n.x, n.y);
-      await sleep(2000);
+      await total;
+      await sleep(400);
       return payment;
     }
     await app.mouse.move(720, 500);
@@ -442,11 +456,15 @@ export async function saveCustomer(app, onLog) {
   onLog('Lưu thông tin khách hàng (Họ tên + SĐT)');
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, -3000);
+  await sleep(500);
+  await tapLabel(app, /^Cập nhật$/, [1387, 411], 300);
+  // Form KH mở (get-master-data) -> có nút "Xác nhận & Lưu"
+  await waitNode(app, /^Xác nhận & Lưu$/, 6000);
+  await sleep(500);
+  const saved = waitApi(app, /validate-customer-info/, 8000);
+  await tapLabel(app, /^Xác nhận & Lưu$/, [720, 766], 0);
+  await saved;
   await sleep(800);
-  await tapLabel(app, /^Cập nhật$/, [1387, 411]);
-  await sleep(2500);
-  await tapLabel(app, /^Xác nhận & Lưu$/, [720, 766]);
-  await sleep(3500);
 }
 
 async function createQuote(app, codes, shot, onLog) {
@@ -458,7 +476,7 @@ async function createQuote(app, codes, shot, onLog) {
   // (hộp cảnh báo trùng đơn có lúc hiện nút Xác nhận trước, nút Hủy sau)
   let errorSeen = 0;
   for (const end = Date.now() + 32000; Date.now() < end; ) {
-    await sleep(1500);
+    await sleep(700);
     const list = await nodes(app);
     if (list.some((n) => /^Tạo hợp đồng$/.test(n.label))) return;
     const ok = list.find((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
@@ -489,14 +507,22 @@ async function createContract(app, codes, shot, onLog) {
   let surveyed = false;
   let hdErrorSeen = 0;
   let surveyRetries = 0;
-  for (const end = Date.now() + 150000; Date.now() < end; await sleep(1500)) {
+  for (const end = Date.now() + 150000; Date.now() < end; await sleep(700)) {
     const list = await nodes(app);
     const has = (re) => list.find((n) => re.test(n.label));
     if (has(/^Thanh toán$/)) return;
+    // Khảo sát Định danh đã lưu thành công + đã có mã HĐ = xong; không chờ app tải lại chi tiết đơn/báo giá
+    // để hiện màn "Thanh toán" (quotation/detail + order/detail trên stag có lúc mất 10-15s)
+    if (surveyed && codes.contractCode() && codes.ok(/update-contract-identify/)) {
+      // Bookport chỉ có trong order/detail app gọi ~1-2s sau khảo sát -> chờ thêm tối đa 4s, quá thì bỏ qua
+      for (const stop = Date.now() + 4000; !codes.bookport() && Date.now() < stop; ) await sleep(300);
+      return;
+    }
     // Màn "Cảnh báo!!! / Đã có lỗi xảy ra! (mã)" + bước bị lỗi + nút "Quay lại" = backend từ chối tạo HĐ -> báo luôn lý do
-    if (has(/^Quay lại$/) && has(/^(Cảnh báo|Đã có lỗi xảy ra)/)) {
+    // (có lúc chữ cảnh báo không vào semantics, màn chỉ còn mỗi nút "Quay lại") -> lý do lấy từ response API
+    if (has(/^Quay lại$/) && (has(/^(Cảnh báo|Đã có lỗi xảy ra)/) || list.length <= 2)) {
       const file = await shot(app, 'loi-hop-dong');
-      const why = [...new Set(list.filter((n) => /không hợp lệ|Đã xảy ra lỗi/i.test(n.label)).map((n) => n.label))].join(' – ');
+      const why = [...new Set(list.filter((n) => /không hợp lệ|Đã xảy ra lỗi/i.test(n.label)).map((n) => n.label))].join(' – ') || codes.lastMessage();
       throw new Error(`Portal báo lỗi khi tạo hợp đồng: ${why || 'không rõ lý do'} – báo giá đã tạo, xem ảnh ${path.basename(file)}`);
     }
     const done = has(/^Đóng$/);
@@ -511,7 +537,7 @@ async function createContract(app, codes, shot, onLog) {
       for (const [re, y] of [[/^1$/, 134], [/^Nhà riêng$/, 389], [/^Không$/, 515]]) {
         const n = list.find((m) => re.test(m.label));
         await app.mouse.click(36, n ? n.y : y);
-        await sleep(700);
+        await sleep(400);
       }
       await shot(app, 'khao-sat-da-chon');
       await tapLabel(app, /^Hoàn tất$/, [720, 774]);
@@ -659,9 +685,9 @@ export async function fetchServiceOptions(input, onLog = () => {}) {
     await openCustomer(page, opts.phone, onLog);
     app = await openNewSale(page, shot, onLog);
     await chooseAddress(app, opts.address, opts.coords, shot, onLog);
-    const options = await readServiceOptions(app, service, codeCollector(app), shot, onLog);
+    const { options, form } = await readServiceOptions(app, service, codeCollector(app), shot, onLog);
     onLog(`✔ ${options.length} gói ${service.name}`);
-    return { id: service.id, options };
+    return { id: service.id, options, form };
   } catch (err) {
     await shot(app || page, 'loi');
     throw err;

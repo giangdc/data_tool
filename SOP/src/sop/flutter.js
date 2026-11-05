@@ -9,8 +9,9 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Bật semantics (1 lần / trang) rồi trả về các node có nhãn: {role, label, x, y, w, h}. */
 export async function nodes(page) {
-  await page.evaluate(() => {
-    document.querySelector('flt-semantics-placeholder')?.click();
+  const enabled = await page.evaluate(() => {
+    const ph = document.querySelector('flt-semantics-placeholder');
+    ph?.click();
     // Lớp semantics chỉ để ĐỌC: cho click xuyên xuống canvas (nếu không, vài nút như "Xác nhận" địa chỉ không ăn)
     if (!document.getElementById('sop-tool-sem-css')) {
       const st = document.createElement('style');
@@ -18,8 +19,10 @@ export async function nodes(page) {
       st.textContent = 'flt-semantics-host, flt-semantics { pointer-events: none !important; }';
       document.head.appendChild(st);
     }
-  }).catch(() => {});
-  await sleep(300);
+    return Boolean(ph);
+  }).catch(() => false);
+  // Vừa bấm placeholder = semantics mới bật, cây chưa dựng xong -> chờ 1 nhịp; đã bật rồi thì đọc ngay
+  if (enabled) await sleep(300);
   return page.evaluate(() => [...document.querySelectorAll('flt-semantics')].map((e) => {
     const r = e.getBoundingClientRect();
     const own = [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
@@ -49,7 +52,7 @@ export async function formFields(page, { refresh = true } = {}) {
     const i = e.querySelector(':scope > input, :scope > textarea');
     if (!i) return [];
     const r = e.getBoundingClientRect();
-    return [{ name: i.getAttribute('aria-label') || '', value: i.value || '', x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }];
+    return [{ id: e.id, name: i.getAttribute('aria-label') || '', value: i.value || '', x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }];
   }));
   return list.filter((f) => f.w > 0 && f.h > 0).sort((a, b) => a.y - b.y || a.x - b.x);
 }
@@ -71,7 +74,7 @@ export async function findNode(page, re) {
 
 /** Chờ tới khi có node khớp (hoặc hết giờ -> null). */
 export async function waitNode(page, re, timeout = 30000) {
-  for (const end = Date.now() + timeout; Date.now() < end; await sleep(1000)) {
+  for (const end = Date.now() + timeout; Date.now() < end; await sleep(300)) {
     const n = await findNode(page, re);
     if (n) return n;
   }
@@ -79,12 +82,12 @@ export async function waitNode(page, re, timeout = 30000) {
 }
 
 /** Bấm node theo nhãn; không thấy thì bấm toạ độ dự phòng (nếu có), không có nữa thì ném lỗi. */
-export async function tapLabel(page, re, fallback) {
+export async function tapLabel(page, re, fallback, wait = 1200) {
   const n = await findNode(page, re);
   if (n) await page.mouse.click(n.x, n.y);
   else if (fallback) await page.mouse.click(fallback[0], fallback[1]);
   else throw new Error(`Không thấy "${re.source}" trên màn hình`);
-  await sleep(1200);
+  await sleep(wait);
 }
 
 /**
@@ -106,7 +109,7 @@ export async function clickUntilChange(page, x, y, { tries = 4, wait = 2500 } = 
 export async function clickUntilNode(page, x, y, pred, { tries = 4, wait = 3000 } = {}) {
   for (let i = 0; i < tries; i++) {
     await page.mouse.click(x, y);
-    for (const end = Date.now() + wait; Date.now() < end; await sleep(500)) {
+    for (const end = Date.now() + wait; Date.now() < end; await sleep(300)) {
       if ((await nodes(page)).some(pred)) return true;
     }
   }

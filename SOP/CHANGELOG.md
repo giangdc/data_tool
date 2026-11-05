@@ -1,6 +1,35 @@
 # Changelog – SOP Order Tool
 
+## Chưa phát hành – tăng tốc tạo đơn
+
+- Đơn Net + HĐ (CLI, KH 0964633310, Giga F1): **99s → 70–80s** trên stag (HCMUP0026V0W/SGABP5775, …V0Z/SGABP5777, …V10/SGABP5781).
+  Thay các lần chờ cố định bằng chờ theo điều kiện: portal (bảng KH, tab Đơn hàng, hộp Bán mới), mở Bán mới (poll 0,4s,
+  vẫn soát hộp đơn nháp 2 lần), PTTT chờ API `order/total`, lưu KH chờ nút + API `validate-customer-info`,
+  báo giá / HĐ poll 0,7s; `nodes()` chỉ chờ 300ms khi vừa bật semantics.
+- Tạo HĐ: khảo sát Định danh lưu xong (`update-contract-identify` Code 200) + có mã HĐ là xong, không chờ màn "Thanh toán"
+  (app tải lại chi tiết đơn có lúc 10–15s). Bookport chờ thêm tối đa 4s, không có thì để trống (xem ở chi tiết đơn).
+- Hộp "Bán mới" bấm lúc đang mở không ăn → chờ 0,5s, không ra tab thì bấm lại (3 lần).
+- Màn báo giá: stag tính giá quá giờ → hộp "Đã có lỗi xảy ra!" [Thử lại] → tự Thử lại (3 lần).
+- `SOP_API_TRACE=all` ghi trace mọi giai đoạn (che token; ghi tên header, không ghi giá trị).
+- Đã khảo sát gọi thẳng API sapi.fpt.vn: mọi request có chữ ký `digest` + `checksum` (keyId=…) tính trong WASM của app
+  → không gọi API trực tiếp được nếu không có khoá ký / API riêng từ team Sale Platform.
+
 ## v0.5.0 – 2026-11-05
+
+**Chọn đủ mọi ô của form dịch vụ** (chính sách giá phụ thuộc gói, chu kỳ, số lượng, thiết bị, triển khai… – chọn sai là không có chính sách)
+- Nút **↻ Đọc form** (thay ↻ Tải gói): mở form trên portal, đọc mọi ô + lựa chọn từng ô, mở cả mục thu gọn (Extra, Thiết bị Box 2…).
+  Giao diện hiện form theo mục (tên mục lấy từ API gói: Cloud, Extra, Triển khai CMR Combo…); ô trống = dòng đầu, ô portal điền sẵn thì giữ;
+  mục thu gọn tick **Thêm mục …** mới mở. Gõ được giá trị ngoài danh sách (lựa chọn ô sau có thể đổi theo ô trước).
+- Điền form theo khoá `<số mục>.<tên ô>` (vd `2.Thiết bị`); tên thật của ô nhớ theo id semantics (ô đã điền đổi nhãn thành giá trị).
+  Khoá cũ (`Gói dịch vụ`, `Số lượng`…) vẫn dùng được. `fields.__open = [3]` = mở mục 3.
+- Màn lỗi tạo HĐ chỉ còn nút "Quay lại" (chữ cảnh báo không vào semantics) → báo lỗi ngay kèm lý do từ API, không chờ 2,5 phút.
+- Đã chạy trên stag: Net Giga F1 + FPT Camera *An Tâm 7 · Gói 6T · SL 1 · FPT Camera Play 4* → HCMUP0026UXX / SGABP5738
+  (lần trước cùng data lỗi "Tạo phiếu thông tin khách hàng" do backend stag, chạy lại là qua).
+- Form hiện sẵn giá trị (đã chọn lần trước → portal điền sẵn → dòng đầu) dạng danh sách chọn, chỉnh được; "✎ Gõ tay…" để nhập tên khác.
+  Gói tính cước nạp lại theo Gói dịch vụ. Dịch vụ chưa có form → mở là tự Đọc form (1 lần / dịch vụ, trừ dịch vụ stag không mở form / thiếu chính sách).
+- Điền / đọc form nhanh hơn: chờ sheet mở/đóng và ô Số lượng focus theo điều kiện thay vì chờ cố định 2–2,5s mỗi ô.
+  Đọc ô form Camera 135s → 81s (kết quả giống hệt); điền form khi tạo đơn ~98s → ~55s (HCMUP0026UZC / SGABP5757).
+- Hộp hỏi [Hủy | Xác nhận] sau giỏ hàng ("Chính sách giá hiện tại đã không còn phù hợp… tìm chính sách giá mới nhất?") → tự Xác nhận.
 
 **Tạo nhiều đơn / nhiều gói 1 lượt**
 - Giao diện: **+ Thêm gói Net vào danh sách** (tab Internet) và **+ Thêm vào danh sách** (form dịch vụ, giữ gói / chu kỳ / số lượng / Net mua kèm riêng)
