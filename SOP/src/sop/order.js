@@ -576,6 +576,17 @@ function orderOptions(input) {
     }
   }
   if (opts.service !== 'internet' && !findService(opts.service)) throw Object.assign(new Error(`Không có dịch vụ "${opts.service}"`), { status: 400 });
+  // Nhiều dịch vụ trong 1 đơn: services = [{ id, fields }], thêm lần lượt vào giỏ. Không có thì lấy service/fields (1 dịch vụ như cũ)
+  const list = Array.isArray(input.services) && input.services.length ? input.services
+    : opts.service !== 'internet' ? [{ id: opts.service, fields: opts.fields }] : [];
+  opts.services = list.map((x) => {
+    const id = String(typeof x === 'string' ? x : x?.id || '').trim();
+    if (!findService(id)) throw Object.assign(new Error(`Không có dịch vụ "${id}"`), { status: 400 });
+    const fields = x?.fields && typeof x.fields === 'object' ? x.fields : {};
+    return { id, fields };
+  });
+  if (opts.services.length > 8) throw Object.assign(new Error('Tối đa 8 dịch vụ trong 1 đơn'), { status: 400 });
+  if (opts.services.length > 1 || Array.isArray(input.services)) opts.service = opts.services.map((x) => x.id).join('+') || 'internet';
   if (!/^0\d{9}$/.test(opts.phone)) throw Object.assign(new Error('SĐT khách hàng cần 10 số, bắt đầu bằng 0'), { status: 400 });
   if (opts.coords && !/^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$/.test(opts.coords)) {
     throw Object.assign(new Error('Toạ độ dạng "vĩ độ, kinh độ", vd 10.7733664, 106.6944494'), { status: 400 });
@@ -668,12 +679,12 @@ export async function fetchServiceOptions(input, onLog = () => {}) {
  */
 export async function createOrder(input, onLog = () => {}, onPackages = () => {}) {
   const opts = orderOptions(input);
-  const service = findService(opts.service);
-  const needInternet = !service || opts.withInternet || service.needsInternet;
+  const services = opts.services.map((x) => ({ ...x, service: findService(x.id) }));
+  const needInternet = !services.length || opts.withInternet || services.some((x) => x.service.needsInternet);
   const runId = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
   const shot = shooter(runId);
   const record = {
-    runId, startedAt: new Date().toISOString(), ...opts, serviceName: service?.name || 'Internet', packageName: '', customer: '', orderCode: '', contractCode: '', quoteLink: '', bookport: '', error: '',
+    runId, startedAt: new Date().toISOString(), ...opts, serviceName: [needInternet && services.length ? 'Internet' : '', ...services.map((x) => x.service.name)].filter(Boolean).join(' + ') || 'Internet', packageName: '', customer: '', orderCode: '', contractCode: '', quoteLink: '', bookport: '', error: '',
   };
   const page = await portalPage(input.headless);
   let app = null;
@@ -685,17 +696,23 @@ export async function createOrder(input, onLog = () => {}, onPackages = () => {}
     await shot(app, 'tao-bao-gia');
     const packages = await chooseAddress(app, opts.address, opts.coords, shot, onLog);
     onPackages(opts.address, packages);
-    if (needInternet) record.packageName = (await choosePackage(app, packages, opts.combo, opts.comboIndex, onLog)).name;
-    if (service) {
+    const combo = needInternet ? (await choosePackage(app, packages, opts.combo, opts.comboIndex, onLog)).name : '';
+    record.packageName = combo;
+    if (services.length) {
       if (needInternet) {
         // Chọn combo nhảy thẳng sang màn báo giá -> quay lại để thêm dịch vụ vào giỏ (combo vẫn trong giỏ)
         await waitNode(app, /^Đối tượng khách hàng$|^Gia đình$/, 20000);
         await sleep(3000); // màn báo giá còn tải (spinner) thì nút quay lại chưa ăn
         if (!(await clickUntilNode(app, 23, 25, (n) => /^Internet$/.test(n.label), { wait: 6000 }))) throw new Error('Không quay lại được màn chọn dịch vụ sau khi chọn combo');
       }
-      const { chosen } = await addService(app, service, opts, codes, shot, onLog);
-      const detail = `${service.name}: ${Object.values(chosen).slice(0, 2).join(' · ')}`;
-      record.packageName = record.packageName ? `${record.packageName} + ${detail}` : detail;
+      // Mỗi dịch vụ: mở ô dịch vụ -> điền form -> Xác nhận (vào giỏ, vẫn ở màn chọn dịch vụ) -> dịch vụ tiếp theo
+      const details = [];
+      for (const [i, x] of services.entries()) {
+        if (services.length > 1) onLog(`Dịch vụ ${i + 1}/${services.length}: ${x.service.name}`);
+        const { chosen } = await addService(app, x.service, x, codes, shot, onLog);
+        details.push(`${x.service.name}: ${Object.values(chosen).slice(0, 2).join(' · ')}`);
+        record.packageName = [combo, ...details].filter(Boolean).join(' + ');
+      }
       await openCart(app, codes, shot, onLog);
     }
     await shot(app, 'man-bao-gia');

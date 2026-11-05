@@ -114,8 +114,8 @@ async function fillForm(app, prefs) {
   for (let i = 0; i < 40; i++) {
     const pending = (list) => list.find((x) => x.name && !tried.has(key(x)) && !picked.has(x.name) && !/^SL:/.test(x.name));
     let f = pending(await formFields(app));
-    if (!f) {
-      // Sheet vừa đóng, cây semantics có lúc chưa kịp có ô: đọc lại 1 lần cho chắc
+    // Sheet vừa đóng / chọn gói xong form tải lại (vd FPT Play đổi gói -> ô Số lượng, Thiết bị Box hiện lại sau): đọc lại vài lần cho chắc
+    for (let k = 0; !f && k < 3; k++) {
       await sleep(1500);
       f = pending(await formFields(app));
     }
@@ -200,6 +200,12 @@ export async function addService(app, service, input, codes, shot, onLog) {
   onLog(`Đã chọn: ${Object.values(chosen).join(' · ') || '(không có ô nào)'}`);
   await shot(app, 'form-dich-vu');
   for (let i = 0; i < 3; i++) {
+    if (i > 0) {
+      // Bấm Xác nhận mà form chưa đóng = còn ô trống (portal tô đỏ) -> điền tiếp các ô còn trống (lựa chọn dòng đầu) rồi bấm lại
+      const more = await fillForm(app, {});
+      for (const [k, v] of Object.entries(more)) chosen[k] ??= v;
+      if (Object.keys(more).length) onLog(`Điền thêm: ${Object.values(more).join(' · ')}`);
+    }
     const ok = (await nodes(app)).find((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
     if (ok) await app.mouse.click(ok.x, ok.y);
     await sleep(4000);
@@ -247,6 +253,13 @@ export async function openCart(app, codes, shot, onLog) {
   }
   await shot(app, 'gio-hang');
   await app.mouse.click(detail.x, detail.y);
-  await sleep(3000);
-  await failOnDialog(app, 'Giỏ hàng', codes, shot, 'xác nhận giỏ');
+  // Màn báo giá tính chính sách giá sau khi vào (vd "Không tìm được chính sách phù hợp…") -> chờ thấy ô Đối tượng KH hoặc cảnh báo
+  for (const end = Date.now() + 20000; Date.now() < end; await sleep(1000)) {
+    await failOnDialog(app, 'Giỏ hàng', codes, shot, 'xác nhận giỏ (thường do gói chưa có chính sách giá trên stag – chọn gói khác)');
+    if ((await nodes(app)).some((n) => /^Đối tượng khách hàng$/.test(n.label))) {
+      await sleep(1500);
+      await failOnDialog(app, 'Giỏ hàng', codes, shot, 'xác nhận giỏ (thường do gói chưa có chính sách giá trên stag – chọn gói khác)');
+      return;
+    }
+  }
 }

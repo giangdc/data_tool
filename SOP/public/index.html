@@ -57,6 +57,10 @@
   .card h2 .sub { font-weight: 400; font-size: 13px; color: var(--muted); }
   form.run:not(.blocks) { display: flex; flex-direction: column; gap: 10px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
+  .cart { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .cart li { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+  .cart li .sub { color: var(--muted); font-size: 12px; }
+  .cart li button { margin-left: auto; padding: 0 8px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   label { font-size: 13px; color: var(--muted); }
   input, select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; width: 100%; }
@@ -169,6 +173,16 @@
             <div class="field"><label for="svcQty">Số lượng</label><input id="svcQty" type="number" min="1" max="99" value="1"></div>
           </div>
           <label class="check"><input type="checkbox" id="withInternet"> <span id="withInternetText">Mua kèm combo Internet</span></label>
+          <button type="button" class="ghost" id="btnAddSvc" title="Đưa dịch vụ đang chọn (gói, chu kỳ, số lượng) vào danh sách, rồi chọn dịch vụ / gói khác để thêm tiếp">+ Thêm vào danh sách</button>
+        </div>
+        <div class="field hidden" id="cartBox">
+          <label>Danh sách cần tạo <span class="hint" id="cartHint"></span></label>
+          <ul class="cart" id="cartList"></ul>
+          <div class="radios">
+            <label title="Mỗi gói / dịch vụ trong danh sách tạo 1 đơn + HĐ riêng, chạy lần lượt; đơn lỗi thì chạy tiếp đơn sau"><input type="radio" name="cartMode" value="split" checked> Mỗi gói 1 đơn riêng</label>
+            <label title="Thêm tất cả vào giỏ của 1 đơn (tối đa 1 gói Net). Nhiều gói không đi chung được theo rule portal → dễ lỗi"><input type="radio" name="cartMode" value="combine"> Gộp vào 1 đơn</label>
+          </div>
+          <button type="button" class="ghost" id="btnClearCart">Bỏ hết</button>
         </div>
         <div class="field" id="pkgBox">
           <label>Gói cước Internet * <span class="hint" id="pkgHint"></span></label>
@@ -177,6 +191,7 @@
             <button type="button" class="ghost" id="btnPackages" title="Mở Bán mới ở địa chỉ trên để lấy danh sách Combo gợi ý (~1 phút, không tạo đơn)">↻ Tải gói</button>
           </div>
           <div class="opts" id="pkgList"><div class="hint">Đang tải…</div></div>
+          <button type="button" class="ghost" id="btnAddNet" title="Đưa gói Net đang chọn vào danh sách (vd 2 gói Net = 2 đơn riêng)">+ Thêm gói Net vào danh sách</button>
         </div>
        </div>
        <div class="blk">
@@ -434,8 +449,84 @@ function selectService(id) {
   renderMenu();
   closeMenus();
 }
-function showPkgBox() { $('pkgBox').classList.toggle('hidden', current !== INTERNET && !$('withInternet').checked); }
-$('withInternet').onchange = showPkgBox;
+// ---- Danh sách cần tạo: "+ Thêm…" gom gói Net / dịch vụ (kèm lựa chọn gói). Tạo đơn: mỗi mục 1 đơn riêng (mặc định) hoặc gộp 1 đơn ----
+// Mục: { kind: 'net', combo, comboIndex, name } | { kind: 'svc', id, name, fields, withInternet, needsInternet }
+let cart = (() => { try { return JSON.parse(store.get('cart2') || '[]'); } catch { return []; } })();
+const selectedPkg = () => {
+  const v = document.querySelector('input[name=pkg]:checked')?.value;
+  if (!v) return null;
+  const combo = v.slice(0, v.lastIndexOf('#'));
+  const comboIndex = Number(v.slice(v.lastIndexOf('#') + 1));
+  const p = packages.find((x) => x.group === combo && x.index === comboIndex);
+  return { combo, comboIndex, name: p?.name || `${combo} #${comboIndex}` };
+};
+const cartMode = () => document.querySelector('input[name=cartMode]:checked')?.value || 'split';
+/** Lựa chọn trên form của dịch vụ đang mở. */
+function svcConfig() {
+  const fields = { 'Số lượng': $('svcQty').value || '1' };
+  if ($('svcPkg').value) fields['Gói dịch vụ'] = $('svcPkg').value;
+  if ($('svcTerm').value) fields['Gói tính cước'] = $('svcTerm').value;
+  const needsInternet = Boolean(current.needsInternet);
+  const withInternet = needsInternet || $('withInternet').checked;
+  return { kind: 'svc', id: current.id, name: current.name, fields, needsInternet, withInternet, net: withInternet ? selectedPkg() : null };
+}
+// Ô gói Net: hiện khi đang ở tab Internet, hoặc dịch vụ đang mở cần mua kèm Internet
+const needInternet = () => current === INTERNET || $('withInternet').checked || Boolean(current.needsInternet);
+const itemText = (x) => x.kind === 'net' ? `Net ${x.name}`
+  : `${x.name}${x.fields['Gói dịch vụ'] ? ' · ' + x.fields['Gói dịch vụ'] : ''}${x.fields['Gói tính cước'] ? ' · ' + x.fields['Gói tính cước'] : ''}${x.net ? ` (+ Net ${x.net.name})` : ''}`;
+function renderCart() {
+  store.set('cart2', JSON.stringify(cart));
+  $('cartBox').classList.toggle('hidden', !cart.length);
+  const n = cart.length;
+  $('cartHint').textContent = !n ? '' : cartMode() === 'split' ? `· ${n} mục → ${n} đơn, chạy lần lượt` : '· gộp tất cả vào 1 đơn';
+  $('cartList').innerHTML = cart.map((x, i) => `<li><span>${i + 1}. ${esc(itemText(x))}</span>
+    <button type="button" class="ghost" data-del="${i}" title="Bỏ khỏi danh sách">×</button></li>`).join('');
+  $('btnRun').textContent = !n ? 'Tạo đơn' : cartMode() === 'split' ? `Tạo ${n} đơn` : 'Tạo 1 đơn (gộp)';
+}
+function addToCart(item) {
+  cart.push(item);
+  renderCart();
+  showMsg('ok', `Đã thêm ${esc(itemText(item))} – chọn gói / dịch vụ khác để thêm tiếp, hoặc bấm ${esc($('btnRun').textContent)}`);
+}
+$('btnAddSvc').onclick = () => {
+  if (current === INTERNET) return;
+  const c = svcConfig();
+  if (c.withInternet && !c.net) return showMsg('err', 'Chọn gói cước Internet mua kèm');
+  addToCart(c);
+};
+$('btnAddNet').onclick = () => {
+  const p = selectedPkg();
+  if (!p) return showMsg('err', 'Chọn gói cước Internet');
+  addToCart({ kind: 'net', ...p });
+};
+$('cartList').onclick = (e) => {
+  const b = e.target.closest('[data-del]');
+  if (!b) return;
+  cart.splice(Number(b.dataset.del), 1);
+  renderCart();
+};
+$('btnClearCart').onclick = () => { cart = []; renderCart(); };
+document.querySelectorAll('input[name=cartMode]').forEach((r) => { r.onchange = renderCart; });
+/** Danh sách → body gửi /api/run: { batch: [đơn…] } (mỗi mục 1 đơn) hoặc 1 đơn gộp. Trả về chuỗi lỗi nếu không hợp lệ. */
+function cartOrders() {
+  const one = (x) => x.kind === 'net'
+    ? { label: itemText(x), combo: x.combo, comboIndex: x.comboIndex }
+    : { label: itemText(x), services: [{ id: x.id, fields: x.fields }], withInternet: x.withInternet, ...(x.net ? { combo: x.net.combo, comboIndex: x.net.comboIndex } : {}) };
+  if (cartMode() === 'split') return { batch: cart.map(one) };
+  const nets = [...cart.filter((x) => x.kind === 'net'), ...cart.filter((x) => x.net).map((x) => x.net)];
+  if (new Set(nets.map((n) => `${n.combo}#${n.comboIndex}`)).size > 1) return 'Gộp 1 đơn chỉ được 1 gói Net – chọn "Mỗi gói 1 đơn riêng" để tách';
+  const svcs = cart.filter((x) => x.kind === 'svc');
+  return {
+    ...(nets[0] ? { combo: nets[0].combo, comboIndex: nets[0].comboIndex } : {}),
+    withInternet: Boolean(nets.length),
+    services: svcs.map((x) => ({ id: x.id, fields: x.fields })),
+  };
+}
+function showPkgBox() {
+  $('pkgBox').classList.toggle('hidden', !needInternet());
+  $('btnAddNet').classList.toggle('hidden', current !== INTERNET);
+}
+$('withInternet').onchange = () => showPkgBox();
 $('menu').onclick = (e) => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -488,6 +579,10 @@ function renderResult(r) {
     ['Link báo giá', r.quoteLink ? `<a href="${esc(r.quoteLink)}" target="_blank" rel="noopener">${esc(r.quoteLink)}</a>` : '', false, true],
     ['Dịch vụ', r.serviceName], ['Gói', r.service && r.service !== 'internet' ? r.packageName : `${r.packageName || ''} (${r.combo} #${r.comboIndex})`], ['Thanh toán', r.payment], ['Địa chỉ', r.address],
   ];
+  // Nhiều đơn: mỗi đơn 1 dòng (mã đơn / HĐ hoặc lỗi), chi tiết bên dưới là đơn cuối
+  if (r.batch?.length > 1) {
+    rows.unshift(...r.batch.map((b, i) => [`Đơn ${i + 1}`, b.error ? `✖ ${b.packageName || b.label || ''} – ${b.error}` : `${b.orderCode || '?'} / HĐ ${b.contractCode || '-'} – ${b.packageName}`]));
+  }
   $('result').innerHTML = rows.map(([k, v, copy, html]) => `<dt>${k}</dt><dd>${v ? (html ? v : esc(v)) + (copy ? ` <span class="copy" data-copy="${esc(v)}">copy</span>` : '') : '–'}</dd>`).join('');
 }
 
@@ -546,7 +641,7 @@ async function startJob(path, body, before) {
 $('runForm').onsubmit = (e) => {
   e.preventDefault();
   const pkg = document.querySelector('input[name=pkg]:checked')?.value;
-  const internet = current === INTERNET || $('withInternet').checked;
+  const internet = !cart.length && needInternet();
   if (internet && !pkg) return showMsg('err', 'Chọn gói cước Internet');
   const [combo, comboIndex] = internet ? [pkg.slice(0, pkg.lastIndexOf('#')), Number(pkg.slice(pkg.lastIndexOf('#') + 1))] : [];
   const body = {
@@ -562,11 +657,15 @@ $('runForm').onsubmit = (e) => {
     }
     if (body.org.taxCode && !/^\d{10}(-\d{3})?$/.test(body.org.taxCode)) return showMsg('err', 'Mã số thuế dạng 10 số (hoặc 10 số-3 số chi nhánh)');
   }
-  if (current !== INTERNET) {
+  if (cart.length) {
+    // Có danh sách: chạy theo danh sách (gói Net / dịch vụ đang mở trên form không tự thêm – bấm "+ Thêm…")
+    const c = cartOrders();
+    if (typeof c === 'string') return showMsg('err', c);
+    delete body.combo; delete body.comboIndex; delete body.service;
+    Object.assign(body, c);
+  } else if (current !== INTERNET) {
     body.withInternet = $('withInternet').checked;
-    body.fields = { 'Số lượng': $('svcQty').value || '1' };
-    if ($('svcPkg').value) body.fields['Gói dịch vụ'] = $('svcPkg').value;
-    if ($('svcTerm').value) body.fields['Gói tính cước'] = $('svcTerm').value;
+    body.fields = svcConfig().fields;
   }
   if (!/^0\d{9}$/.test(body.phone)) return showMsg('err', 'SĐT khách hàng cần 10 số, bắt đầu bằng 0');
   for (const k of ['phone', 'address', 'coords', 'payment']) store.set(k, body[k]);
@@ -687,6 +786,7 @@ document.addEventListener('click', async (e) => {
   document.querySelector(`input[name=mode][value="${mode}"]`).checked = true;
   showModeHint();
   await loadServices();
+  renderCart();
   loadRuns();
   loadPackages();
   await refreshJob();

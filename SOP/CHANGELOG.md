@@ -1,5 +1,24 @@
 # Changelog – SOP Order Tool
 
+## v0.5.0 – 2026-11-05
+
+**Tạo nhiều đơn / nhiều gói 1 lượt**
+- Giao diện: **+ Thêm gói Net vào danh sách** (tab Internet) và **+ Thêm vào danh sách** (form dịch vụ, giữ gói / chu kỳ / số lượng / Net mua kèm riêng)
+  → ô *Danh sách cần tạo*. Danh sách giữ lại khi tải lại trang.
+  - **Mỗi gói 1 đơn riêng** (mặc định): mỗi mục 1 đơn + HĐ, chạy lần lượt; đơn lỗi ghi lại rồi chạy tiếp. Vd 2 gói Net = 2 đơn.
+  - **Gộp vào 1 đơn**: thêm tất cả vào giỏ của 1 đơn (tối đa 1 gói Net). Nhiều gói không đi chung theo rule portal → dễ lỗi.
+- API `/api/run`: `batch: [đơn, …]` (1–10 đơn) và `services: [{ id, fields }]` (gộp, tối đa 8); `service` + `fields` cũ vẫn dùng được.
+- CLI: lặp `--service` = gộp nhiều dịch vụ 1 đơn; `--field "<id>:Tên ô=Giá trị"` chọn riêng cho 1 dịch vụ.
+- Màn báo giá báo "Không tìm được chính sách phù hợp…" sau khi xác nhận giỏ → tool báo đúng lỗi này (trước báo nhầm "không thấy ô Đối tượng KH").
+
+**Đã thử trên stag (05/11)**
+- Gộp Internet + FPT Play + FPT Camera: vào được giỏ cả 3, nhưng gói dòng đầu (FPT Play *Hotel 3 - Basic*, Camera *3D - Max5*) không có chính sách giá → chọn gói khác.
+- HyperFast: bấm ô dịch vụ vẫn không mở form trên stag – tool dừng và báo lỗi kèm ảnh.
+- Tách đơn: Net Giga F1 → HCMUP0026UX0 / SGABP5721, Net Giga F2 → HCMUP0026UX2 / SGABP5722 (KH 0989369096) – 2 gói Net = 2 đơn OK.
+- FPT Play *Max* + Net: form điền đủ (sửa lỗi form tải lại sau khi đổi gói làm trống ô Số lượng / Thiết bị Box), nhưng portal chặn
+  "Không tìm thấy chính sách giá cho Box 4K" – cần chọn thiết bị có chính sách trên stag (`--field "Thiết bị=…"`).
+- Form dịch vụ: bấm Xác nhận mà còn ô trống → tự điền tiếp ô trống (dòng đầu) rồi bấm lại.
+
 ## v0.4.0 – 2026-11-04
 
 **Đối tượng khách hàng**

@@ -48,6 +48,9 @@ Cần **Google Chrome** (hoặc Edge). Tool điều khiển 1 cửa sổ Chrome 
    Danh sách gói lấy từ API `package-view/list` theo địa chỉ – đổi địa chỉ thì bấm **↻ Tải gói** (~1 phút, không tạo đơn).
    **Dịch vụ khác**: chọn trên menu header → chọn gói / chu kỳ cước (bấm **↻ Tải gói** để lấy danh sách theo địa chỉ, để trống = dòng đầu trên portal).
    Dấu chấm vàng trên menu = dịch vụ đang vướng trên stag (xem ghi chú trong form). Hộp cảnh báo của portal không đọc được chữ → lỗi có link mở ảnh.
+   **Nhiều đơn / nhiều gói 1 lượt**: chọn gói Net → **+ Thêm gói Net vào danh sách**; chọn dịch vụ + gói → **+ Thêm vào danh sách**; lặp lại.
+   Ô *Danh sách cần tạo*: **Mỗi gói 1 đơn riêng** (mặc định, vd 2 gói Net = 2 đơn, đơn lỗi thì chạy tiếp đơn sau) hoặc **Gộp vào 1 đơn**
+   (tối đa 1 gói Net; nhiều gói không đi chung theo rule portal nên dễ lỗi). Bấm × để bỏ 1 mục.
    **Chế độ chạy**: *Chạy ngầm* (mặc định, không hiện Chrome) hoặc *Hiện cửa sổ Chrome* để theo dõi → **Tạo đơn**.
 3. Theo dõi nhật ký; xong thì copy mã ở khung Kết quả. Mỗi đơn ~2–3 phút.
 
@@ -67,6 +70,7 @@ npm run order -- --phone 0833329408 --customer-type "Doanh nghiệp" [--company 
                  [--representative "Nguyễn Văn A"] [--org-phone 09..] [--contact-phone 09..] [--email ..] [--issue-place ..] [--gpkd-address ..]
 npm run order -- --customer-types  # đối tượng KH đang hỗ trợ (Cá nhân, Doanh nghiệp)
 npm run order -- --services      # danh sách id dịch vụ
+npm run order -- --phone 0989369096 --with-internet --service fpt-play --service fpt-camera [--field "fpt-camera:Gói tính cước=6T"]   # nhiều dịch vụ 1 đơn
 npm run order -- --phone 0964633310 --service fpt-camera --field "Gói dịch vụ=..." --field "Gói tính cước=6T" [--with-internet]
 ```
 

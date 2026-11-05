@@ -96,16 +96,48 @@ const routes = {
     return { ok: true, account: credentials().user };
   },
 
-  'POST /api/run': async ({ body }) => startJob('order', body, async (onLog) => {
-    try {
-      const record = await createOrder(body, onLog, savePackages);
-      saveRun(record);
-      return record;
-    } catch (err) {
-      if (err.record) saveRun(err.record);
-      throw err;
+  // 1 đơn (body) hoặc nhiều đơn chạy lần lượt (body.batch = [đơn, …]; đơn lỗi thì ghi lại rồi chạy tiếp đơn sau)
+  'POST /api/run': async ({ body }) => {
+    if (!Array.isArray(body.batch)) {
+      return startJob('order', body, async (onLog) => {
+        try {
+          const record = await createOrder(body, onLog, savePackages);
+          saveRun(record);
+          return record;
+        } catch (err) {
+          if (err.record) saveRun(err.record);
+          throw err;
+        }
+      });
     }
-  }),
+    const { batch, ...common } = body;
+    if (!batch.length || batch.length > 10) throw Object.assign(new Error('Danh sách đơn cần 1–10 đơn'), { status: 400 });
+    const orders = batch.map((o) => ({ ...common, ...o }));
+    return startJob('order', body, async (onLog) => {
+      const results = [];
+      job.results = results;
+      for (const [i, o] of orders.entries()) {
+        const tag = `[Đơn ${i + 1}/${orders.length}]`;
+        onLog(`${tag} ${o.label || ''}`.trim());
+        const log = (m) => onLog(`${tag} ${m}`);
+        let record;
+        try {
+          record = await createOrder(o, log, savePackages);
+        } catch (err) {
+          record = err.record || { ...o, error: err.message, finishedAt: new Date().toISOString() };
+          record.error ||= err.message;
+          log(`✖ ${err.message}`);
+          if (err.status === 401) throw err; // hết phiên đăng nhập: các đơn sau cũng lỗi
+        }
+        saveRun(record);
+        results.push(record);
+      }
+      const ok = results.filter((r) => !r.error).length;
+      onLog(`Xong ${ok}/${results.length} đơn: ${results.map((r) => r.orderCode || '✖').join(', ')}`);
+      if (!ok) throw Object.assign(new Error(`Cả ${results.length} đơn đều lỗi – xem nhật ký`), { record: results.at(-1) });
+      return { ...results.at(-1), batch: results };
+    });
+  },
 
   // Danh sách gói theo địa chỉ: đã lưu (hoặc danh sách khảo sát sẵn) / tải lại từ portal (~1 phút)
   'GET /api/packages': async ({ query }) => loadPackages(query.get('address') || config.defaults.address),
