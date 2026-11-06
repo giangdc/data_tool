@@ -10,3 +10,4 @@ khao-sat/bundle/
 storageState*.json
 sso-*.json
 *.pem
+.~lock.*#
