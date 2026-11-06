@@ -12,13 +12,13 @@ const envFile = path.join(ROOT_DIR, '.env');
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 /**
- * Thẻ test dùng chung với các tool trước (Tao_DH, FPL): .env của tool này chưa có CARD_* thì lấy từ .env tool bên cạnh.
+ * Thẻ test dùng chung với các tool trước (Tao_don_fptvn, FPL): .env của tool này chưa có CARD_* thì lấy từ .env tool bên cạnh.
  * Chỉ nạp biến CARD_* còn thiếu, không ghi đè, không in giá trị. -> tên file đã dùng | null
  */
 function loadSharedCards() {
   const has = (k) => Boolean(process.env[k]?.trim());
   if (has('CARD_INTERNATIONAL_NUMBER') && has('CARD_DOMESTIC_NUMBER')) return null;
-  for (const dir of ['Tao_DH', 'FPL']) {
+  for (const dir of ['Tao_don_fptvn', 'FPL']) {
     const file = path.join(ROOT_DIR, '..', dir, '.env');
     if (!existsSync(file)) continue;
     let used = false;
@@ -41,7 +41,7 @@ if (!target) {
 }
 
 /**
- * Proxy ra Internet (giống Tao_DH): máy công ty DNS nội bộ không phân giải *.fpt.vn public, Chrome đi proxy hệ thống
+ * Proxy ra Internet (giống Tao_don_fptvn): máy công ty DNS nội bộ không phân giải *.fpt.vn public, Chrome đi proxy hệ thống
  * còn Node thì không. Thứ tự: BILLPAY_PROXY (.env, "none" = gọi thẳng) -> proxy GNOME -> HTTPS_PROXY.
  * -> { url, source, bypass: [host pattern] } hoặc null
  */

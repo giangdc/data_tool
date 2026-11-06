@@ -1,4 +1,4 @@
-// Tự thanh toán thẻ test (copy từ Tao_DH/src/ecp/payment.js – cùng cổng paygateway-stag Foxpay/NAPAS):
+// Tự thanh toán thẻ test (copy từ Tao_don_fptvn/src/ecp/payment.js – cùng cổng paygateway-stag Foxpay/NAPAS):
 // mở Chrome THẬT (WAF/Cloudflare chặn headless) đi cùng proxy với tool -> link thanh toán ->
 // điền thẻ trong .env -> theo dõi tới khi cổng báo kết quả / quay về staging.fpt.vn.
 // Không thư viện: CDP qua WebSocket có sẵn Node 22. KHÔNG Runtime.enable (Cloudflare dò được), không log giá trị thẻ.
@@ -179,7 +179,7 @@ export function payByCard({ url, pm, card, onStep = () => {} }) {
 }
 
 async function doPay({ url, pm, card, onStep }) {
-  if (!card) throw Object.assign(new Error(`Chưa có thẻ test cho ${pm} trong .env (CARD_${pm}_${FIELDS[pm]?.join('/') ?? '*'}) – copy các dòng CARD_* từ Tao_DH/.env`), { status: 400 });
+  if (!card) throw Object.assign(new Error(`Chưa có thẻ test cho ${pm} trong .env (CARD_${pm}_${FIELDS[pm]?.join('/') ?? '*'}) – copy các dòng CARD_* từ Tao_don_fptvn/.env`), { status: 400 });
   if (/[●•*]/.test(card.NUMBER)) throw Object.assign(new Error(`CARD_${pm}_NUMBER${card.no > 1 ? card.no : ''} trong .env bị che (●) – nhập lại số thẻ đầy đủ (sửa .env)`), { status: 400 });
   if (!url) throw Object.assign(new Error('Giao dịch không có link thanh toán'), { status: 400 });
 

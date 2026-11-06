@@ -154,7 +154,7 @@ export class BillPayService {
     const pm = String(paymentMethod || '').toUpperCase();
     if (!CARD_METHODS.includes(pm)) throw Object.assign(new Error(`Tool chỉ tự thanh toán được ${CARD_METHODS.map((m) => METHOD_NAME[m]).join(' / ')}`), { status: 400 });
     const cards = cardsFor(pm);
-    if (!cards.length) throw Object.assign(new Error(`Chưa có thẻ test ${METHOD_NAME[pm]} trong .env (CARD_${pm}_*) – copy các dòng CARD_* từ Tao_DH/.env`), { status: 400 });
+    if (!cards.length) throw Object.assign(new Error(`Chưa có thẻ test ${METHOD_NAME[pm]} trong .env (CARD_${pm}_*) – copy các dòng CARD_* từ Tao_don_fptvn/.env`), { status: 400 });
 
     const { contract, bills, amount } = await this.#selected(contractNo, billIds);
     const steps = [];

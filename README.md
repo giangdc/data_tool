@@ -8,7 +8,7 @@ Mỗi tool nằm trong 1 thư mục riêng, có README hướng dẫn chi tiết
 | Tool | Thư mục | Hệ thống | Tool làm gì | Cổng UI | Trạng thái |
 |---|---|---|---|---|---|
 | **FTMS Data Tool** | [`bms/`](bms/README.md) | FTMS stag (BMS + SM) | Tạo cơ hội → Duyệt cơ hội → (Khảo sát LeasedLine) → Tạo yêu cầu HĐ → BGĐ duyệt YC HĐ | 3000 | v1.5.0 |
-| **FPT.vn Order Tool** | [`Tao_DH/`](Tao_DH/README.md) | staging.fpt.vn | Nhập link gói → tạo đơn hàng → thanh toán (tại nhà / thẻ test / VietQR) → xem đơn | 3001 | v1.7.0 |
+| **FPT.vn Order Tool** | [`Tao_don_fptvn/`](Tao_don_fptvn/README.md) | staging.fpt.vn | Nhập link gói → tạo đơn hàng → thanh toán (tại nhà / thẻ test / VietQR) → xem đơn | 3001 | v1.7.0 |
 | **FPT Play Order Tool** | [`FPL/`](FPL/README.md) | dev.fptplay.vn | Nhập link gói → đăng nhập OTP mặc định → tạo giao dịch → tự thanh toán thẻ test → xem gói trên tài khoản | 3002 | v1.0.0 |
 | **CRM Data Tool** | [`CRM/`](CRM/) | crm-stag.fpt.net | Tạo cơ hội (theo cơ hội mẫu) → Báo giá → Đánh dấu version → Tạo đơn hàng | 3002 | v1.0.0 (đang phát triển) |
 | **Bill Detail Tool** | [`Bill_Detail/`](Bill_Detail/README.md) | inside.fpt.net stag (Liệt kê cước) | Nhập số hợp đồng → danh sách hóa đơn → chi tiết hóa đơn (gọi thẳng API, tránh timeout của inside) | 3003 | v1.0.0 |

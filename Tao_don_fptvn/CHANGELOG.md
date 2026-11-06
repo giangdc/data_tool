@@ -2,6 +2,9 @@
 
 Quy ước: tính năng mới → tăng số giữa (1.8.0 → 1.9.0), sửa lỗi → tăng số cuối (1.9.0 → 1.9.1). Mỗi lần cập nhật: sửa `version` trong `package.json` + thêm mục mới lên đầu file này.
 
+## 1.10.1 – 2026-11-06
+- **Đổi tên thư mục tool** `Tao_DH` → **`Tao_don_fptvn`** (trên máy + repo `data_tool`). Icon Desktop / menu đã cài lại theo đường dẫn mới; tool Thanh_toan đọc thẻ test từ `../Tao_don_fptvn/.env`.
+
 ## 1.10.0 – 2026-11-06
 - Nút **＋ Thêm gói** (cạnh ô Chọn gói ở tab Tạo đơn hàng và ở tab Tạo đơn hàng loạt): nhập **Link**, **Tên nhóm** (chọn nhóm có sẵn hoặc gõ nhóm mới), **Tên trang** (để trống = tự lấy tên gói).
 - Tool **kiểm tra link là gói có thật** (ECP / FCP / Shop) rồi ghi vào cuối file danh sách (`data/listgoi.csv`); gói mới **hiện ngay** trong ô Chọn gói (tự chọn + tải gói) và bảng Tạo đơn hàng loạt (tick sẵn).

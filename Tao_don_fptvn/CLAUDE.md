@@ -6,11 +6,13 @@ Tool "anh em" của **FTMS Data Tool** (`../bms`) – cùng khuôn: Node thuần
 ## 1. Bối cảnh & mục tiêu
 
 - Người dùng: **QC**. Cần tạo nhanh đơn hàng test trên **fpt.vn staging**: nhập link màn hình chi tiết gói (vd `https://staging.fpt.vn/internet/goi-giga`) → tạo đơn → thanh toán thành công → có màn hình xem thông tin đơn đã lên.
-- **Phiên bản hiện tại: 1.10.0** (`version` trong `package.json`).
+- **Thư mục tool: `Tao_don_fptvn/`** (đổi tên từ `Tao_DH` ngày 2026-11-06) trong repo gom `data_tool` (`/home/giangdc2/AI_2/Tool`, remote `https://github.com/giangdc/data_tool.git`, push qua HTTPS + `http.proxy=http://proxy.fpt.vn:80` vì mạng chặn SSH). Repo riêng cũ `Tool_DH` (`.git` bên trong thư mục) không còn dùng.
+- **Phiên bản hiện tại: 1.10.1** (`version` trong `package.json`).
 - **BẮT BUỘC mỗi lần cập nhật tool** (user yêu cầu 2026-11-06): (1) tăng `version` trong `package.json` theo quy ước bên dưới, (2) thêm mục mới lên đầu **`CHANGELOG.md`** (`## <ver> – <ngày>` + gạch đầu dòng, viết cho QC đọc), (3) thêm dòng vào bảng phiên bản dưới đây. Header UI tự hiện phiên bản (server đọc `package.json` lúc khởi động → `GET /api/config.version`), bấm vào xem CHANGELOG (`GET /api/changelog`).
 
 | Phiên bản | Ngày | Nội dung |
 |---|---|---|
+| 1.10.1 | 2026-11-06 | Đổi tên thư mục `Tao_DH` → `Tao_don_fptvn`; cài lại icon launcher; sửa tham chiếu ở README gốc + tool `Thanh_toan` (đọc `CARD_*` từ `../Tao_don_fptvn/.env`) |
 | 1.10.0 | 2026-11-06 | **＋ Thêm gói** từ UI (dialog `addPkgDlg`, mở ở tab Tạo đơn + tab hàng loạt): Link + Tên nhóm (datalist nhóm có sẵn) + Tên trang (trống = tên gói). Server `POST /api/catalog/add` → `parseProductUrl` (đúng môi trường) → `orders.identify()` (ECP→FCP→Shop, 422 `PACKAGE_CHECK_FAILED` nếu không thấy; `force:true` bỏ kiểm tra) → `addRow()` (catalog.js: trùng link 409, ghi CSV có quote, giữ BOM) → UI tải lại danh sách, tab Tạo đơn tự chọn + tải gói mới |
 | 1.9.0 | 2026-11-06 | Header hiện **phiên bản** (nút `v1.9.0` cạnh tên tool, title tab, log khởi động), bấm mở dialog **Lịch sử cập nhật** render từ `CHANGELOG.md` (file mới, ghi đủ 1.0 → 1.9.0, đóng gói kèm build) |
 | 1.8.0 | 2026-11-06 | **Danh sách gói** `data/listgoi.csv` (35 link chi tiết, đã chuyển UTF-8 BOM): ô **Chọn gói từ danh sách** ở tab Tạo đơn (chọn = tự tải gói; link không có trong list → "Tự nhập"). **Tab 2 "Tạo đơn hàng loạt"** (`src/ecp/batch.js`): chạy song song (mặc định 10, tối đa 50) các dòng đã tick, dòng lỗi bỏ qua, PTTT mặc định *COD nếu có* (`paymentPrefer`), trùng SĐT FPT Play thì tự thử SĐT random; xuất `output/batch/<file>-<time>.csv` (cột gốc + Kết quả, Mã đơn, **Số hợp đồng**, Order ID, Nguồn, PTTT, Trạng thái, Tổng tiền, Lỗi); CLI `npm run batch -- [file] -c N --pm-mode cod\|first --rows ..`. **Nguồn thứ 3 Shop selfservice** (`src/ecp/shop.js`): link `/shop/<loại>/register/<route>` hoặc gói không có trên ECP/FCP (vd `combo-internet-lux800-vvip`). Số hợp đồng: staging chưa trả (để trống, `findContract` tự dò) |

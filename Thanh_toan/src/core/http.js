@@ -1,5 +1,5 @@
 // HTTP client cho API Hi FPT (trang staging.fpt.vn/pay): POST JSON, bóc lớp {statusCode, message, data} (statusCode 0 = thành công).
-// Hỗ trợ đi qua proxy HTTP (CONNECT tunnel) – fetch của Node không tự dùng proxy hệ thống như Chrome. Phần proxy copy từ Tao_DH.
+// Hỗ trợ đi qua proxy HTTP (CONNECT tunnel) – fetch của Node không tự dùng proxy hệ thống như Chrome. Phần proxy copy từ Tao_don_fptvn.
 import http from 'node:http';
 import https from 'node:https';
 import tls from 'node:tls';

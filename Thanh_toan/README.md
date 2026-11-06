@@ -12,7 +12,7 @@ Yêu cầu: Node.js >= 20.12, Google Chrome (dùng cho bước tự nhập thẻ
 
 ```bash
 cd Thanh_toan
-cp .env.example .env      # không cần sửa gì: thẻ test tự lấy từ ../Tao_DH/.env
+cp .env.example .env      # không cần sửa gì: thẻ test tự lấy từ ../Tao_don_fptvn/.env
 bash install.sh           # tạo icon "FPT.vn Bill Pay Tool" + mở http://localhost:3006
 # hoặc: npm run ui
 ```
@@ -20,7 +20,7 @@ bash install.sh           # tạo icon "FPT.vn Bill Pay Tool" + mở http://loca
 ## Thẻ test
 
 Tool dùng **chung thẻ test với các tool trước** (cùng cổng paygateway-stag Foxpay/NAPAS):
-- Nếu `.env` của tool này để trống `CARD_*`, tool tự đọc `CARD_*` từ `../Tao_DH/.env` (không có thì `../FPL/.env`).
+- Nếu `.env` của tool này để trống `CARD_*`, tool tự đọc `CARD_*` từ `../Tao_don_fptvn/.env` (không có thì `../FPL/.env`).
 - Muốn dùng thẻ riêng thì điền `CARD_INTERNATIONAL_*` / `CARD_DOMESTIC_*` vào `.env` của tool này.
 - Có nhiều thẻ (`CARD_<PTTT>_NUMBER2..5`): thẻ trước bị từ chối thì tool tạo giao dịch mới và thử thẻ sau.
 
