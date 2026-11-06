@@ -7,11 +7,14 @@
 //   node src/cli.js repay 0000N5CS6VJ4 --pm DOMESTIC --pay   (đổi PTTT đơn chờ thanh toán + thanh toán lại)
 //   node src/cli.js status 0000N1X5O1MO
 //   node src/cli.js detail 0000N1X5O1MO
+//   node src/cli.js batch listgoi.csv -c 10            (tạo đơn tất cả link trong data/listgoi.csv, chạy song song)
 import { parseArgs } from 'node:util';
 import { config } from './core/env.js';
 import { log, color } from './core/logger.js';
 import { OrderService } from './ecp/orders.js';
 import { CARD_METHODS } from './ecp/payment.js';
+import { BatchRunner, DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from './ecp/batch.js';
+import { DEFAULT_LIST } from './data/catalog.js';
 
 const d = config.defaults;
 const HELP = `
@@ -24,6 +27,8 @@ Cách dùng:
   npm run repay -- <mã đơn> --pm <mã> [--pay] Đơn còn chờ thanh toán: đổi PTTT online (INTERNATIONAL, DOMESTIC, VIETQR...) + thanh toán lại
   npm run status -- <mã đơn> ...              Trạng thái đơn (đơn do tool tạo)
   npm run detail -- <mã đơn>                  Chi tiết đơn (JSON)
+  npm run batch -- [file] [tùy chọn]          Tạo đơn TẤT CẢ link trong data/<file> (mặc định ${DEFAULT_LIST}), chạy song song, dòng lỗi bỏ qua
+                                              -> output/batch/<file>-<thời gian>.csv (Kết quả, Mã đơn, Số hợp đồng...)
   npm run ui                                  Giao diện web (khuyến nghị)
 
 Tùy chọn (create / methods):
@@ -40,6 +45,13 @@ Tùy chọn (create / methods):
       --note <ghi chú>   Mặc định: ${d.note}
       --pay              Tạo xong tự thanh toán bằng thẻ test (chỉ --pm INTERNATIONAL | DOMESTIC; mở Chrome trên máy)
   -n, --count <n>        Số đơn cần tạo (mặc định 1)
+
+Tùy chọn (batch):
+  -c, --concurrency <n>  Số đơn chạy song song (mặc định ${DEFAULT_CONCURRENCY}, tối đa ${MAX_CONCURRENCY})
+      --pm-mode <cod|first>  cod (mặc định) = Thanh toán tại nhà nếu gói có, không thì PTTT đầu tiên · first = PTTT đầu tiên
+      --rows <1,3,5>     Chỉ chạy các dòng (số thứ tự dòng dữ liệu)
+      --random-phone     Mỗi đơn 1 SĐT ngẫu nhiên (mặc định dùng --phone / SĐT mặc định; trùng tài khoản FPT Play thì tự thử SĐT ngẫu nhiên)
+      + --name --phone --province --ward --street --no --apartment ... như create
   -h, --help
 `;
 
@@ -63,6 +75,10 @@ const { values: args, positionals } = parseArgs({
     extras: { type: 'string' },
     count: { type: 'string', short: 'n' },
     pay: { type: 'boolean' },
+    concurrency: { type: 'string', short: 'c' },
+    'pm-mode': { type: 'string' },
+    rows: { type: 'string' },
+    'random-phone': { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
   },
 });
@@ -165,9 +181,32 @@ async function cmdDetail([code]) {
   console.log(JSON.stringify(rest, null, 2));
 }
 
-const commands = { methods: cmdMethods, create: cmdCreate, pay: cmdPay, repay: cmdRepay, status: cmdStatus, detail: cmdDetail };
+async function cmdBatch([file = DEFAULT_LIST]) {
+  const runner = new BatchRunner(service);
+  const job = runner.start({
+    file, concurrency: args.concurrency, pmMode: args['pm-mode'], rows: (args.rows || '').split(',').map((x) => x.trim()).filter(Boolean),
+    fullName: args.name, phone: args.phone, randomPhone: args['random-phone'], address: address(),
+  });
+  log.info(`Tạo ${job.rows.length} đơn từ data/${job.file} · ${job.concurrency} luồng song song · PTTT ${job.pmMode === 'cod' ? 'ưu tiên Thanh toán tại nhà' : 'đầu tiên của gói'}`);
+  const seen = new Set();
+  const report = () => job.rows.filter((r) => (r.state === 'ok' || r.state === 'fail') && !seen.has(r.no)).forEach((r) => {
+    seen.add(r.no);
+    const tag = `[${seen.size}/${job.rows.length}] #${r.no} ${r.name}`;
+    if (r.state === 'ok') log.ok(`${tag} → ${color.bold(r.code)} (${r.source}) | ${r.paymentName} | ${r.statusLabel} · ${r.seconds}s`);
+    else log.error(`${tag} → bỏ qua: ${r.error}`);
+  });
+  const timer = setInterval(report, 500);
+  await job.done;
+  clearInterval(timer);
+  report();
+  const v = BatchRunner.view(job);
+  log.info(`Xong: ${v.counts.ok}/${v.counts.total} thành công, ${v.counts.fail} lỗi → ${job.outFile}`);
+  if (!v.counts.ok) process.exitCode = 1;
+}
+
+const commands = { batch: cmdBatch, methods: cmdMethods, create: cmdCreate, pay: cmdPay, repay: cmdRepay, status: cmdStatus, detail: cmdDetail };
 const [cmd, ...rest] = positionals;
-if (args.help || !commands[cmd] || !rest.length) {
+if (args.help || !commands[cmd] || (!rest.length && cmd !== 'batch')) {
   console.log(HELP);
   process.exit(args.help ? 0 : 1);
 }

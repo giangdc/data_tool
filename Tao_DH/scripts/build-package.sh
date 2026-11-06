@@ -15,8 +15,8 @@ rm -rf "$DIST/stage"
 mkdir -p "$STAGE" "$DL_DIR"
 
 echo "→ Copy mã nguồn"
-cp -r "$APP_DIR"/{src,public,config,assets,scripts} "$STAGE/"
-cp "$APP_DIR"/{package.json,.env.example,README.md,CLAUDE.md,install.sh} "$STAGE/"
+cp -r "$APP_DIR"/{src,public,config,assets,scripts,data} "$STAGE/"
+cp "$APP_DIR"/{package.json,.env.example,README.md,CLAUDE.md,CHANGELOG.md,install.sh} "$STAGE/"
 
 
 echo "→ Node portable $NODE_VERSION"

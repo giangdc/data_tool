@@ -158,7 +158,9 @@ export async function placeOrder(capi, input) {
   // PTTT phụ thuộc lựa chọn (vd thêm dịch vụ bổ sung thì mất "Thanh toán tại nhà") -> lấy sau calculate
   const methods = await getPaymentMethods(capi, input.slug, source);
   if (!methods.length) throw httpErr('Gói không có phương thức thanh toán nào với lựa chọn / địa chỉ này');
-  const method = methods.find((m) => m.code === input.paymentCode) ?? (input.paymentCode ? null : methods[0]);
+  // Không chỉ định PTTT: lấy PTTT ưu tiên đầu tiên có trong gói (vd hàng loạt ưu tiên COD), không có thì PTTT đầu tiên
+  const preferred = (input.paymentPrefer || []).map((c) => methods.find((m) => m.code === c)).find(Boolean);
+  const method = methods.find((m) => m.code === input.paymentCode) ?? (input.paymentCode ? null : preferred ?? methods[0]);
   if (!method) throw httpErr(`PTTT "${input.paymentCode}" không khả dụng với lựa chọn này. Có: ${methods.map((m) => `${m.code} (${m.name})`).join(', ')}`);
 
   await selectPayment(capi, method, source);
@@ -223,6 +225,23 @@ export function orderStatus(d) {
   return { status: st, label: st || '?' };
 }
 
+/**
+ * Số hợp đồng của đơn nếu ECP có trả (khảo sát 2026-11-06: checkout/get staging CHƯA có trường hợp đồng,
+ * contract/search lỗi EXT_500) -> dò các tên trường thường gặp, không có thì ''.
+ */
+const CONTRACT_KEYS = /^(contract_?(no|code|number|name)|contract|so_?hop_?dong|so_?hd|obj_?(name|code))$/i;
+export function findContract(d, depth = 0) {
+  if (!d || typeof d !== 'object' || depth > 5) return '';
+  for (const [k, v] of Object.entries(d)) {
+    if (CONTRACT_KEYS.test(k) && (typeof v === 'string' || typeof v === 'number') && String(v).trim()) return String(v).trim();
+  }
+  for (const v of Object.values(d)) {
+    const hit = findContract(v, depth + 1);
+    if (hit) return hit;
+  }
+  return '';
+}
+
 /** checkout/get -> dữ liệu gọn cho màn hình xem đơn */
 export function toOrderView(d) {
   if (!d) return null;
@@ -233,6 +252,7 @@ export function toOrderView(d) {
     code: d.order_code || d.checkout_id,
     orderId: d.order_id,
     checkoutId: d.checkout_id,
+    contractNo: findContract(d),
     ...orderStatus(d),
     createdAt: toIso(d.created_at),
     updatedAt: toIso(d.updated_at),

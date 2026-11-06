@@ -4,12 +4,14 @@ import { config } from '../core/env.js';
 import { EcpClient } from '../core/http.js';
 import { saveRecord, readRecords } from '../core/store.js';
 import { Locations } from './location.js';
-import { parseProductUrl, getProduct, parseOffers, getFcpQuote, parseFcpOffers } from './product.js';
+import { parseProductUrl, getProduct, parseOffers, getFcpQuote, parseFcpOffers, formatVnd } from './product.js';
 import {
   createCheckout, setAddress, applySelection, checkoutSnapshot, placeOrder, getCheckout, toOrderView, orderStatus,
   toLocation, addressText, noPolicyMessage, NO_POLICY, changePayment, onlineMethods, toPayment,
 } from './checkout.js';
 import { payByCard, cardsFor, CARD_METHODS } from './payment.js';
+import { ShopSession, shopRegisterPath, shopLocation, getShopPackage, getShopDetail, parseShopOffers, placeShopOrder, shopStatus, SHOP_DEFAULT_METHODS } from './shop.js';
+import { randomUUID } from 'node:crypto';
 
 export const ORDER_CSV_COLUMNS = ['createdAt', 'env', 'code', 'orderId', 'productCode', 'productName', 'offerLabel', 'extras', 'fullName', 'phone', 'houseType', 'address', 'paymentName', 'total', 'statusLabel', 'sourceUrl'];
 
@@ -30,7 +32,7 @@ export class OrderService {
   #tokens() {
     // mã đơn -> token (đơn mới nhất thắng)
     const map = new Map();
-    for (const r of readRecords('orders')) if (r.summary?.code && r.token) map.set(r.summary.code, r);
+    for (const r of readRecords('orders')) if (r.summary?.code && (r.token || r.shop)) map.set(r.summary.code, r);
     return map;
   }
 
@@ -58,7 +60,7 @@ export class OrderService {
 
   /** Áp địa chỉ + lựa chọn lên checkout đã chuẩn bị -> dữ liệu cho form (chính sách, sản phẩm, bổ sung, PTTT, giá) */
   #configure(p, input) {
-    return this.#serial(p, () => this.#doConfigure(p, input));
+    return this.#serial(p, () => (p.source === 'SHOP' ? this.#configureShop(p, input) : this.#doConfigure(p, input)));
   }
 
   async #doConfigure(p, { address, offerKey, extras }) {
@@ -89,13 +91,84 @@ export class OrderService {
     }
   }
 
+  #shopSession() {
+    return new ShopSession(config.webUrl, config.proxy);
+  }
+
+  /**
+   * Link -> gói + nguồn: link /shop/... = Shop; còn lại ECP -> FCP -> Shop (gói không có trên ECP/FCP, vd combo-internet-lux800-vvip).
+   * -> { slug, sourceUrl, product: {code, name, type, price, priceText, source, slug}, session? (Shop) }
+   */
+  async #product(url, address) {
+    const { sourceUrl, shop, ...u } = parseProductUrl(url, config.webUrl);
+    if (!shop) {
+      try {
+        const { raw, ...product } = await getProduct(this.api, u.slug);
+        return { slug: product.slug, sourceUrl, product };
+      } catch (err) {
+        if (err.status !== 400) throw err; // không có trên ECP/FCP -> thử Shop
+      }
+    }
+    const session = await this.#shopSession().open(shopRegisterPath(sourceUrl, u.slug));
+    const addr = await this.locations.resolve(address, config.defaults);
+    const pkg = await getShopPackage(session, u.slug, await shopLocation(session, addr)).catch((err) => {
+      throw Object.assign(new Error(`Không tìm thấy gói "${u.slug}" trên ECP / FCP / Shop – ${err.message}`), { status: 400 });
+    });
+    const product = { code: u.slug, name: pkg.PackageName, type: shopRegisterPath(sourceUrl, u.slug).split('/')[2], price: pkg.RealMonth ?? null, priceText: pkg.RealMonth ? `${formatVnd(pkg.RealMonth)}/tháng` : '', source: 'SHOP', slug: u.slug };
+    return { slug: u.slug, sourceUrl, product, session };
+  }
+
+  /** Kiểm tra link là gói có thật (ECP / FCP / Shop) – dùng khi thêm gói vào danh sách -> { slug, sourceUrl, name, source, type } */
+  async identify(url) {
+    const { slug, sourceUrl, product } = await this.#product(url);
+    return { slug, sourceUrl, name: product.name, source: product.source, type: product.type };
+  }
+
+  /** Gói Shop: chính sách + lựa chọn theo địa chỉ. PTTT Shop chỉ có sau khi tạo đơn -> hiện danh sách chuẩn */
+  async #configureShop(p, { address, offerKey }) {
+    const addr = await this.locations.resolve(address, config.defaults);
+    p.at = Date.now();
+    const noPolicy = (message) => ({ policy: { ok: false, message }, address: { ...addr, text: addressText(addr) }, offers: [], extras: [], selectedExtras: [], gifts: [], methods: [], items: [], total: null });
+    let loc;
+    try {
+      loc = await shopLocation(p.session, addr);
+    } catch (err) {
+      if (err.status === 400) return noPolicy(err.message);
+      throw err;
+    }
+    const pkg = await getShopPackage(p.session, p.slug, loc);
+    if (!pkg?.HasPolicy) return noPolicy(noPolicyMessage(addr));
+    const { offers } = parseShopOffers(await getShopDetail(p.session, p.slug, loc, pkg), pkg.PackageName);
+    if (!offers.length) return noPolicy(noPolicyMessage(addr));
+    const offer = offers.find((o) => o.key === offerKey) ?? offers[0];
+    return {
+      policy: { ok: true },
+      address: { ...addr, text: addressText(addr) },
+      offers: offers.map(({ extras: ex, ...o }) => o),
+      offerKey: offer.key,
+      extras: [],
+      selectedExtras: [],
+      gifts: [],
+      methods: SHOP_DEFAULT_METHODS,
+      methodsNote: 'Shop: danh sách PTTT thật lấy khi tạo đơn',
+      items: [],
+      total: { final: offer.price, finalText: offer.priceText },
+    };
+  }
+
   /** Bước 1: link gói (+ địa chỉ, lựa chọn) -> tạo checkout, trả về gói + chính sách + sản phẩm + bổ sung + PTTT + giá */
   async prepare({ url, address, offerKey, extras } = {}) {
-    const { sourceUrl, ...u } = parseProductUrl(url, config.webUrl);
-    const { raw, ...product } = await getProduct(this.api, u.slug);
-    const { slug, source } = product;
-    const { checkoutId, token } = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
+    const { slug, sourceUrl, product, session } = await this.#product(url, address);
+    const { source } = product;
     this.#gc();
+    if (source === 'SHOP') {
+      // Shop không có checkout trước khi tạo đơn -> giữ phiên Shop để tra chính sách / lựa chọn
+      const checkoutId = `shop-${randomUUID()}`;
+      const p = { slug, source, sourceUrl, product, session, at: Date.now() };
+      this.prepared.set(checkoutId, p);
+      return { checkoutId, product, sourceUrl, ...(await this.#serial(p, () => this.#configureShop(p, { address, offerKey }))) };
+    }
+    const { checkoutId, token } = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
     const p = { token, slug, source, sourceUrl, product, at: Date.now() };
     this.prepared.set(checkoutId, p);
     return { checkoutId, product, sourceUrl, ...(await this.#configure(p, { address, offerKey, extras })) };
@@ -112,24 +185,30 @@ export class OrderService {
    * Bước 2: tạo đơn. Có checkoutId (đã prepare) thì dùng lại, không thì tạo checkout mới từ url.
    * -> { summary, payment: { type: 'none'|'redirect'|'qr', url?, qrImage?, expireSeconds? }, steps, view }
    */
-  async create({ checkoutId, url, fullName, phone, address, note, paymentCode, offerKey, extras, user } = {}) {
+  async create({ checkoutId, url, fullName, phone, address, note, paymentCode, paymentPrefer, offerKey, extras, user } = {}) {
     let p = checkoutId && this.prepared.get(checkoutId);
     const addr = await this.locations.resolve(address, config.defaults);
     if (!p) {
-      const { sourceUrl, ...u } = parseProductUrl(url, config.webUrl);
-      const { raw, ...product } = await getProduct(this.api, u.slug);
-      const { slug, source } = product;
-      // Kiểm tra chính sách trước khi tạo checkout
-      await this.#selection(product, addr, offerKey, extras);
-      const c = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
-      p = { token: c.token, slug, source, sourceUrl, product };
-      checkoutId = c.checkoutId;
+      const { slug, sourceUrl, product } = await this.#product(url, address);
+      const { source } = product;
+      if (source === 'SHOP') p = { slug, source, sourceUrl, product };
+      else {
+        // Kiểm tra chính sách trước khi tạo checkout
+        await this.#selection(product, addr, offerKey, extras);
+        const c = await createCheckout(this.api, { slug, source, sourceUrl, webUrl: config.webUrl });
+        p = { token: c.token, slug, source, sourceUrl, product };
+        checkoutId = c.checkoutId;
+      }
+    }
+    if (p.source === 'SHOP') {
+      if (checkoutId) this.prepared.delete(checkoutId);
+      return this.#createShop(p, { fullName, phone, addr, note, paymentCode, paymentPrefer, offerKey, user });
     }
     const { selection } = await this.#selection(p.product, addr, offerKey, extras);
     this.prepared.delete(checkoutId); // 1 checkout chỉ tạo được 1 đơn
     const capi = this.api.withToken(p.token);
     const { steps, method, complete, order } = await this.#serial(p, () => placeOrder(capi, {
-      slug: p.slug, source: p.source, fullName, phone, address: addr, note: note ?? config.defaults.note, paymentCode, selection,
+      slug: p.slug, source: p.source, fullName, phone, address: addr, note: note ?? config.defaults.note, paymentCode, paymentPrefer, selection,
     }));
     const { offer, extraSkuIds } = selection;
 
@@ -143,6 +222,7 @@ export class OrderService {
       createdBy: user || '',
       code: view.code,
       orderId: view.orderId,
+      contractNo: view.contractNo || '',
       productCode: p.slug,
       source: p.source,
       productName: p.product?.name,
@@ -168,6 +248,46 @@ export class OrderService {
     return { summary, payment, steps, view };
   }
 
+  /** Tạo đơn Shop (phiên mới cho mỗi đơn) -> cùng dạng kết quả với create() */
+  async #createShop(p, { fullName, phone, addr, note, paymentCode, paymentPrefer, offerKey, user }) {
+    // Shop chỉ nhận chữ + khoảng trắng trong họ tên (vd 'AUTO-QC Test' bị từ chối) -> bỏ ký tự đặc biệt
+    fullName = String(fullName ?? '').replace(/[^\p{L}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    phone = String(phone ?? '').replace(/[\s.]/g, '');
+    if (!fullName) throw Object.assign(new Error('Chưa nhập Họ tên'), { status: 400 });
+    if (!/^0\d{9}$/.test(phone)) throw Object.assign(new Error(`Số điện thoại không hợp lệ: "${phone}" (cần 10 số, bắt đầu bằng 0)`), { status: 400 });
+    const r = await placeShopOrder({ webUrl: config.webUrl, proxy: config.proxy }, {
+      route: p.slug, sourceUrl: p.sourceUrl, fullName, phone, address: addr, note: note ?? config.defaults.note, offerKey, paymentCode, paymentPrefer,
+    });
+    const st = r.method.code === 'COD' ? { status: 'completed', label: 'Đã tạo đơn · Thanh toán tại nhà', done: true } : { status: 'recompleting', label: 'Chờ thanh toán', waitingPayment: true };
+    const view = {
+      code: r.orderCode, orderId: r.orderId, contractNo: '', ...st,
+      customer: { fullName, phone, address: addressText(addr) },
+      items: r.items,
+      totals: { final: r.total, finalText: formatVnd(r.total) },
+      payment: { method: r.method.method, online: r.method.method === 'COD' ? null : r.method.code },
+    };
+    if (r.payment.type === 'qr') this.pending.set(view.code, { qr: r.payment });
+    const summary = {
+      createdAt: new Date().toLocaleString('vi-VN'), env: config.name, createdBy: user || '',
+      code: view.code, orderId: view.orderId, contractNo: '', productCode: p.slug, source: 'SHOP', productName: p.product?.name,
+      offerLabel: offerLabel(r.offer), extras: '', sourceUrl: p.sourceUrl, fullName, phone,
+      houseType: addr.houseType === 'apartment' ? 'Chung cư' : 'Nhà riêng', address: addressText(addr),
+      paymentCode: r.method.code, paymentName: r.method.name, total: r.total, status: view.status, statusLabel: view.label,
+    };
+    saveRecord('orders', {
+      summary, shop: r.session.toJSON(),
+      complete: { status: view.status, display_type: r.payment.type, redirect_url: r.payment.url || '' },
+      order: view,
+    }, ORDER_CSV_COLUMNS);
+    return { summary, payment: r.payment, steps: r.steps, view };
+  }
+
+  /** Trạng thái đơn Shop (phiên đã lưu) */
+  async #shopView(rec) {
+    const st = await shopStatus(ShopSession.from(config.webUrl, config.proxy, rec.shop), { orderId: rec.summary.orderId, paymentCode: rec.summary.paymentCode });
+    return { ...rec.order, ...st, code: rec.summary.code, orderId: rec.summary.orderId };
+  }
+
   /** Kết quả tự thanh toán gần nhất theo mã đơn (output/payments.jsonl) */
   #payments() {
     const map = new Map();
@@ -187,6 +307,7 @@ export class OrderService {
   async #waiting(code, action) {
     const rec = this.#tokens().get(code);
     if (!rec) throw Object.assign(new Error(`Không có đơn ${code} trong lịch sử của tool`), { status: 404 });
+    if (rec.shop) throw Object.assign(new Error(`Đơn ${code} tạo qua Shop – chưa hỗ trợ ${action} (thanh toán trên link/QR của đơn)`), { status: 400 });
     const capi = this.api.withToken(rec.token);
     const st = orderStatus(await getCheckout(capi));
     if (!st.waitingPayment) throw Object.assign(new Error(`Đơn ${code} không còn chờ thanh toán (${st.label}) – không ${action} được`), { status: 409 });
@@ -265,6 +386,11 @@ export class OrderService {
   async detail(code) {
     const rec = this.#tokens().get(String(code).trim().toUpperCase());
     if (!rec) throw Object.assign(new Error(`Không có đơn ${code} trong lịch sử của tool (chỉ xem được đơn do tool tạo)`), { status: 404 });
+    if (rec.shop) {
+      const view = await this.#shopView(rec).catch((err) => ({ ...rec.order, label: `${rec.summary.statusLabel} (không đọc lại được: ${err.message})` }));
+      const payUrl = view.waitingPayment ? rec.complete?.redirect_url || '' : '';
+      return { ...view, items: rec.order?.items || [], promotions: [], summary: rec.summary, payUrl, autoPay: null, canAutoPay: false, changeMethods: [], qr: view.waitingPayment ? this.pending.get(view.code)?.qr ?? null : null };
+    }
     const pay = this.#payments().get(rec.summary.code);
     const view = { ...toOrderView(await getCheckout(this.api.withToken(rec.token))) };
     Object.assign(view, this.#withGateway(view, pay));
@@ -284,6 +410,14 @@ export class OrderService {
       out.push(...(await Promise.all(list.slice(i, i + 5).map(async (code) => {
         const rec = tokens.get(code);
         if (!rec) return { code, error: 'Không có trong lịch sử tool' };
+        if (rec.shop) {
+          try {
+            const v = await this.#shopView(rec);
+            return { code, ...v, total: rec.summary.total, hasPayUrl: Boolean(rec.complete?.redirect_url), canAutoPay: false };
+          } catch (err) {
+            return { code, error: err.message };
+          }
+        }
         try {
           const d = await getCheckout(this.api.withToken(rec.token));
           const st = this.#withGateway(orderStatus(d), pays.get(code));

@@ -8,16 +8,22 @@ import { config, ROOT_DIR, saveDefaults } from './core/env.js';
 import { log } from './core/logger.js';
 import { OrderService } from './ecp/orders.js';
 import { cardStatus } from './ecp/payment.js';
+import { BatchRunner, DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from './ecp/batch.js';
+import { listFiles, readCatalog, addRow } from './data/catalog.js';
+import { parseProductUrl } from './ecp/product.js';
 
 const PORT = Number(process.env.UI_PORT) || 3001;
 // Chỉ nghe trên máy này (tool không có đăng nhập, ai vào được trang là tạo đơn được)
 const HOST = '127.0.0.1';
 const PAGE = path.join(ROOT_DIR, 'public', 'index.html');
+// Phiên bản hiện tại (package.json) – hiện trên header UI; lịch sử cập nhật = CHANGELOG.md
+const VERSION = JSON.parse(await readFile(path.join(ROOT_DIR, 'package.json'), 'utf8')).version;
 
 const orders = new OrderService();
+const batch = new BatchRunner(orders);
 
 const routes = {
-  'GET /api/config': async () => ({ env: config.name, webUrl: config.webUrl, defaults: config.defaults, cards: cardStatus() }),
+  'GET /api/config': async () => ({ version: VERSION, env: config.name, webUrl: config.webUrl, defaults: config.defaults, cards: cardStatus() }),
 
   // Đặt mặc định mới cho SĐT / link gói (lưu output/settings.json)
   'POST /api/settings/defaults': async ({ body }) => {
@@ -63,6 +69,48 @@ const routes = {
   'POST /api/orders/status': async ({ body }) => orders.statuses(body.codes || []),
   'POST /api/orders/detail': async ({ body }) => orders.detail(body.code || ''),
   'GET /api/history': async () => orders.history(),
+  'GET /api/changelog': async () => ({ version: VERSION, text: await readFile(path.join(ROOT_DIR, 'CHANGELOG.md'), 'utf8').catch(() => '') }),
+
+  // Danh sách link gói (data/*.csv) cho ô "Chọn gói" + chế độ tạo hàng loạt
+  'GET /api/catalog': async ({ query }) => {
+    const { file, header, rows } = readCatalog(query.get('file') || undefined);
+    return { files: listFiles(), file, header, rows: rows.map(({ cells, ...r }) => r), concurrency: { default: DEFAULT_CONCURRENCY, max: MAX_CONCURRENCY } };
+  },
+
+  // Thêm gói vào danh sách: kiểm tra link là gói thật (ECP/FCP/Shop) rồi ghi cuối file. force = bỏ qua kiểm tra (gói tạm lỗi trên staging)
+  'POST /api/catalog/add': async ({ body }) => {
+    const group = String(body.group || '').trim();
+    let name = String(body.name || '').trim();
+    const raw = String(body.url || '').trim();
+    if (!group) throw Object.assign(new Error('Nhập Tên nhóm'), { status: 400 });
+    if (!/^https?:\/\//i.test(raw)) throw Object.assign(new Error('Link cần dạng đầy đủ, vd https://staging.fpt.vn/internet/goi-giga'), { status: 400 });
+    const { sourceUrl } = parseProductUrl(raw, config.webUrl); // đúng môi trường + lấy được mã gói
+    let found = null;
+    if (!body.force) {
+      try {
+        found = await orders.identify(sourceUrl);
+      } catch (err) {
+        throw Object.assign(new Error(`Không kiểm tra được gói: ${err.message}`), { status: 422, code: 'PACKAGE_CHECK_FAILED' });
+      }
+    }
+    if (!name) name = found?.name || sourceUrl.split('/').pop();
+    const row = addRow(body.file, { group, type: body.type, name, url: sourceUrl });
+    log.ok(`Thêm gói vào data/${body.file || 'listgoi.csv'}: #${row.no} ${row.name} (${found?.source || 'chưa kiểm tra'})`);
+    const { cells, ...added } = row;
+    return { row: added, source: found?.source || null, checked: Boolean(found) };
+  },
+
+  // Tạo hàng loạt: chạy song song trên server, UI hỏi tiến độ bằng GET /api/batch?id=
+  'POST /api/batch': async ({ body }) => {
+    const job = batch.start(body);
+    log.info(`Hàng loạt ${job.id}: ${job.rows.length} dòng từ data/${job.file}, ${job.concurrency} luồng, PTTT ${job.pmMode}`);
+    job.done.then(() => {
+      const v = BatchRunner.view(job);
+      log.ok(`Hàng loạt ${job.id} xong: ${v.counts.ok}/${v.counts.total} thành công → output/${v.outFile}`);
+    });
+    return BatchRunner.view(job);
+  },
+  'GET /api/batch': async ({ query }) => BatchRunner.view(batch.get(query.get('id'))),
 };
 
 async function readBody(req) {
@@ -88,6 +136,16 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/icon.svg') {
       return send(res, 200, await readFile(path.join(ROOT_DIR, 'assets', 'icon.svg'), 'utf8'), 'image/svg+xml');
     }
+    if (req.method === 'GET' && url.pathname === '/api/batch/download') {
+      const job = batch.get(url.searchParams.get('id'));
+      if (job.running) return send(res, 409, { error: 'Lượt này đang chạy – chờ xong mới tải file' });
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${path.basename(job.outFile)}"`,
+        'Cache-Control': 'no-store',
+      });
+      return res.end(await readFile(job.outFile));
+    }
     const handler = routes[`${req.method} ${url.pathname}`];
     if (!handler) return send(res, 404, { error: 'Không tìm thấy' });
     const body = req.method === 'POST' ? await readBody(req) : {};
@@ -108,7 +166,7 @@ function openBrowser(target) {
 
 server.listen(PORT, HOST, () => {
   const target = `http://localhost:${PORT}`;
-  log.ok(`FPT.vn Order Tool (${config.name}) đang chạy: ${target}  — Ctrl+C để dừng`);
+  log.ok(`FPT.vn Order Tool v${VERSION} (${config.name}) đang chạy: ${target}  — Ctrl+C để dừng`);
   const p = config.proxy;
   log.info(p ? `Gọi API ECP qua proxy ${new URL(p.url).host} – ${p.source}` : 'Gọi API ECP trực tiếp (không proxy)');
   if (!process.argv.includes('--no-open')) openBrowser(target);

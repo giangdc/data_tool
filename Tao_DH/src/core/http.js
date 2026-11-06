@@ -63,13 +63,30 @@ async function requestViaProxy(proxyUrl, url, { method, headers, body }) {
       let text = '';
       res.setEncoding('utf8');
       res.on('data', (c) => (text += c));
-      res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, statusText: res.statusMessage, text }));
+      res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, statusText: res.statusMessage, text, setCookies: [].concat(res.headers['set-cookie'] || []) }));
       res.on('error', reject);
     });
     req.on('timeout', () => req.destroy(new Error(`${url.host} không phản hồi (qua proxy ${proxy.host})`)));
     req.on('error', reject);
     req.end(body);
   });
+}
+
+/**
+ * Gửi 1 request HTTP(S), tự đi proxy (config.proxy) nếu host không nằm trong bypass.
+ * -> { ok, status, statusText, text, setCookies[] } (dùng cho client Shop cần giữ cookie phiên)
+ */
+export async function httpRequest(url, init, proxy) {
+  const u = new URL(url);
+  const viaProxy = proxy && u.protocol === 'https:' && !bypassed(u.hostname, proxy.bypass);
+  try {
+    if (viaProxy) return await requestViaProxy(proxy.url, u, init);
+    const res = await fetch(u, { ...init, redirect: 'manual' });
+    return { ok: res.ok, status: res.status, statusText: res.statusText, text: await res.text(), setCookies: res.headers.getSetCookie?.() || [] };
+  } catch (err) {
+    const cause = err.cause?.code || err.cause?.message || err.message;
+    throw new ApiError(`Không gọi được ${u.host} (${cause})${viaProxy ? '' : ' – máy dùng proxy công ty? đặt ECP_PROXY=http://proxy.fpt.vn:80 trong .env'}`, { status: 502, method: init.method, path: u.pathname });
+  }
 }
 
 export class EcpClient {

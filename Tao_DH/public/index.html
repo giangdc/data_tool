@@ -25,6 +25,13 @@
   header h1 { font-size: 17px; margin: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
   header h1 img { width: 24px; height: 24px; }
   header .site { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .ver { font-size: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; }
+  .ver:hover:not(:disabled) { background: var(--bg); color: var(--primary); }
+  .changelog h3 { font-size: 14px; margin: 16px 0 6px; color: var(--primary); }
+  .changelog h3:first-child { margin-top: 0; }
+  .changelog ul { margin: 0; padding-left: 20px; }
+  .changelog li { margin: 3px 0; }
+  .changelog p { margin: 6px 0; color: var(--muted); font-size: 13px; }
   .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
   nav.tabs { max-width: 1280px; margin: 0 auto; padding: 16px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   nav.tabs button { white-space: nowrap; background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; font-weight: 600; padding: 9px 16px; border: 1px solid transparent; border-bottom: 0; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; }
@@ -134,24 +141,41 @@
   .sec h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
   .sum-row td { border-bottom: 0; padding: 3px 8px; }
   .sum-row.final td { font-weight: 700; font-size: 15px; border-top: 1px solid var(--line); padding-top: 8px; }
+  #batchTable { min-width: 980px; }
+  #batchTable td.link { max-width: 260px; word-break: break-all; font-size: 12px; }
+  #batchTable td.err { color: var(--err); font-size: 12px; max-width: 320px; }
+  #batchTable input { width: auto; }
+  .counts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
+  .counts b { font-size: 15px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 12px; }
+  @media (max-width: 900px) { .grid4 { grid-template-columns: 1fr 1fr; } }
+  .tracking { margin: 0; padding-left: 18px; font-size: 13px; }
+  .tracking li.done { color: var(--ok); font-weight: 600; }
 </style>
 </head>
 <body>
 <header>
   <h1><img src="/icon.svg" alt="">FPT.vn Order Tool</h1>
+  <button class="ver" id="verBadge" title="Xem lịch sử cập nhật">v…</button>
   <span class="badge" id="envBadge">…</span>
   <span class="site" id="siteLink"></span>
 </header>
 
 <nav class="tabs">
   <button data-tab="create" class="active"><span class="step">1</span> Tạo đơn hàng</button>
-  <button data-tab="lookup"><span class="step">2</span> Xem đơn hàng</button>
+  <button data-tab="batch"><span class="step">2</span> Tạo đơn hàng loạt</button>
+  <button data-tab="lookup"><span class="step">3</span> Xem đơn hàng</button>
 </nav>
 
 <main>
   <div class="panel active" data-panel="create">
     <div class="card">
       <h2>Tạo đơn hàng từ link gói</h2>
+      <label for="catalog">Chọn gói từ danh sách <span class="hint" id="catalogHint"></span></label>
+      <div class="row">
+        <select id="catalog"><option value="">— Đang tải danh sách… —</option></select>
+        <button class="ghost shrink" id="btnAddPkg" title="Thêm gói mới vào danh sách (data/listgoi.csv)">＋ Thêm gói</button>
+      </div>
       <label for="url">Link màn hình chi tiết gói <span class="req">*</span> <span class="hint" id="urlHint"></span></label>
       <div class="row">
         <input id="url" placeholder="vd: https://staging.fpt.vn/internet/goi-giga" autocomplete="off">
@@ -247,6 +271,36 @@
     </div>
   </div>
 
+  <div class="card panel" data-panel="batch">
+    <h2>Tạo đơn hàng loạt từ danh sách link gói</h2>
+    <div class="grid4">
+      <div><label for="bFile">File danh sách (thư mục <code>data/</code>)</label><select id="bFile"></select></div>
+      <div><label for="bPm">Phương thức thanh toán</label>
+        <select id="bPm">
+          <option value="cod">Thanh toán tại nhà nếu gói có (đơn xong ngay), không thì PTTT đầu tiên</option>
+          <option value="first">PTTT đầu tiên của gói</option>
+        </select></div>
+      <div><label for="bConc">Số đơn chạy song song</label><input id="bConc" type="number" min="1" max="50"></div>
+      <div><label for="bName">Họ tên</label><input id="bName" autocomplete="off"></div>
+      <div><label for="bPhone">Số điện thoại</label><input id="bPhone" inputmode="numeric" maxlength="10" autocomplete="off"></div>
+      <div style="align-self:end"><label class="check"><input type="checkbox" id="bRandPhone"> Mỗi đơn 1 SĐT ngẫu nhiên</label></div>
+    </div>
+    <div class="hint" id="bAddrHint"></div>
+    <div class="toolbar" style="margin-top:14px">
+      <button class="accent" id="btnBatch">▶ Tạo đơn các dòng đã chọn</button>
+      <button class="ghost" id="btnAddPkg2" title="Thêm gói mới vào file danh sách đang chọn">＋ Thêm gói</button>
+      <a id="bDownload" hidden><button class="ghost">⬇ Tải file kết quả</button></a>
+      <div class="counts" id="bCounts"></div>
+    </div>
+    <div class="status" id="batchStatus"></div>
+    <div class="table-wrap">
+      <table id="batchTable">
+        <thead><tr><th><input type="checkbox" id="bAll" checked title="Chọn / bỏ chọn tất cả"></th><th>#</th><th>Nhóm</th><th>Tên trang</th><th>Link</th><th>Kết quả</th><th>Mã đơn</th><th>Số hợp đồng</th><th>PTTT</th><th class="num">Tổng tiền</th><th>Trạng thái / Lỗi</th></tr></thead>
+        <tbody id="bRows"><tr><td colspan="11" class="empty">Chưa tải danh sách</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="card panel" data-panel="lookup">
     <h2>Xem đơn hàng</h2>
     <label for="lookupCode">Mã đơn hàng (do tool tạo)</label>
@@ -277,6 +331,42 @@
     </div>
   </section>
 </main>
+
+<dialog id="addPkgDlg">
+  <div class="dlg-head">
+    <h2>Thêm gói vào danh sách</h2>
+    <button class="ghost small" id="apClose">Đóng</button>
+  </div>
+  <div class="dlg-body">
+    <div class="hint" id="apFileHint"></div>
+    <label for="apUrl">Link màn hình chi tiết gói <span class="req">*</span></label>
+    <input id="apUrl" placeholder="vd: https://staging.fpt.vn/internet/combo-internet-lux800-vvip" autocomplete="off">
+    <div class="row">
+      <div>
+        <label for="apGroup">Tên nhóm <span class="req">*</span></label>
+        <input id="apGroup" list="apGroups" placeholder="Chọn nhóm có sẵn hoặc gõ nhóm mới" autocomplete="off">
+        <datalist id="apGroups"></datalist>
+      </div>
+      <div>
+        <label for="apName">Tên trang <span class="hint">(để trống = lấy tên gói)</span></label>
+        <input id="apName" autocomplete="off">
+      </div>
+    </div>
+    <div class="status" id="apStatus"></div>
+    <div class="toolbar" style="margin:14px 0 0;justify-content:flex-end">
+      <button class="ghost" id="apForce" hidden title="Không kiểm tra được gói (vd staging tạm lỗi) – vẫn ghi vào danh sách">Vẫn thêm</button>
+      <button class="accent" id="apSave">Kiểm tra &amp; thêm</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="changelogDlg">
+  <div class="dlg-head">
+    <h2 id="clTitle">Lịch sử cập nhật</h2>
+    <button class="ghost small" id="clClose">Đóng</button>
+  </div>
+  <div class="dlg-body changelog" id="clBody"></div>
+</dialog>
 
 <dialog id="detailDlg">
   <div class="dlg-head">
@@ -311,6 +401,8 @@ async function init() {
   state.cfg = await api('GET', '/api/config');
   const d = state.cfg.defaults;
   $('envBadge').textContent = state.cfg.env;
+  $('verBadge').textContent = 'v' + state.cfg.version;
+  document.title = `FPT.vn Order Tool v${state.cfg.version}`;
   $('siteLink').innerHTML = `<a href="${esc(state.cfg.webUrl)}" target="_blank" rel="noopener">${esc(state.cfg.webUrl.replace(/^https?:\/\//, ''))} ↗</a>`;
   $('url').value = d.url;
   $('fullName').value = store.get('fullName') || d.fullName;
@@ -319,8 +411,13 @@ async function init() {
   $('addressNo').value = d.addressNo;
   randomUnit();
   $('note').value = d.note;
+  $('bName').value = d.fullName;
+  $('bPhone').value = d.phone;
+  if (store.get('batchPm')) $('bPm').value = store.get('batchPm');
   showTab(store.get('tab') || 'create');
   await loadProvinces();
+  showBatchAddress();
+  loadCatalog().catch((err) => setStatus($('loadStatus'), 'err', 'Không đọc được danh sách gói: ' + esc(err.message)));
   if ($('url').value) loadPackage(); // tự tải gói mặc định
 }
 
@@ -349,6 +446,7 @@ function showTab(tab) {
   document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('active', p.dataset.panel === tab));
   store.set('tab', tab);
+  if (tab === 'batch' && state.cfg && $('province').value) showBatchAddress();
 }
 
 // ---- Địa chỉ: Tỉnh -> Phường -> Đường, mặc định theo cấu hình (HCM) ----
@@ -421,7 +519,7 @@ async function loadPackage() {
   try {
     const r = await api('POST', '/api/prepare', { url, address: currentAddress() });
     state.prep = r;
-    $('pkgBox').innerHTML = `<b>${esc(r.product.name)}</b> <span class="sub">· ${esc(r.product.type || '')} · mã <code>${esc(r.product.code)}</code>${r.product.source === 'FCP' ? ' · catalog <b>FCP</b>' : ''}</span>
+    $('pkgBox').innerHTML = `<b>${esc(r.product.name)}</b> <span class="sub">· ${esc(r.product.type || '')} · mã <code>${esc(r.product.code)}</code>${r.product.source === 'FCP' ? ' · catalog <b>FCP</b>' : r.product.source === 'SHOP' ? ' · nguồn <b>Shop</b> (selfservice)' : ''}</span>
       <div>Giá cước: <span class="price">${esc(r.product.priceText || '–')}</span></div>`;
     $('pkgBox').className = 'pkg show';
     renderOptions(r);
@@ -488,7 +586,7 @@ function fillPayments(methods, ok = true) {
   el.disabled = false;
   // Mặc định chọn PTTT đầu tiên của gói, giữ lựa chọn cũ nếu vẫn còn
   if (methods.some((m) => m.code === keep)) el.value = keep;
-  $('pmHint').textContent = `· ${methods.length} PTTT theo gói + lựa chọn`;
+  $('pmHint').textContent = state.prep?.methodsNote ? `· ${state.prep.methodsNote}` : `· ${methods.length} PTTT theo gói + lựa chọn`;
   showAutoPay();
 }
 
@@ -748,8 +846,9 @@ function renderDetail(d) {
     <dl class="kv">
       <dt>Mã đơn hàng</dt><dd><b>${esc(d.code)}</b> <button class="ghost small" data-copy="${esc(d.code)}">Copy</button></dd>
       <dt>Order ID</dt><dd>${esc(d.orderId ?? '–')}</dd>
+      <dt>Số hợp đồng</dt><dd>${esc(d.contractNo || s.contractNo || '–')}${d.contractNo || s.contractNo ? '' : ' <span class="sub">(hệ thống chưa trả – có sau khi ký hợp đồng)</span>'}</dd>
       <dt>Trạng thái</dt><dd>${pill} <span class="sub">(${esc(d.status)})</span></dd>
-      <dt>Gói</dt><dd>${esc(s.productName || d.bundles?.map((b) => b.name).join(', '))} <span class="sub">${esc(s.productCode || '')}</span></dd>
+      <dt>Gói</dt><dd>${esc(s.productName || d.bundles?.map((b) => b.name).join(', '))} <span class="sub">${esc(s.productCode || '')}${s.source ? ` · nguồn ${esc(s.source === 'SHOP' ? 'Shop' : s.source)}` : ''}</span></dd>
       <dt>Sản phẩm chọn</dt><dd>${esc(s.offerLabel || '–')}</dd>
       <dt>Bổ sung</dt><dd>${esc(s.extras || 'Không')}</dd>
       <dt>Link gói</dt><dd>${s.sourceUrl ? `<a href="${esc(s.sourceUrl)}" target="_blank" rel="noopener">${esc(s.sourceUrl)}</a>` : '–'}</dd>
@@ -774,6 +873,7 @@ function renderDetail(d) {
       </table>
       ${d.promotions?.length ? `<div class="hint">Ưu đãi: ${esc(d.promotions.join(', '))}</div>` : ''}
     </div>
+    ${d.tracking?.length ? `<div class="sec"><h4>Tiến trình đơn (Shop)</h4><ol class="tracking">${d.tracking.map((t) => `<li class="${t.status ? 'done' : ''}">${esc(t.desc)}</li>`).join('')}</ol></div>` : ''}
     <div class="sec"><h4>Thanh toán</h4>
       <dl class="kv"><dt>Phương thức</dt><dd>${esc(payName || '–')}</dd>${apRow}</dl>
       ${pay}
@@ -794,9 +894,203 @@ async function checkPayment(code, btn) {
   if (st?.done) $('payBox').className = 'pay-box';
 }
 
+// ---- Danh sách gói (data/*.csv): ô "Chọn gói" + tab Tạo đơn hàng loạt ----
+async function loadCatalog(file) {
+  const c = await api('GET', '/api/catalog' + (file ? '?file=' + encodeURIComponent(file) : ''));
+  state.catalog = c;
+  // Ô chọn gói ở tab Tạo đơn (nhóm theo Tên nhóm), mặc định = link đang có (link mặc định)
+  if (!file) {
+    const groups = [...new Set(c.rows.map((r) => r.group))];
+    $('catalog').innerHTML = '<option value="">— Tự nhập link bên dưới —</option>' + groups.map((g) => `<optgroup label="${esc(g)}">${
+      c.rows.filter((r) => r.group === g).map((r) => `<option value="${esc(r.url)}">${esc(r.name)}</option>`).join('')}</optgroup>`).join('');
+    $('catalogHint').textContent = `· data/${c.file} · ${c.rows.length} gói`;
+    syncCatalog();
+    const keepFile = $('bFile').value;
+    $('bFile').innerHTML = c.files.map((f) => `<option${f === (keepFile || c.file) ? ' selected' : ''}>${esc(f)}</option>`).join('');
+    if (keepFile && keepFile !== c.file) return loadCatalog(keepFile);
+    $('bConc').value = store.get('batchConc') || c.concurrency.default;
+    $('bConc').max = c.concurrency.max;
+  }
+  renderBatchRows(c.rows);
+}
+const sameUrl = (a, b) => String(a || '').trim().replace(/\/+$/, '').toLowerCase() === String(b || '').trim().replace(/\/+$/, '').toLowerCase();
+function syncCatalog() {
+  const hit = state.catalog?.rows.find((r) => sameUrl(r.url, $('url').value));
+  $('catalog').value = hit ? hit.url : '';
+}
+
+function renderBatchRows(rows) {
+  state.batchRows = rows;
+  if (!rows.length) { $('bRows').innerHTML = '<tr><td colspan="11" class="empty">File không có dòng nào có link</td></tr>'; return; }
+  const job = state.batch;
+  const byNo = new Map((job?.rows || []).map((r) => [r.no, r]));
+  $('bRows').innerHTML = rows.map((row) => {
+    const r = byNo.get(row.no) || {};
+    const pill = r.state === 'ok' ? '<span class="pill ok">Thành công</span>' : r.state === 'fail' ? '<span class="pill err">Lỗi – bỏ qua</span>'
+      : r.state === 'running' ? '<span class="pill wait"><span class="spinner"></span>Đang tạo</span>' : r.state === 'pending' ? '<span class="pill none">Chờ</span>' : '';
+    // Sau 1 lượt: giữ các dòng đã chọn lượt trước; dòng mới thêm (số thứ tự lớn hơn) tick sẵn
+    const lastNo = job?.rows.length ? Math.max(...job.rows.map((x) => x.no)) : 0;
+    const checked = job ? byNo.has(row.no) || row.no > lastNo : true;
+    return `<tr class="${r.state === 'ok' ? 'new' : ''}">
+      <td><input type="checkbox" data-bno="${row.no}" ${checked ? 'checked' : ''} ${job?.running ? 'disabled' : ''}></td>
+      <td>${row.no}</td><td>${esc(row.group)}</td><td>${esc(row.name)}</td>
+      <td class="link"><a href="${esc(row.url)}" target="_blank" rel="noopener">${esc(row.url.replace(/^https?:\/\/[^/]+/, ''))}</a></td>
+      <td>${pill}</td>
+      <td class="code">${r.code ? `${esc(r.code)}<div class="sub">${esc(r.source === 'SHOP' ? 'Shop' : r.source || '')} · id ${esc(r.orderId)}</div>` : ''}</td>
+      <td>${esc(r.contractNo || (r.state === 'ok' ? '–' : ''))}</td>
+      <td>${esc(r.paymentName || '')}</td>
+      <td class="num">${r.state === 'ok' ? esc(vnd(r.total)) : ''}</td>
+      <td class="${r.state === 'fail' ? 'err' : ''}">${esc(r.state === 'fail' ? r.error : r.statusLabel || '')}${r.seconds ? `<div class="sub">${r.seconds}s</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBatchJob(job) {
+  state.batch = job;
+  const c = job.counts;
+  $('bCounts').innerHTML = `<span>Tổng <b>${c.total}</b></span><span style="color:var(--ok)">Thành công <b>${c.ok}</b></span><span style="color:var(--err)">Lỗi <b>${c.fail}</b></span>${job.running ? `<span>Đang chạy <b>${c.running}</b> · chờ <b>${c.pending}</b></span>` : ''}`;
+  $('btnBatch').disabled = job.running;
+  $('bFile').disabled = job.running;
+  const dl = $('bDownload');
+  dl.hidden = job.running;
+  dl.href = '/api/batch/download?id=' + encodeURIComponent(job.id);
+  if (job.running) setStatus($('batchStatus'), 'info', `<span class="spinner"></span>Đang tạo ${c.total} đơn (${job.concurrency} luồng song song) – xong ${c.ok + c.fail}/${c.total}…`);
+  else setStatus($('batchStatus'), job.error ? 'err' : c.ok ? 'ok' : 'err', job.error ? esc(job.error)
+    : `✔ Xong: <b>${c.ok}/${c.total}</b> đơn thành công, ${c.fail} dòng lỗi đã bỏ qua. File kết quả: <code>output/${esc(job.outFile)}</code> (cột Kết quả, Mã đơn, Số hợp đồng…)`);
+  renderBatchRows(state.batchRows || []);
+}
+
+async function startBatch() {
+  const rows = [...document.querySelectorAll('[data-bno]:checked')].map((x) => Number(x.dataset.bno));
+  if (!rows.length) return setStatus($('batchStatus'), 'err', 'Chọn ít nhất 1 dòng');
+  const phone = $('bPhone').value.trim();
+  if (!$('bRandPhone').checked && !/^0\d{9}$/.test(phone)) return setStatus($('batchStatus'), 'err', 'Số điện thoại cần 10 số, bắt đầu bằng 0');
+  const address = currentAddress();
+  const missing = addressMissing(address);
+  if (missing) return setStatus($('batchStatus'), 'err', `Địa chỉ ở tab Tạo đơn hàng thiếu ${missing}`);
+  state.batch = null;
+  try {
+    const job = await api('POST', '/api/batch', {
+      file: $('bFile').value, rows, pmMode: $('bPm').value, concurrency: $('bConc').value,
+      fullName: $('bName').value.trim(), phone, randomPhone: $('bRandPhone').checked, address,
+    });
+    store.set('batchPm', $('bPm').value);
+    store.set('batchConc', $('bConc').value);
+    renderBatchJob(job);
+    pollBatch(job.id);
+  } catch (err) {
+    setStatus($('batchStatus'), 'err', esc(err.message));
+  }
+}
+
+async function pollBatch(id) {
+  try {
+    const job = await api('GET', '/api/batch?id=' + encodeURIComponent(id));
+    renderBatchJob(job);
+    if (job.running) return setTimeout(() => pollBatch(id), 1500);
+    // Đơn thành công -> thêm vào bảng Kết quả (Lần này)
+    const ok = job.rows.filter((r) => r.state === 'ok' && r.summary);
+    state.sessionRows.unshift(...ok.map((r) => ({ ...r.summary, _new: true })));
+    for (const r of ok) state.status[r.code] = { status: r.summary.status, label: r.summary.statusLabel, done: r.summary.status === 'completed', waitingPayment: r.summary.status === 'recompleting', total: r.total };
+    if (state.view === 'session') renderRows();
+  } catch (err) {
+    setStatus($('batchStatus'), 'err', esc(err.message));
+    setTimeout(() => pollBatch(id), 4000);
+  }
+}
+
+function showBatchAddress() {
+  const a = currentAddress();
+  const t = (id) => $(id).selectedOptions?.[0]?.text || '';
+  $('bAddrHint').textContent = `Địa chỉ dùng chung: lấy theo tab Tạo đơn hàng – ${a.houseType === 'apartment' ? `Chung cư ${t('building')}, tòa ${a.block} tầng ${a.floor} phòng ${a.room}` : `${a.addressNo} ${t('street')}`}, ${t('ward')}, ${t('province')}. Dòng lỗi (không có gói / không có chính sách / lỗi staging) được bỏ qua.`;
+}
+
+// ---- Thêm gói vào danh sách (data/*.csv) ----
+let addFrom = 'create';
+function openAddPkg(from) {
+  addFrom = from;
+  const file = from === 'batch' ? $('bFile').value || state.catalog?.file : state.catalog?.file || 'listgoi.csv';
+  $('addPkgDlg').dataset.file = file;
+  $('apFileHint').innerHTML = `Ghi vào <code>data/${esc(file)}</code>. Tool kiểm tra link là gói có thật (ECP / FCP / Shop) rồi mới thêm.`;
+  const groups = [...new Set((state.catalog?.rows || []).map((r) => r.group).filter(Boolean))];
+  $('apGroups').innerHTML = groups.map((g) => `<option value="${esc(g)}">`).join('');
+  // Đang có link tự nhập (chưa có trong danh sách) ở tab Tạo đơn -> điền sẵn
+  const cur = $('url').value.trim();
+  $('apUrl').value = from === 'create' && cur && !$('catalog').value ? cur : '';
+  if (!$('apGroup').value && groups.length) $('apGroup').value = groups[0];
+  $('apName').value = '';
+  $('apForce').hidden = true;
+  clearStatus($('apStatus'));
+  $('addPkgDlg').showModal();
+  ($('apUrl').value ? $('apGroup') : $('apUrl')).focus();
+}
+
+async function saveAddPkg(force = false) {
+  const body = { file: $('addPkgDlg').dataset.file, url: $('apUrl').value.trim(), group: $('apGroup').value.trim(), name: $('apName').value.trim(), force };
+  if (!body.url) return setStatus($('apStatus'), 'err', 'Nhập link màn hình chi tiết gói');
+  if (!body.group) return setStatus($('apStatus'), 'err', 'Nhập Tên nhóm');
+  $('apSave').disabled = $('apForce').disabled = true;
+  setStatus($('apStatus'), 'info', `<span class="spinner"></span>${force ? 'Đang thêm…' : 'Đang kiểm tra gói trên ECP / FCP / Shop…'}`);
+  try {
+    const r = await api('POST', '/api/catalog/add', body);
+    $('addPkgDlg').close();
+    // Tải lại danh sách hiện tại (ô Chọn gói + bảng hàng loạt)
+    await loadCatalog();
+    if ($('bFile').value && $('bFile').value !== state.catalog.file) await loadCatalog($('bFile').value);
+    const msg = `✔ Đã thêm gói <b>#${r.row.no} ${esc(r.row.name)}</b> vào <code>data/${esc(body.file)}</code>${r.source ? ` (nguồn ${esc(r.source === 'SHOP' ? 'Shop' : r.source)})` : ' (chưa kiểm tra)'}`;
+    if (addFrom === 'create') {
+      $('url').value = r.row.url;
+      syncCatalog();
+      showDefaults();
+      setStatus($('loadStatus'), 'ok', msg);
+      loadPackage().then(() => setStatus($('loadStatus'), 'ok', msg));
+    } else {
+      setStatus($('batchStatus'), 'ok', msg);
+      document.querySelector(`[data-bno="${r.row.no}"]`)?.closest('tr')?.scrollIntoView({ block: 'center' });
+    }
+  } catch (err) {
+    setStatus($('apStatus'), 'err', esc(err.message));
+    // Không kiểm tra được gói (không có trên ECP/FCP/Shop hoặc staging lỗi) -> cho phép vẫn thêm
+    $('apForce').hidden = err.status !== 422;
+  } finally {
+    $('apSave').disabled = $('apForce').disabled = false;
+  }
+}
+
+// ---- Lịch sử cập nhật (CHANGELOG.md) ----
+function mdInline(t) {
+  return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+}
+async function openChangelog() {
+  $('clBody').innerHTML = '<div class="empty"><span class="spinner"></span>Đang tải…</div>';
+  $('changelogDlg').showModal();
+  try {
+    const { version, text } = await api('GET', '/api/changelog');
+    $('clTitle').textContent = `Lịch sử cập nhật · đang dùng v${version}`;
+    let html = '', list = false;
+    for (const line of text.split('\n')) {
+      const li = line.match(/^\s*-\s+(.*)/);
+      if (!li && list) { html += '</ul>'; list = false; }
+      if (/^#\s/.test(line)) continue;
+      if (/^##\s/.test(line)) html += `<h3>${mdInline(line.replace(/^##\s+/, ''))}</h3>`;
+      else if (li) { if (!list) { html += '<ul>'; list = true; } html += `<li>${mdInline(li[1])}</li>`; }
+      else if (line.trim()) html += `<p>${mdInline(line)}</p>`;
+    }
+    $('clBody').innerHTML = (list ? html + '</ul>' : html) || '<div class="empty">Chưa có CHANGELOG.md</div>';
+  } catch (err) {
+    $('clBody').innerHTML = `<div class="status show err">${esc(err.message)}</div>`;
+  }
+}
+
 // ---- Sự kiện ----
 document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 $('btnLoad').onclick = loadPackage;
+$('catalog').onchange = () => { if (!$('catalog').value) return $('url').focus(); $('url').value = $('catalog').value; showDefaults(); loadPackage(); };
+$('url').addEventListener('input', () => state.catalog && syncCatalog());
+$('bFile').onchange = () => { state.batch = null; $('bDownload').hidden = true; $('bCounts').innerHTML = ''; clearStatus($('batchStatus')); loadCatalog($('bFile').value).catch((err) => setStatus($('batchStatus'), 'err', esc(err.message))); };
+$('btnBatch').onclick = startBatch;
+$('bAll').onchange = () => document.querySelectorAll('[data-bno]:not(:disabled)').forEach((x) => (x.checked = $('bAll').checked));
+document.querySelector('nav.tabs [data-tab="batch"]').addEventListener('click', showBatchAddress);
 $('url').addEventListener('keydown', (e) => e.key === 'Enter' && loadPackage());
 $('btnRandPhone').onclick = () => { $('phone').value = ['090', '091', '093', '096', '097', '098', '086', '088', '032', '035'][Math.floor(Math.random() * 10)] + String(Math.floor(Math.random() * 1e7)).padStart(7, '0'); showDefaults(); };
 $('phone').addEventListener('input', showDefaults);
@@ -824,6 +1118,14 @@ $('tabHistory').onclick = () => showView('history');
 $('btnRefreshStatus').onclick = () => loadStatuses(currentRows, true);
 $('btnCopyAll').onclick = (e) => copy(currentRows.filter((r) => r.code).map((r) => r.code).join('\n'), e.currentTarget);
 $('dlgClose').onclick = () => $('detailDlg').close();
+$('verBadge').onclick = openChangelog;
+$('btnAddPkg').onclick = () => openAddPkg('create');
+$('btnAddPkg2').onclick = () => openAddPkg('batch');
+$('apClose').onclick = () => $('addPkgDlg').close();
+$('apSave').onclick = () => saveAddPkg(false);
+$('apForce').onclick = () => saveAddPkg(true);
+$('apUrl').addEventListener('keydown', (e) => e.key === 'Enter' && saveAddPkg(false));
+$('clClose').onclick = () => $('changelogDlg').close();
 $('dlgRefresh').onclick = () => state.detailCode && openDetail(state.detailCode);
 document.addEventListener('click', (e) => {
   const cp = e.target.closest('[data-copy]');

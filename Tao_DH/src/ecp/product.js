@@ -1,6 +1,6 @@
 // Gói sản phẩm: lấy slug từ link chi tiết (vd https://staging.fpt.vn/internet/goi-giga) + thông tin gói.
 
-/** Link chi tiết / link đăng ký / slug trần -> { slug, sourceUrl } */
+/** Link chi tiết / link đăng ký / slug trần -> { slug, sourceUrl, shop } */
 export function parseProductUrl(input, webUrl) {
   const raw = String(input ?? '').trim();
   if (!raw) throw Object.assign(new Error('Chưa nhập link màn hình chi tiết gói'), { status: 400 });
@@ -17,7 +17,8 @@ export function parseProductUrl(input, webUrl) {
   const slug = parts[0] === 'checkout' ? parts[2] : parts.at(-1);
   if (!slug || parts.length < 2) throw Object.assign(new Error(`Không lấy được mã gói từ link: ${raw} (cần dạng ${webUrl}/internet/<gói>)`), { status: 400 });
   if (new URL(webUrl).host !== url.host) throw Object.assign(new Error(`Link phải thuộc ${new URL(webUrl).host} (môi trường đang chọn)`), { status: 400 });
-  return { slug, sourceUrl: url.origin + url.pathname };
+  // /shop/<loại>/register/<route> = luồng Shop selfservice (nguồn thứ 3)
+  return { slug, sourceUrl: url.origin + url.pathname, shop: parts[0] === 'shop' };
 }
 
 // service_id-sub_service_type_id (hằng số trong bundle FE checkout): phí lắp đặt thiết bị / gói giao hàng (tự lắp đặt)

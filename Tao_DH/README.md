@@ -36,7 +36,7 @@ Tool chạy cổng **3001** (tool BMS dùng 3000, chạy song song được). Đ
 
 ## 3. Sử dụng giao diện web
 
-1. Dán link màn hình chi tiết gói → **Tải gói** (hoặc Enter).
+1. Chọn gói ở ô **Chọn gói từ danh sách** (`data/listgoi.csv`, tự tải gói) hoặc dán link màn hình chi tiết gói → **Tải gói** (hoặc Enter). Gói không có trên ECP/FCP (vd `combo-internet-lux800-vvip`) và link `/shop/.../register/...` đi **nguồn Shop** (selfservice).
 2. Kiểm tra/sửa Họ tên, SĐT, địa chỉ (Tỉnh → Phường/Xã → Tên đường → **Nhà riêng**: Số nhà / **Chung cư**: Tên chung cư, Tòa nhà, Số tầng, Số phòng – 3 ô sau **điền sẵn ngẫu nhiên**, bấm 🎲 để sinh lại).
 3. Chọn **Thông tin sản phẩm** (mặc định cái đầu tiên), tick **Dịch vụ/Thiết bị bổ sung** nếu cần (mặc định không chọn), chọn **PTTT**. Mỗi lần đổi địa chỉ / sản phẩm / bổ sung, tool tính lại giá + PTTT (vd tick bổ sung thì gói Giga mất "Thanh toán tại nhà").
    - ⛔ **Địa chỉ không có chính sách** bán gói (vd chung cư "Nơi khác" ở P. Bến Thành, gói `combo-giga-lite`): tool báo đỏ, khóa nút Tạo đơn – web fpt.vn thì vẫn cho đăng ký và báo "thành công" nhưng không có đơn.
@@ -50,6 +50,14 @@ Tool chạy cổng **3001** (tool BMS dùng 3000, chạy song song được). Đ
 | Chờ thanh toán | Đơn đã lên, đang chờ thanh toán online (`recompleting`) |
 | Đã thanh toán | Thanh toán online thành công (`completed`) |
 | Đã thanh toán (cổng) · ECP chưa cập nhật | Tool đã tự thanh toán, cổng báo thành công nhưng staging chưa cập nhật trạng thái (lỗi hệ thống) |
+
+### Thêm gói vào danh sách
+Bấm **＋ Thêm gói** (cạnh ô Chọn gói, hoặc ở tab Tạo đơn hàng loạt) → nhập Link màn hình chi tiết gói, Tên nhóm (chọn có sẵn hoặc gõ mới), Tên trang (để trống = tự lấy tên gói) → **Kiểm tra & thêm**. Tool kiểm tra gói có thật trên ECP / FCP / Shop rồi ghi vào `data/listgoi.csv`; gói mới hiện ngay trong danh sách. Link trùng bị từ chối; gói không kiểm tra được thì có nút **Vẫn thêm**.
+
+### Tạo đơn hàng loạt (tab 2)
+Tạo đơn **tất cả link** trong file danh sách (`data/*.csv`, cột *Tên nhóm, Loại, Tên trang, Link staging*): tick các dòng (mặc định tất cả) → **▶ Tạo đơn các dòng đã chọn**. Chạy **song song** (mặc định 10 đơn cùng lúc, sửa được), dòng lỗi (không có gói / không có chính sách / lỗi staging) **bỏ qua** và ghi lý do. Địa chỉ dùng chung lấy theo tab Tạo đơn hàng. PTTT: mặc định *Thanh toán tại nhà nếu gói có* (đơn xong ngay), hoặc *PTTT đầu tiên của gói*. Xong → **⬇ Tải file kết quả** = `output/batch/<file>-<thời gian>.csv`: các cột gốc + **Kết quả** (Thành công/Lỗi), **Mã đơn (order code)**, **Số hợp đồng**, Order ID, Nguồn, PTTT, Trạng thái, Tổng tiền, Lỗi. Đơn thành công cũng hiện ở bảng Kết quả.
+
+> **Số hợp đồng**: staging (ECP lẫn Shop) **chưa trả** số hợp đồng lúc tạo đơn – hợp đồng sinh sau bước "Ký hợp đồng điện tử" → cột để trống; tool tự điền nếu API có trả.
 
 Nút 🎲 cạnh SĐT: sinh số ngẫu nhiên – dùng khi gói Combo báo *"Quý khách đã có tài khoản FPT Play theo số …"*.
 
@@ -66,6 +74,9 @@ npm run create  -- https://staging.fpt.vn/internet/PRD_NET_003 --offer 2 --pm CO
 npm run create  -- goi-giga --pm INTERNATIONAL --pay                     # tạo + tự thanh toán thẻ test (mở Chrome)
 npm run pay     -- 0000N5DLOHXC                                           # tự thanh toán đơn chờ thanh toán (Thẻ tín dụng/ATM)
 npm run repay   -- 0000N5DLOHXC --pm DOMESTIC --pay                       # đổi PTTT đơn chờ thanh toán + tự thanh toán lại
+npm run create  -- https://staging.fpt.vn/internet/combo-internet-lux800-vvip --pm COD   # gói nguồn Shop (selfservice)
+npm run batch                                                             # tạo đơn tất cả link trong data/listgoi.csv (10 luồng)
+npm run batch   -- listgoi.csv -c 20 --pm-mode first --rows 1,8,9         # 20 luồng, PTTT đầu tiên, chỉ dòng 1,8,9
 npm run status  -- 0000N1X5O1MO 0000N1XCZ7FK                              # trạng thái
 npm run detail  -- 0000N1X5O1MO                                           # chi tiết (JSON)
 ```
@@ -73,6 +84,8 @@ Mã PTTT: `INTERNATIONAL` (thẻ tín dụng), `DOMESTIC` (ATM), `COD` (tại nh
 
 ## 5. Dữ liệu
 
+- Danh sách link gói: `data/listgoi.csv` (UTF-8 có BOM; thêm file `.csv` khác vào `data/` để chọn ở tab Tạo đơn hàng loạt).
+- Kết quả tạo hàng loạt: `output/batch/<file>-<thời gian>.csv`.
 - Đơn đã tạo: `output/orders.csv` (mở Excel) + `output/orders.jsonl` (đầy đủ, **kèm token checkout** để xem lại đơn → không chia sẻ file này).
 - Chỉ xem được chi tiết đơn **do tool tạo** (cần token checkout của đơn).
 - Ghi chú đơn mặc định `AUTO-QC tạo đơn test`, họ tên `AUTO-QC Test` → dễ lọc/dọn dữ liệu test.

@@ -1,6 +1,6 @@
 {
   "name": "fptvn-order-tool",
-  "version": "1.7.0",
+  "version": "1.10.0",
   "description": "Tool hỗ trợ QC tạo nhanh đơn hàng test trên fpt.vn (staging): nhập link gói -> tạo đơn -> thanh toán -> xem đơn",
   "type": "module",
   "engines": {
@@ -18,6 +18,7 @@
     "repay": "node src/cli.js repay",
     "status": "node src/cli.js status",
     "detail": "node src/cli.js detail",
+    "batch": "node src/cli.js batch",
     "install-launcher": "bash scripts/install-launcher.sh",
     "build": "bash scripts/build-package.sh"
   }
