@@ -11,7 +11,12 @@ export const SERVICES = [
   { id: 'fpt-play', name: 'FPT Play', group: 'Truyền hình' },
   { id: 'fpt-play-sa', name: 'FPT Play Stand Alone', group: 'Truyền hình', unnamed: 'Gửi SMS' },
   { id: 'fpt-play-sme', name: 'FPT Play SME', group: 'Truyền hình', note: 'không mở form', detail: 'Bấm ô dịch vụ trên stag không có phản hồi (không form, không cảnh báo) – chưa tạo được đơn.' },
-  { id: 'fpt-camera', name: 'FPT Camera', group: 'Camera' },
+  { id: 'fpt-camera', name: 'FPT Camera', group: 'Camera', defaultFields: {
+    // Cấu hình chạy được trên stag (đơn mẫu HCMUR0026V6N → HĐ SGABP5865). Ghi đè từng ô trên giao diện / --field nếu cần.
+    '1.Gói dịch vụ': 'An Tâm 15', '1.Gói tính cước': 'Gói 6T (6T+0)', '1.Số lượng': '1',
+    '2.Loại thiết bị': 'FPT Camera', '2.Thiết bị': 'FPT Camera Play 4', '2.Số lượng': '1',
+    '4.Gói dịch vụ': 'TK theo thiết bị',
+  } },
   { id: 'fpt-camera-only', name: 'FPT Camera Only', group: 'Camera', sections: ['Cloud'], note: 'stag thiếu chính sách', detail: 'Portal báo "Hiện tại không có thông tin chính sách dịch vụ" – dữ liệu stag chưa cấu hình, tool sẽ dừng ở bước mở dịch vụ.' },
   { id: 'fpt-camera-b2b', name: 'FPT Camera B2B', group: 'Camera', note: 'thiếu bước', detail: 'Form yêu cầu thêm "Chọn thiết bị triển khai" – tool chưa làm bước này, sẽ dừng ở bước xác nhận gói.' },
   { id: 'ultra-fast', name: 'Ultra Fast', group: 'Tốc độ & Wi-Fi', sections: ['Basic'], note: 'stag thiếu chính sách', detail: 'Portal báo "Hiện tại không có thông tin chính sách dịch vụ" – dữ liệu stag chưa cấu hình, tool sẽ dừng ở bước mở dịch vụ.' },
@@ -40,18 +45,18 @@ const inCart = (list) => list.some((n) => /^Chi tiết giỏ hàng$/.test(n.labe
 async function openTile(app, name) {
   await app.mouse.move(720, 500);
   await app.mouse.wheel(0, -4000);
-  await sleep(800);
-  for (let i = 0; i < 20; i++) {
+  await sleep(500);
+  for (let i = 0; i < 24; i++) {
     const n = (await nodes(app)).find((m) => m.label === name);
     // Hàng cuối chỉ cuộn được tới sát mép dưới, ô bị cắt bớt: h nhỏ hơn nhưng vẫn bấm được
     if (n && n.y > 60 && n.y < 760 && n.h >= 30) {
-      await sleep(1000); // chờ hết quán tính cuộn rồi đọc lại vị trí
+      await sleep(500); // chờ hết quán tính cuộn rồi đọc lại vị trí
       const m = (await nodes(app)).find((x) => x.label === name) || n;
       await app.mouse.click(m.x, m.y);
       return;
     }
-    await app.mouse.wheel(0, 120);
-    await sleep(500);
+    await app.mouse.wheel(0, 280);
+    await sleep(280);
   }
   throw new Error(`Không thấy dịch vụ "${name}" trong Combo tùy chọn (tài khoản không có quyền bán?)`);
 }
@@ -75,7 +80,7 @@ async function expandSection(app, title) {
   const plus = (await plainButtons(app)).find((b) => Math.abs(b.y - head.y) < 14 && b.x > 950);
   if (!plus) return false;
   await app.mouse.click(plus.x, plus.y);
-  await sleep(2000);
+  await sleep(1200);
   return true;
 }
 
@@ -83,7 +88,7 @@ async function expandSection(app, title) {
 async function scrollForm(app, dy) {
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, dy);
-  await sleep(900);
+  await sleep(550);
 }
 
 // Nút cột phải của form: + ở tiêu đề mục (~40x25, x≈998); thùng rác nhỏ hơn (~25x25). Chữ tiêu đề mục KHÔNG có trong semantics.
@@ -114,7 +119,7 @@ async function openSections(app, want = [], all = false) {
       t = (await formSections(app)).find((x) => x.i === target.i) || t;
     }
     await app.mouse.click(t.x, t.y);
-    await sleep(2000);
+    await sleep(1200);
   }
   await scrollForm(app, -5000);
   return opened;
@@ -212,7 +217,7 @@ async function fillForm(app, prefs, { survey = null, state = { real: new Map() }
     let f = pending(await read());
     // Sheet vừa đóng / chọn gói xong form tải lại (vd FPT Play đổi gói -> ô Số lượng, Thiết bị Box hiện lại sau): đọc lại vài lần cho chắc
     for (let k = 0; !f && k < 2; k++) {
-      await sleep(1000);
+      await sleep(600);
       f = pending(await read());
     }
     if (!f) return chosen;
@@ -242,14 +247,14 @@ async function fillForm(app, prefs, { survey = null, state = { real: new Map() }
       await focusInput(app, f.x - 40, f.y);
       await sleep(200);
       await app.keyboard.press('Control+A');
-      await app.keyboard.type(qty, { delay: 40 });
-      await sleep(500);
+      await app.keyboard.insertText(qty); // gửi cả chuỗi 1 lần thay vì gõ từng ký tự
+      await sleep(300);
       chosen[k] = qty;
       continue;
     }
     await app.mouse.click(f.x, f.y);
     // Chờ sheet hiện dòng lựa chọn (sheet tải danh sách qua API) – sheet rỗng thì hết giờ rồi đóng như cũ
-    if (await waitSheet(app, true)) await sleep(400);
+    if (await waitSheet(app, true)) await sleep(300);
     if (survey) survey.push({ key: k, name, section, options: await readSheetOptions(app), ...(filled ? { value: f.name } : {}) });
     const label = await pickOption(app, want || (filled ? f.name : ''));
     if (label) {
@@ -258,7 +263,7 @@ async function fillForm(app, prefs, { survey = null, state = { real: new Map() }
       // Sheet rỗng (không có lựa chọn) -> đóng, bỏ qua ô này
       const close = (await plainButtons(app)).find((b) => b.x < 460 && b.w < 40);
       if (close) await app.mouse.click(close.x, close.y);
-      await sleep(1200);
+      await sleep(800);
     }
   }
   return chosen;
@@ -303,7 +308,7 @@ export async function addService(app, service, input, codes, shot, onLog) {
     const f = (await formFields(app)).filter((x) => !x.name).at(-1); // ô Số lượng đã điền cũng mất tên -> lấy ô cuối
     if (f) {
       await app.mouse.click(f.x, f.y);
-      if (await waitSheet(app, true)) await sleep(400);
+      if (await waitSheet(app, true)) await sleep(300);
       const label = await pickOption(app, service.unnamed);
       if (label) chosen[service.unnamed] = label;
     }
@@ -320,8 +325,9 @@ export async function addService(app, service, input, codes, shot, onLog) {
     }
     const ok = (await nodes(app)).find((n) => n.role === 'button' && /^Xác nhận$/.test(n.label));
     if (ok) await app.mouse.click(ok.x, ok.y);
-    await sleep(4000);
-    const list = await nodes(app);
+    // Chờ vào giỏ ("Chi tiết giỏ hàng") hoặc hộp cảnh báo thay vì chờ cố định 4s
+    let list = await nodes(app);
+    for (const end = Date.now() + 5000; !inCart(list) && !dialogOk(list) && Date.now() < end; await sleep(400)) list = await nodes(app);
     if (inCart(list)) return { name: service.name, chosen };
     await failOnDialog(app, service.name, codes, shot, 'xác nhận gói');
   }
@@ -390,7 +396,7 @@ export async function openCart(app, codes, shot, onLog) {
   await app.mouse.click(detail.x, detail.y);
   // Màn báo giá tính chính sách giá sau khi vào (vd "Không tìm được chính sách phù hợp…") -> chờ thấy ô Đối tượng KH hoặc cảnh báo
   let asked = 0;
-  for (const end = Date.now() + 30000; Date.now() < end; await sleep(1000)) {
+  for (const end = Date.now() + 30000; Date.now() < end; await sleep(500)) {
     // Hộp hỏi [Hủy | Xác nhận] (vd "Chính sách giá hiện tại đã không còn phù hợp. Bạn có muốn tìm chính sách giá mới nhất?") -> Xác nhận, đi tiếp
     const list = await nodes(app);
     const ok = dialogOk(list);

@@ -70,6 +70,19 @@ export function saveCustomers(account, customers) {
 
 export const loadCustomers = (account) => readJson(CUSTOMERS_FILE, {})[account] || null;
 
+/** KH đã biết (có id) theo SĐT – dùng để mở thẳng màn Tạo báo giá, không qua danh sách / chi tiết KH. */
+export const findCustomer = (account, phone) => loadCustomers(account)?.customers?.find((c) => c.phone === phone && c.id) || null;
+
+/** Ghi nhớ id KH (vd SĐT nhập tay, tìm thấy qua ô tìm kiếm) để lượt sau mở thẳng. */
+export function rememberCustomer(account, customer) {
+  const all = readJson(CUSTOMERS_FILE, {});
+  const entry = all[account] || { updatedAt: new Date().toISOString(), customers: [] };
+  const old = entry.customers.find((c) => c.phone === customer.phone);
+  entry.customers = old ? entry.customers.map((c) => (c === old ? { ...c, ...customer } : c)) : [...entry.customers, customer];
+  all[account] = entry;
+  writeJson(CUSTOMERS_FILE, all);
+}
+
 // ---- Gói của dịch vụ khác theo id dịch vụ: output/service-options.json (chưa tải thì dùng danh sách khảo sát sẵn) ----
 const SERVICE_OPTIONS_FILE = path.join(OUTPUT_DIR, 'service-options.json');
 const SERVICE_OPTIONS_SAMPLE = path.join(ROOT_DIR, 'config', 'service-options-default.json');

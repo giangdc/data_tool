@@ -1,14 +1,16 @@
 // Luồng tạo đơn (Internet / dịch vụ khác) + hợp đồng trên Portal SOP (khảo sát: khao-sat/KHAO_SAT.md).
 //  1. Portal (React): Khách hàng của tôi -> tìm theo SĐT -> chi tiết KH -> tab Đơn hàng -> Thêm đơn hàng -> Bán mới
+//     Nhanh: KH đã biết id -> gọi API encrypt-payload (việc nút Bán mới làm) rồi window.open thẳng /ban-hang/order/create
 //  2. Tab mới /ban-hang/order/create = app Sale Platform (Flutter): địa chỉ (tìm kiếm) -> combo -> PTTT -> lưu KH
 //     -> Tạo báo giá (bỏ qua cảnh báo trùng đơn) -> Tạo hợp đồng -> khảo sát Định danh KH
 //     Dịch vụ khác: thay combo bằng form dịch vụ + giỏ hàng (services.js), có thể mua kèm combo Internet
 // Mã đơn / mã HĐ / link báo giá / bookport đọc từ response API của app (màn Flutter không có chữ trong DOM).
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { config, OUTPUT_DIR } from '../core/env.js';
+import { config, credentials, OUTPUT_DIR } from '../core/env.js';
+import { findCustomer, rememberCustomer } from '../core/store.js';
 import { getContext, openPortal } from '../core/browser.js';
-import { sleep, nodes, findNode, waitNode, tapLabel, shooter, clickUntilChange, clickUntilNode, typeInto } from './flutter.js';
+import { sleep, nodes, findNode, waitNode, tapLabel, shooter, clickUntilChange, clickUntilNode, typeInto, formFields } from './flutter.js';
 import { findService, addService, openCart, readServiceOptions } from './services.js';
 import { findCustomerType, isOrgType, chooseCustomerType, fillOrgCustomer, randomTaxCode, quoteGroups, DEFAULT_CUSTOMER_TYPE, CUSTOMER_TYPES } from './customer.js';
 
@@ -145,12 +147,15 @@ export async function openCustomer(page, phone, onLog) {
   if (!(await row().count())) {
     const search = page.locator('.ant-select-selection-search-input').first();
     await search.click();
-    await page.keyboard.type(phone, { delay: 30 });
+    await page.keyboard.insertText(phone); // gửi cả chuỗi 1 lần thay vì gõ từng ký tự
     await page.keyboard.press('Enter');
     await sleep(3000);
   }
   if (!(await row().count())) throw new Error(`Không thấy khách hàng có SĐT ${phone} trong "Khách hàng của tôi" của tài khoản này`);
   const name = (await row().locator('td').nth(1).innerText()).split('\n')[0].trim();
+  // id KH = data-row-key của dòng -> nhớ lại để lượt sau mở thẳng màn Tạo báo giá
+  const id = await row().getAttribute('data-row-key').catch(() => null);
+  if (id) rememberCustomer(credentials().user, { name, phone, id });
   await row().getByText(name, { exact: true }).first().click();
   await page.waitForURL(/chi-tiet/, { timeout: 20000 });
   await page.getByText('Đơn hàng', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
@@ -173,6 +178,91 @@ export async function openNewSale(page, shot, onLog) {
   }
   if (!app) throw new Error('Bấm "Bán mới" không mở được màn Tạo báo giá (Sale Platform)');
   onLog('Bán mới → mở màn Tạo báo giá (Sale Platform)');
+  return waitSaleReady(app, shot, onLog);
+}
+
+/**
+ * Mở thẳng màn Tạo báo giá cho KH (id) – thay cho danh sách KH -> chi tiết -> Thêm đơn hàng -> Bán mới.
+ * Làm đúng việc nút Bán mới của portal: POST customer-service/api/order/encrypt-payload {customer_id, type: NEW_ORDER}
+ * -> localStorage.saleclub_sdk_secure -> window.open('/ban-hang/order/create') (mở tab mới; goto trong cùng tab bị app báo lỗi).
+ * Trả về null nếu không lấy được payload (gọi luồng cũ).
+ */
+async function openSaleDirect(page, customerId, shot, onLog) {
+  const encrypt = () => page.evaluate(async ({ api, id }) => {
+    const post = () => fetch(`${api}/customer-service/api/order/encrypt-payload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+      body: JSON.stringify({ customer_id: id, type: 'NEW_ORDER' }),
+    });
+    let res = await post();
+    if (res.status === 401 && localStorage.getItem('refreshToken')) {
+      // access token hết hạn -> refresh như portal rồi gọi lại
+      const r = await fetch(`${api}/auth-service/api/auth-service/refresh-token`, { headers: { Authorization: `Bearer ${localStorage.getItem('refreshToken')}` } });
+      const j = await r.json().catch(() => null);
+      if (j?.status === 'success') {
+        localStorage.setItem('accessToken', j.data.access_token);
+        localStorage.setItem('refreshToken', j.data.refresh_token);
+        res = await post();
+      }
+    }
+    const j = await res.json().catch(() => null);
+    if (j?.status !== 'success' || !j.data) return `HTTP ${res.status}${j?.message ? ' – ' + j.message : ''}`;
+    localStorage.setItem('saleclub_sdk_secure', j.data);
+    return '';
+  }, { api: config.gatewayUrl, id: customerId });
+
+  // Cần đang ở portal (localStorage có token). Chưa ở / phiên hết -> mở trang nhẹ, tự đăng nhập nếu bị đá về login
+  if (!page.url().startsWith(config.sopUrl) || page.url().includes('/user/login')) await openPortal(page, config.sopUrl + LIST_PATH, onLog);
+  let err = await encrypt().catch((e) => e.message);
+  if (err) {
+    await openPortal(page, config.sopUrl + LIST_PATH, onLog);
+    err = await encrypt().catch((e) => e.message);
+  }
+  if (err) {
+    onLog(`Không mở thẳng được màn Tạo báo giá (${err}) → đi qua chi tiết KH`);
+    return null;
+  }
+  // Stag chập chờn: màn tạo đơn có lúc văng về Dashboard kèm "Đã có lỗi xảy ra (0x…)" ngay khi mở.
+  // Thử lại như nút Bán mới của portal (tối đa 3 lần): tạo lại payload + mở lại tab; hết lượt thì để luồng cũ chạy.
+  for (let i = 0; i < 3; i++) {
+    if (i) {
+      await sleep(2000); // stag hồi lại một nhịp trước khi thử lại
+      const again = await encrypt().catch((e) => e.message);
+      if (again) { onLog(`Không tạo lại được phiên mở đơn (${again}) → đi qua chi tiết KH`); return null; }
+    }
+    const opened = page.context().waitForEvent('page', { timeout: 30000 }).catch(() => null);
+    await page.evaluate(() => window.open('/ban-hang/order/create', '_blank'));
+    const app = await opened;
+    if (!app) return null;
+    onLog(i ? `Mở thẳng màn Tạo báo giá (thử lại ${i + 1}/3)` : 'Mở thẳng màn Tạo báo giá (Sale Platform)');
+    try {
+      return await waitSaleReady(app, shot, onLog);
+    } catch (err) {
+      await app.close().catch(() => {});
+      if (i === 2) { onLog(`Mở thẳng màn Tạo báo giá lỗi 3 lần (${err.message}) → đi qua chi tiết KH`); return null; }
+      onLog(`Màn tạo đơn lỗi khi mở (stag) → thử lại (${i + 2}/3)`);
+    }
+  }
+  return null;
+}
+
+/**
+ * Mở màn Tạo báo giá cho KH theo SĐT: KH đã biết id thì mở thẳng, không thì đi qua chi tiết KH (và nhớ id cho lần sau).
+ * Trả về { app, customer } (customer = tên KH).
+ */
+export async function openSale(page, phone, shot, onLog) {
+  const known = findCustomer(credentials().user, phone);
+  if (known) {
+    onLog(`Khách hàng ${phone} – ${known.name}`);
+    const app = await openSaleDirect(page, known.id, shot, onLog);
+    if (app) return { app, customer: known.name };
+  }
+  const customer = await openCustomer(page, phone, onLog);
+  return { app: await openNewSale(page, shot, onLog), customer };
+}
+
+/** Chờ app Sale Platform tải xong màn Tạo báo giá (xử lý hộp đơn nháp / cảnh báo cọc / lỗi). */
+async function waitSaleReady(app, shot, onLog) {
   await app.setViewportSize({ width: 1440, height: 813 });
   await app.bringToFront();
   await waitApi(app, /get-permission-services/, 40000);
@@ -452,8 +542,8 @@ async function choosePayment(app, payment, onLog) {
   return first.label;
 }
 
-export async function saveCustomer(app, onLog) {
-  onLog('Lưu thông tin khách hàng (Họ tên + SĐT)');
+export async function saveCustomer(app, onLog, phoneOverride = '') {
+  onLog(phoneOverride ? `Lưu thông tin khách hàng (SĐT dùng FPT Play: ${phoneOverride})` : 'Lưu thông tin khách hàng (Họ tên + SĐT)');
   await app.mouse.move(720, 400);
   await app.mouse.wheel(0, -3000);
   await sleep(500);
@@ -461,6 +551,12 @@ export async function saveCustomer(app, onLog) {
   // Form KH mở (get-master-data) -> có nút "Xác nhận & Lưu"
   await waitNode(app, /^Xác nhận & Lưu$/, 6000);
   await sleep(500);
+  // Đơn FPT Play: đổi SĐT (Nhận SMS) sang SĐT dùng FPT Play — portal kiểm tra số này. Ô: "Số điện thoại … (Nhận SMS)"
+  if (phoneOverride) {
+    const f = (await formFields(app)).find((x) => /số điện thoại/i.test(x.name) && /sms|liên hệ|giao dịch/i.test(x.name));
+    if (f && !(await typeInto(app, f.x, f.y, phoneOverride))) onLog('⚠ Không nhập được SĐT FPT Play vào ô Số điện thoại – giữ SĐT khách hàng');
+    else if (!f) onLog('⚠ Không thấy ô Số điện thoại trong form KH – giữ SĐT khách hàng');
+  }
   const saved = waitApi(app, /validate-customer-info/, 8000);
   await tapLabel(app, /^Xác nhận & Lưu$/, [720, 766], 0);
   await saved;
@@ -572,6 +668,21 @@ async function createContract(app, codes, shot, onLog) {
   throw new Error('Tạo hợp đồng chưa xong sau 2,5 phút (xem ảnh trong output/debug)');
 }
 
+/**
+ * Gộp field mặc định của dịch vụ với field người dùng chọn: người dùng ghi đè theo đúng khoá, và khoá không mục
+ * (vd "Gói dịch vụ") ghi đè khoá có mục cùng tên của mặc định (vd "1.Gói dịch vụ") để lựa chọn của người dùng thắng.
+ */
+function mergeFields(defaults, user) {
+  const merged = { ...defaults };
+  for (const [k, v] of Object.entries(user || {})) {
+    if (k !== '__open' && !/^\d+\./.test(k)) {
+      for (const dk of Object.keys(merged)) if (dk.replace(/^\d+\./, '') === k) delete merged[dk];
+    }
+    merged[k] = v;
+  }
+  return merged;
+}
+
 function orderOptions(input) {
   const d = config.defaults;
   const opts = {
@@ -587,7 +698,10 @@ function orderOptions(input) {
     withInternet: Boolean(input.withInternet),
     customerType: String(input.customerType || DEFAULT_CUSTOMER_TYPE).trim(),
     org: input.org && typeof input.org === 'object' ? input.org : {},
+    // SĐT sử dụng FPT Play: đơn có FPT Play thì điền SĐT này vào ô "Số điện thoại (Nhận SMS)" của Thông tin KH
+    fptPlayPhone: String(input.fptPlayPhone ?? d.fptPlayPhone ?? '').trim(),
   };
+  if (opts.fptPlayPhone && !/^0\d{9}$/.test(opts.fptPlayPhone)) throw Object.assign(new Error('SĐT sử dụng FPT Play cần 10 số, bắt đầu bằng 0'), { status: 400 });
   const ctype = findCustomerType(opts.customerType);
   if (!ctype) {
     throw Object.assign(new Error(`Không có đối tượng khách hàng "${opts.customerType}" (có: ${CUSTOMER_TYPES.map((t) => t.name).join(', ')})`), { status: 400 });
@@ -607,9 +721,11 @@ function orderOptions(input) {
     : opts.service !== 'internet' ? [{ id: opts.service, fields: opts.fields }] : [];
   opts.services = list.map((x) => {
     const id = String(typeof x === 'string' ? x : x?.id || '').trim();
-    if (!findService(id)) throw Object.assign(new Error(`Không có dịch vụ "${id}"`), { status: 400 });
-    const fields = x?.fields && typeof x.fields === 'object' ? x.fields : {};
-    return { id, fields };
+    const svc = findService(id);
+    if (!svc) throw Object.assign(new Error(`Không có dịch vụ "${id}"`), { status: 400 });
+    const userFields = x?.fields && typeof x.fields === 'object' ? x.fields : {};
+    // Dịch vụ có cấu hình chạy được mặc định (vd FPT Camera): lấy mặc định làm nền, ô người dùng chọn thì ghi đè
+    return { id, fields: svc.defaultFields ? mergeFields(svc.defaultFields, userFields) : userFields };
   });
   if (opts.services.length > 8) throw Object.assign(new Error('Tối đa 8 dịch vụ trong 1 đơn'), { status: 400 });
   if (opts.services.length > 1 || Array.isArray(input.services)) opts.service = opts.services.map((x) => x.id).join('+') || 'internet';
@@ -637,8 +753,7 @@ export async function fetchPackages(input, onLog = () => {}) {
   const page = await portalPage(input.headless);
   let app = null;
   try {
-    await openCustomer(page, opts.phone, onLog);
-    app = await openNewSale(page, shot, onLog);
+    ({ app } = await openSale(page, opts.phone, shot, onLog));
     const packages = await chooseAddress(app, opts.address, opts.coords, shot, onLog);
     onLog(`✔ ${packages.length} gói ở địa chỉ này`);
     return { address: opts.address, packages };
@@ -650,7 +765,7 @@ export async function fetchPackages(input, onLog = () => {}) {
   }
 }
 
-/** Danh sách KH trong "Khách hàng của tôi" (tab Tất cả, mọi trang): [{ name, phone }] */
+/** Danh sách KH trong "Khách hàng của tôi" (tab Tất cả, mọi trang): [{ name, phone, id }] */
 export async function fetchCustomers(input = {}, onLog = () => {}) {
   const page = await portalPage(input.headless);
   onLog('Đọc danh sách "Khách hàng của tôi"');
@@ -660,9 +775,11 @@ export async function fetchCustomers(input = {}, onLog = () => {}) {
   const list = [];
   for (let i = 0; i < 30; i++) {
     // Cột "Tên khách hàng": dòng 1 tên, dòng 2 SĐT
-    for (const cell of await page.locator('.ant-table-tbody tr td:nth-child(2)').allInnerTexts()) {
+    // id KH = data-row-key của dòng (dùng để mở thẳng màn Tạo báo giá)
+    const rows = await page.locator('.ant-table-tbody tr').evaluateAll((trs) => trs.map((tr) => ({ id: tr.getAttribute('data-row-key') || '', cell: tr.querySelector('td:nth-child(2)')?.innerText || '' })));
+    for (const { id, cell } of rows) {
       const [name = '', phone = ''] = cell.split('\n').map((x) => x.trim()).filter(Boolean);
-      if (/^0\d{9}$/.test(phone) && !list.some((c) => c.phone === phone)) list.push({ name, phone });
+      if (/^0\d{9}$/.test(phone) && !list.some((c) => c.phone === phone)) list.push({ name, phone, ...(id && { id }) });
     }
     const next = page.locator('.ant-pagination-next').first();
     if (!(await next.count()) || (await next.getAttribute('aria-disabled')) === 'true' || /disabled/.test((await next.getAttribute('class')) || '')) break;
@@ -682,8 +799,7 @@ export async function fetchServiceOptions(input, onLog = () => {}) {
   const page = await portalPage(input.headless);
   let app = null;
   try {
-    await openCustomer(page, opts.phone, onLog);
-    app = await openNewSale(page, shot, onLog);
+    ({ app } = await openSale(page, opts.phone, shot, onLog));
     await chooseAddress(app, opts.address, opts.coords, shot, onLog);
     const { options, form } = await readServiceOptions(app, service, codeCollector(app), shot, onLog);
     onLog(`✔ ${options.length} gói ${service.name}`);
@@ -716,8 +832,7 @@ export async function createOrder(input, onLog = () => {}, onPackages = () => {}
   let app = null;
   let codes = null;
   try {
-    record.customer = await openCustomer(page, opts.phone, onLog);
-    app = await openNewSale(page, shot, onLog);
+    ({ app, customer: record.customer } = await openSale(page, opts.phone, shot, onLog));
     codes = codeCollector(app);
     await shot(app, 'tao-bao-gia');
     const packages = await chooseAddress(app, opts.address, opts.coords, shot, onLog);
@@ -762,7 +877,10 @@ export async function createOrder(input, onLog = () => {}, onPackages = () => {}
       record.payment = await choosePayment(app, opts.payment, onLog);
     } else {
       record.payment = await choosePayment(app, opts.payment, onLog);
-      await saveCustomer(app, onLog);
+      // Đơn có FPT Play + SĐT FPT Play khác SĐT khách hàng -> đổi SĐT (Nhận SMS) sang số này để portal kiểm tra đúng số
+      const fppPhone = services.some((x) => /^fpt-play/.test(x.id)) && opts.fptPlayPhone && opts.fptPlayPhone !== opts.phone ? opts.fptPlayPhone : '';
+      if (fppPhone) record.fptPlayPhone = fppPhone;
+      await saveCustomer(app, onLog, fppPhone);
     }
     await shot(app, 'truoc-tao-bao-gia');
     await createQuote(app, codes, shot, onLog);

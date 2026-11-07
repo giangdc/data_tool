@@ -9,7 +9,7 @@ Luồng Internet:
 
 | Bước | Màn | Tool làm gì |
 |---|---|---|
-| 1 | Portal – Khách hàng của tôi | Tìm KH theo **SĐT** (chọn từ danh sách KH tự tải) → mở chi tiết → tab Đơn hàng → **Thêm đơn hàng → Bán mới** |
+| 1 | Portal – Khách hàng của tôi | Tìm KH theo **SĐT** (chọn từ danh sách KH tự tải) → mở chi tiết → tab Đơn hàng → **Thêm đơn hàng → Bán mới**. KH đã có trong danh sách (đã biết id) thì **mở thẳng** màn Tạo báo giá (gọi API `encrypt-payload` như nút Bán mới), không qua các bước này |
 | 2 | Sale Platform – Tạo báo giá | **Địa chỉ**: gõ vào ô Tìm kiếm trên bản đồ → chọn kết quả đầu → điền thêm Số nhà + Toạ độ (Google stag hay báo OVER_QUERY_LIMIT) → Xác nhận. Có hộp thoại "đơn hàng trước đó chưa hoàn thành" thì bấm **Không** |
 | 3 | | Chọn **gói** trong Combo gợi ý (nhóm GigaF1/F2, MetaF1/F2, SkyF1/F2, Combo khác + thứ tự trong nhóm); thẻ khuất thì tự cuộn ngang. Stag báo "Thời gian phản hồi quá lâu" thì đóng thông báo, bấm lại (tối đa 3 lần) |
 | 3b | | **Đối tượng khách hàng**: *Cá nhân* (mặc định, = "Gia đình" trên portal) hoặc *Doanh nghiệp* → nhập form doanh nghiệp (Tên, MST, Ngày cấp/Nơi cấp, Ngày thành lập, Địa chỉ GPKD, SĐT tổ chức + liên hệ, Người đại diện) → Xác nhận & Lưu. Ô trống = dữ liệu test (MST ngẫu nhiên hợp lệ, SĐT = SĐT KH…) |
@@ -46,7 +46,8 @@ Cần **Google Chrome** (hoặc Edge). Tool điều khiển 1 cửa sổ Chrome 
 2. **Khách hàng**: tool tự tải "Khách hàng của tôi" và chọn sẵn SĐT dùng lần trước; chọn lại trong danh sách, hoặc "✎ Nhập SĐT khác…" (**↻ Tải lại** để cập nhật danh sách).
    **Gói**: chọn sẵn gói dùng lần trước (lần đầu: gói đầu tiên); chọn lại trong danh sách gói theo nhóm (giá tháng, phí lắp, tổng, thiết bị), có ô lọc.
    Danh sách gói lấy từ API `package-view/list` theo địa chỉ – đổi địa chỉ thì bấm **↻ Tải gói** (~1 phút, không tạo đơn).
-   **Dịch vụ khác**: chọn trên menu header → chọn gói / chu kỳ cước (bấm **↻ Tải gói** để lấy danh sách theo địa chỉ, để trống = dòng đầu trên portal).
+   **FPT Camera** đã có bộ mặc định chạy được trên stag (An Tâm 15 · Gói 6T (6T+0) · FPT Camera Play 4 · TK theo thiết bị) – chọn FPT Camera rồi bấm Tạo đơn là xong, đổi gói trong form nếu cần.
+  **Dịch vụ khác**: chọn trên menu header → chọn gói / chu kỳ cước (bấm **↻ Tải gói** để lấy danh sách theo địa chỉ, để trống = dòng đầu trên portal).
    Dấu chấm vàng trên menu = dịch vụ đang vướng trên stag (xem ghi chú trong form). Hộp cảnh báo của portal không đọc được chữ → lỗi có link mở ảnh.
    **Form đầy đủ**: bấm **↻ Đọc form** (~2 phút, không tạo đơn) để hiện mọi ô của dịch vụ theo mục (gói, chu kỳ, số lượng, thiết bị,
    tình trạng, đơn vị triển khai, thu hồi, Extra…) và chọn đúng data có chính sách giá. Ô trống = dòng đầu trên portal.
@@ -72,6 +73,7 @@ npm run order -- --phone 0833329408 --customer-type "Doanh nghiệp" [--company 
                  [--representative "Nguyễn Văn A"] [--org-phone 09..] [--contact-phone 09..] [--email ..] [--issue-place ..] [--gpkd-address ..]
 npm run order -- --customer-types  # đối tượng KH đang hỗ trợ (Cá nhân, Doanh nghiệp)
 npm run order -- --services      # danh sách id dịch vụ
+npm run order -- --phone 0964633310 --service fpt-play --fpt-play-phone 0987654321   # đơn FPT Play, đổi SĐT portal kiểm tra
 npm run order -- --phone 0989369096 --with-internet --service fpt-play --service fpt-camera [--field "fpt-camera:Gói tính cước=6T"]   # nhiều dịch vụ 1 đơn
 npm run order -- --phone 0964633310 --service fpt-camera --field "Gói dịch vụ=..." --field "Gói tính cước=6T" [--with-internet]
 ```
