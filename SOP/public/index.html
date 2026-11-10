@@ -246,6 +246,10 @@
             <option>Thanh toán sau triển khai</option><option>VNPay-QR</option><option>FoxPay-QR</option><option>Foxpay</option><option>MBBank</option>
           </datalist>
         </div>
+        <div class="field hidden" id="fppRow">
+          <label for="fptPlayPhone">SĐT sử dụng FPT Play <span class="sub">(portal kiểm tra số này; để trống = dùng SĐT khách hàng)</span></label>
+          <input id="fptPlayPhone" inputmode="numeric" placeholder="0964633310">
+        </div>
         <label class="check"><input type="checkbox" id="contract" checked> Tạo luôn hợp đồng (+ khảo sát Định danh KH)</label>
         <div class="field">
           <label>Chế độ chạy</label>
@@ -468,9 +472,14 @@ function selectService(id) {
     autoReadForm();
   }
   showPkgBox();
+  toggleFpp();
   renderMenu();
   closeMenus();
 }
+
+// Ô "SĐT sử dụng FPT Play" chỉ hiện khi đơn có dịch vụ FPT Play (đang chọn hoặc trong danh sách cần tạo)
+const hasFptPlay = () => /^fpt-play/.test(current.id) || cart.some((c) => c.kind === 'svc' && /^fpt-play/.test(c.id));
+function toggleFpp() { $('fppRow').classList.toggle('hidden', !hasFptPlay()); }
 // ---- Danh sách cần tạo: "+ Thêm…" gom gói Net / dịch vụ (kèm lựa chọn gói). Tạo đơn: mỗi mục 1 đơn riêng (mặc định) hoặc gộp 1 đơn ----
 // Mục: { kind: 'net', combo, comboIndex, name } | { kind: 'svc', id, name, fields, withInternet, needsInternet }
 let cart = (() => { try { return JSON.parse(store.get('cart2') || '[]'); } catch { return []; } })();
@@ -500,6 +509,7 @@ const itemText = (x) => x.kind === 'net' ? `Net ${x.name}`
   : `${x.name}: ${Object.entries(x.fields).filter(([k]) => k !== '__open').filter(([k, v]) => !(/Số lượng/.test(k) && String(v) === '1')).map(([k, v]) => /Số lượng/.test(k) ? `SL ${v}` : v).join(' · ')}`
     + `${x.fields.__open?.length ? ` · + mục ${x.fields.__open.join(', ')}` : ''}${x.net ? ` (+ Net ${x.net.name})` : ''}`;
 function renderCart() {
+  toggleFpp();
   store.set('cart2', JSON.stringify(cart));
   $('cartBox').classList.toggle('hidden', !cart.length);
   const n = cart.length;
@@ -571,7 +581,11 @@ function renderSvcOptions() {
   const list = r?.options || [];
   const main = list.filter((o) => o.section === list[0]?.section);
   const keep = store.get('svc:' + current.id) || '';
-  $('svcPkg').innerHTML = '<option value="">(mặc định – dòng đầu trên portal)</option>' + main.map((o) => `<option>${esc(o.name)}</option>`).join('');
+  // Dịch vụ có cấu hình mặc định chạy được (vd FPT Camera): để trống = dùng bộ mặc định đó, không phải "dòng đầu"
+  const df = current.defaultFields || null;
+  const dfPkg = df && (df['1.Gói dịch vụ'] || df['Gói dịch vụ']);
+  const emptyLabel = dfPkg ? `(mặc định: ${dfPkg}${df['1.Gói tính cước'] ? ' · ' + df['1.Gói tính cước'] : ''})` : '(mặc định – dòng đầu trên portal)';
+  $('svcPkg').innerHTML = `<option value="">${esc(emptyLabel)}</option>` + main.map((o) => `<option>${esc(o.name)}</option>`).join('');
   if (main.some((o) => o.name === keep)) $('svcPkg').value = keep;
   $('svcHint').textContent = r?.form?.fields?.length ? `Form ${r.form.fields.length} ô, đọc ${new Date(r.updatedAt).toLocaleString('vi-VN')}`
     : !list.length ? 'Chưa đọc form – bấm Đọc form để hiện đủ các ô' : `${main.length} gói${r.updatedAt ? ', tải ' + new Date(r.updatedAt).toLocaleString('vi-VN') : ' (khảo sát sẵn)'} · bấm Đọc form để hiện đủ các ô`;
@@ -789,6 +803,12 @@ $('runForm').onsubmit = (e) => {
     body.withInternet = $('withInternet').checked;
     body.fields = svcConfig().fields;
   }
+  if (hasFptPlay()) {
+    const fp = $('fptPlayPhone').value.trim();
+    if (fp && !/^0\d{9}$/.test(fp)) return showMsg('err', 'SĐT sử dụng FPT Play cần 10 số, bắt đầu bằng 0');
+    body.fptPlayPhone = fp;
+    store.set('fptPlayPhone', fp);
+  }
   if (!/^0\d{9}$/.test(body.phone)) return showMsg('err', 'SĐT khách hàng cần 10 số, bắt đầu bằng 0');
   for (const k of ['phone', 'address', 'coords', 'payment']) store.set(k, body[k]);
   startJob('/api/run', body, () => {
@@ -903,6 +923,7 @@ document.addEventListener('click', async (e) => {
   $('address').value = store.get('address') || d.address;
   $('coords').value = store.get('coords') ?? d.coords;
   $('payment').value = store.get('payment') || d.payment;
+  $('fptPlayPhone').value = store.get('fptPlayPhone') ?? d.fptPlayPhone ?? '';
   renderCustomerTypes();
   const mode = store.get('mode') || (cfg.headless ? 'headless' : 'ui');
   document.querySelector(`input[name=mode][value="${mode}"]`).checked = true;

@@ -9,7 +9,8 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Bật semantics (1 lần / trang) rồi trả về các node có nhãn: {role, label, x, y, w, h}. */
 export async function nodes(page) {
-  const enabled = await page.evaluate(() => {
+  const justEnabled = await page.evaluate(() => {
+    const had = document.querySelector('flt-semantics'); // cây đã dựng sẵn thì đọc ngay, không cần chờ
     const ph = document.querySelector('flt-semantics-placeholder');
     ph?.click();
     // Lớp semantics chỉ để ĐỌC: cho click xuyên xuống canvas (nếu không, vài nút như "Xác nhận" địa chỉ không ăn)
@@ -19,10 +20,10 @@ export async function nodes(page) {
       st.textContent = 'flt-semantics-host, flt-semantics { pointer-events: none !important; }';
       document.head.appendChild(st);
     }
-    return Boolean(ph);
+    return !had && Boolean(ph);
   }).catch(() => false);
-  // Vừa bấm placeholder = semantics mới bật, cây chưa dựng xong -> chờ 1 nhịp; đã bật rồi thì đọc ngay
-  if (enabled) await sleep(300);
+  // Chỉ khi vừa bật semantics lần đầu (cây chưa dựng) mới chờ 1 nhịp; đã bật rồi thì đọc ngay
+  if (justEnabled) await sleep(300);
   return page.evaluate(() => [...document.querySelectorAll('flt-semantics')].map((e) => {
     const r = e.getBoundingClientRect();
     const own = [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
@@ -43,9 +44,9 @@ export async function formFields(page, { refresh = true } = {}) {
   if (refresh) {
     const { width, height } = page.viewportSize() || { width: 1440, height: 813 };
     await page.setViewportSize({ width, height: height + 1 });
-    await sleep(400);
+    await sleep(250);
     await page.setViewportSize({ width, height });
-    await sleep(1000);
+    await sleep(650);
   }
   await nodes(page);
   const list = await page.evaluate(() => [...document.querySelectorAll('flt-semantics')].flatMap((e) => {
@@ -131,9 +132,10 @@ export async function typeInto(page, x, y, text, tries = 3, { delay = 25 } = {})
     await sleep(300);
     await page.keyboard.press('Control+A');
     await page.keyboard.press('Backspace');
-    // Gõ nhanh rồi chờ giá trị khớp (tối đa 1,5s); Flutter rớt ký tự thì lượt sau gõ chậm lại
-    await page.keyboard.type(text, { delay: i ? 60 : delay });
-    for (const end = Date.now() + 1500; Date.now() < end; await sleep(200)) {
+    // Lượt 1: gửi cả chuỗi 1 sự kiện (insertText) cho nhanh. Flutter rớt chữ thì lượt sau gõ từng ký tự.
+    if (i === 0) await page.keyboard.insertText(text);
+    else await page.keyboard.type(text, { delay: 60 });
+    for (const end = Date.now() + 1500; Date.now() < end; await sleep(150)) {
       if ((await value()) === text) return true;
     }
   }

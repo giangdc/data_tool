@@ -37,6 +37,7 @@ const { values: a } = parseArgs({
     'contact-phone': { type: 'string' },
     email: { type: 'string' },
     representative: { type: 'string' },
+    'fpt-play-phone': { type: 'string' },
     show: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
   },
@@ -83,7 +84,7 @@ try {
   const r = await createOrder({
     phone: a.phone, address: a.address, coords: a.coords, combo: a.combo, comboIndex: a.index, payment: a.payment,
     services: (a.service || []).map((id) => ({ id, fields: fieldsFor(id) })), withInternet: a['with-internet'],
-    customerType: a['customer-type'],
+    customerType: a['customer-type'], fptPlayPhone: a['fpt-play-phone'],
     org: {
       company: a.company, taxCode: a['tax-code'], issuePlace: a['issue-place'], gpkdAddress: a['gpkd-address'],
       orgPhone: a['org-phone'], contactPhone: a['contact-phone'], email: a.email, representative: a.representative,

@@ -30,6 +30,8 @@ export const config = {
     combo: env('DEFAULT_COMBO', 'GigaF1'),
     comboIndex: Number(env('DEFAULT_COMBO_INDEX', '1')) || 1,
     payment: env('DEFAULT_PAYMENT', 'Napas'),
+    // SĐT dùng cho FPT Play (portal kiểm tra SĐT đã gắn hợp đồng FPT Play chưa); đổi được trên giao diện
+    fptPlayPhone: env('FPT_PLAY_PHONE', '0964633310'),
   },
   // Mặc định chạy ngầm (chọn lại được trên giao diện)
   headless: env('HEADLESS', 'true').toLowerCase() !== 'false',
