@@ -1,0 +1,26 @@
+{
+  "name": "tmdt-order-tool",
+  "version": "1.1.0",
+  "description": "Tool hỗ trợ QC tạo đơn hàng thương mại điện tử (TikTok Shop / Shopee) theo RefCode trên SPF Web Admin staging",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "tmdt-order": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "ui": "node src/server.js",
+    "login": "node src/cli.js login",
+    "load": "node src/cli.js load",
+    "create": "node src/cli.js create",
+    "search": "node src/cli.js search",
+    "disconnect": "node src/cli.js disconnect",
+    "status": "node src/cli.js status",
+    "history": "node src/cli.js history",
+    "settle": "node src/cli.js settle",
+    "install-launcher": "bash scripts/install-launcher.sh",
+    "build": "bash scripts/build-package.sh"
+  }
+}

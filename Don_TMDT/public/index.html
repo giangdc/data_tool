@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tạo đơn TMĐT</title>
+<link rel="icon" href="/icon.svg">
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --text: #1d2433; --muted: #6b7385; --line: #e3e7ef;
+    --primary: #1f5fbf; --primary-hover: #184d9c; --ok: #1a8a4a; --ok-bg: #e7f6ed;
+    --err: #c0392b; --err-bg: #fdecea; --warn-bg: #fff6e0; --warn: #8a5a00; --input: #ffffff; --accent: #f37021;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2b3240;
+      --primary: #4d8ef0; --primary-hover: #6aa2f5; --ok: #4cc584; --ok-bg: #16301f;
+      --err: #f07a6c; --err-bg: #3a1d1a; --warn-bg: #3a2f14; --warn: #f0c35a; --input: #141820;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--primary); }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  header h1 img { width: 24px; height: 24px; }
+  header .site { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 600; text-transform: uppercase; }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+  .pill.on { background: var(--ok-bg); color: var(--ok); }
+  .pill.off { background: var(--err-bg); color: var(--err); }
+  main { max-width: 1440px; margin: 0 auto; padding: 16px 16px 40px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h3 { font-size: 13px; margin: 16px 0 4px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; }
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 16px; align-items: start; }
+  @media (max-width: 1100px) { .steps { grid-template-columns: 1fr; gap: 16px; } }
+  .step-card > h2 { padding-bottom: 10px; border-bottom: 2px solid var(--primary); }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  label .req { color: var(--err); }
+  input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-color: var(--primary); }
+  .row { display: flex; gap: 8px; align-items: end; }
+  .row > * { flex: 1; min-width: 0; }
+  .row > .shrink { flex: 0 0 auto; }
+  button { padding: 9px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  button:hover:not(:disabled) { background: var(--primary-hover); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); font-weight: 500; }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  button.accent { background: var(--accent); }
+  button.accent:hover:not(:disabled) { background: #d85f15; }
+  .full { width: 100%; margin-top: 14px; }
+  .status { margin-top: 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; display: none; white-space: pre-wrap; }
+  .status.show { display: block; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.err { background: var(--err-bg); color: var(--err); }
+  .status.info { background: var(--warn-bg); color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .radios { display: flex; gap: 24px; margin-top: 4px; }
+  .radios label, .opt { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: 14px; cursor: pointer; }
+  .radios input, .opt input { width: auto; margin: 0; }
+  .box { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--primary) 6%, var(--card)); }
+  .box .price { color: var(--primary); font-weight: 700; }
+  .item { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+  .item img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex: 0 0 auto; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .plan { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-weight: 600; }
+  .plan.create { background: var(--ok-bg); color: var(--ok); }
+  .plan.retry { background: var(--warn-bg); color: var(--warn); }
+  .plan.exists { background: var(--err-bg); color: var(--err); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.nowrap { white-space: nowrap; }
+  .results { margin-top: 16px; }
+  .rtabs { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+  .rtabs button.active { background: var(--primary); color: #fff; }
+  .rtabs button:not(.active) { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .rtabs .sp { flex: 1; }
+  .steps-log { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
+  .steps-log li.bad { color: var(--err); }
+  .login { display: flex; gap: 8px; align-items: center; }
+  .login input { width: 280px; padding: 5px 8px; }
+  @media (max-width: 700px) { .login input { width: 100%; } header { padding: 10px 16px; } }
+  dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); width: min(760px, calc(100vw - 32px)); padding: 18px; }
+  dialog::backdrop { background: rgb(0 0 0 / .4); }
+  .done { color: var(--ok); }
+  #errBar { display: none; position: sticky; top: 0; z-index: 10; padding: 10px 24px; background: var(--err-bg); color: var(--err); border-bottom: 1px solid var(--err); font-weight: 600; white-space: pre-wrap; }
+  #errBar.show { display: flex; gap: 12px; align-items: start; }
+  #errBar span { flex: 1; }
+  #errBar button { background: transparent; color: var(--err); border: 1px solid var(--err); padding: 2px 10px; }
+  .wait { color: var(--warn); }
+  td.bad { color: var(--err); }
+  .tasks label { display: flex; gap: 8px; align-items: center; margin: 6px 0; color: var(--text); font-size: 14px; cursor: pointer; }
+  .tasks label input { width: auto; margin: 0; }
+  .tasks label.child { padding-left: 22px; }
+  .tasks .code { color: var(--muted); font-size: 12px; min-width: 18px; }
+</style>
+</head>
+<body>
+<div id="errBar" role="alert"><span id="errText"></span><button onclick="hideError()">Đóng</button></div>
+<header>
+  <h1><img src="/icon.svg" alt="">Tạo đơn TMĐT <span class="badge" id="env">stag</span></h1>
+  <div class="site">
+    <span id="sess" class="pill off">Chưa đăng nhập</span>
+    <span class="login" id="loginBox">
+      <input id="token" type="password" placeholder="Dán Access Token (token ô Token trang SPF)" autocomplete="off">
+      <button class="small" id="btnLogin">Đăng nhập</button>
+    </span>
+    <button class="small ghost" id="btnLogout" hidden>Đăng xuất</button>
+    <a id="siteLink" target="_blank" rel="noopener"></a>
+  </div>
+</header>
+
+<main>
+  <div class="steps">
+    <section class="card step-card">
+      <h2><span class="step">1</span> Đơn trên sàn (RefCode)</h2>
+      <label>Nguồn</label>
+      <div class="radios" id="sources"></div>
+      <label>RefCode / RefId <span class="req">*</span></label>
+      <div class="row">
+        <input id="refCode" placeholder="vd 584542458320094402">
+        <button class="shrink" id="btnLoad">Load</button>
+      </div>
+      <div class="status" id="loadStatus"></div>
+      <div id="ecomBox"></div>
+      <h3>Đơn đã có trên SPF (tab Cập nhật chính sách)</h3>
+      <div id="ordersBox" class="muted">Bấm Load để tra.</div>
+    </section>
+
+    <section class="card step-card">
+      <h2><span class="step">2</span> SĐT & địa chỉ <button class="small ghost" id="btnDefault" title="Lưu nguồn, SĐT, địa chỉ hiện tại làm mặc định" style="margin-left:auto">☆ Đặt mặc định</button></h2>
+      <label>Số điện thoại <span class="req">*</span></label>
+      <input id="phone" inputmode="numeric">
+      <div class="hint" id="ecomPhone"></div>
+      <label>Tỉnh / Thành phố</label>
+      <select id="location"></select>
+      <label>Quận / Phường</label>
+      <select id="district"></select>
+      <label>Phường (cấp dưới)</label>
+      <select id="ward"></select>
+      <label>Đường</label>
+      <select id="street"></select>
+      <label>Số nhà <span class="req">*</span></label>
+      <input id="addressNo">
+      <div class="hint">Địa chỉ chỉ dùng khi tạo mới (tab Cập nhật địa chỉ/SDT). Thử lại đơn lỗi chỉ gửi SĐT.</div>
+      <div class="status" id="defStatus"></div>
+    </section>
+
+    <section class="card step-card">
+      <h2><span class="step">3</span> Tạo đơn</h2>
+      <div id="planBox" class="muted">Load RefCode để xem tool sẽ làm gì.</div>
+      <label class="opt" style="margin-top:12px"><input type="checkbox" id="disconnectOld"> Ngắt kết nối đơn cũ đang gắn RefCode rồi tạo lại</label>
+      <div class="hint">Cần khi RefCode đã có đơn (lỗi "Đơn hàng đã tồn tại trong hệ thống").</div>
+      <button class="accent full" id="btnCreate">Tạo đơn</button>
+      <div class="status" id="createStatus"></div>
+      <ol class="steps-log" id="stepsLog"></ol>
+    </section>
+  </div>
+
+  <section class="card results">
+    <div class="rtabs">
+      <button class="small active" data-view="now">Lần này</button>
+      <button class="small" data-view="history">Lịch sử</button>
+      <span class="sp"></span>
+      <button class="small ghost" id="btnRefresh">↻ Cập nhật trạng thái</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Thời gian</th><th>Nguồn</th><th>RefCode</th><th>Mã đơn</th><th>Cách tạo</th><th>PĐK / HĐ</th><th>SĐT</th><th>Sản phẩm</th><th>Tổng</th><th>Thanh toán</th><th></th></tr></thead>
+        <tbody id="results"><tr><td colspan="11" class="muted">Chưa có đơn.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <h2 style="margin-top:0;font-size:16px" id="dlgTitle">Chi tiết</h2>
+  <div id="dlgBody"></div>
+  <div style="text-align:right;margin-top:12px"><button class="ghost" onclick="dlg.close()">Đóng</button></div>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let CFG = null, now = [], view = 'now', lastLoad = null;
+
+// Thanh báo lỗi chung: mọi lỗi không thuộc ô nào đều hiện ở đây
+function showError(msg) {
+  $('errText').textContent = '✖ ' + msg;
+  $('errBar').classList.add('show');
+}
+function hideError() { $('errBar').classList.remove('show'); }
+window.addEventListener('unhandledrejection', (e) => showError(e.reason?.message || String(e.reason)));
+window.addEventListener('error', (e) => showError(e.message));
+
+async function api(path, body) {
+  let r;
+  try {
+    r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {
+    throw new Error('Không kết nối được server của tool – tool đã tắt? Bấm lại icon "Tạo đơn TMĐT Tool"');
+  }
+  const data = await r.json().catch(() => ({ error: `Server trả về dữ liệu lỗi (HTTP ${r.status})` }));
+  if (!r.ok) {
+    if (r.status === 401) {
+      setSession({ loggedIn: false });
+      if (!$('location').value) needLogin();
+      showError((data.error || 'Cần đăng nhập') + ' → dán Access Token ở góc trên rồi bấm Đăng nhập');
+      $('token').focus();
+    }
+    throw Object.assign(new Error(data.error || `HTTP ${r.status}`), data, { status: r.status });
+  }
+  return data;
+}
+function status(id, text, type = 'info') {
+  const el = $(id);
+  el.className = 'status' + (text ? ` show ${type}` : '');
+  el.textContent = text || '';
+}
+function setSession(s) {
+  $('sess').className = 'pill ' + (s.loggedIn ? 'on' : 'off');
+  $('sess').textContent = s.loggedIn ? 'Đã đăng nhập' : 'Chưa đăng nhập';
+  $('loginBox').hidden = s.loggedIn;
+  $('btnLogout').hidden = !s.loggedIn;
+}
+const source = () => document.querySelector('input[name=source]:checked')?.value;
+
+// ---------- địa chỉ ----------
+function fill(sel, list, value, empty) {
+  sel.innerHTML = (empty ? `<option value="">${empty}</option>` : '') +
+    list.map((x) => `<option value="${x.id}">${esc(x.name ?? '(không tên)')}</option>`).join('');
+  if (value != null && list.some((x) => String(x.id) === String(value))) sel.value = String(value);
+}
+async function loadProvinces(v) { fill($('location'), await api('/api/locations/provinces'), v, 'Chọn'); }
+async function loadDistricts(v) {
+  const l = $('location').value;
+  fill($('district'), l ? await api(`/api/locations/districts?locationId=${l}`) : [], v, 'Chọn');
+}
+async function loadWards(v) {
+  const l = $('location').value, d = $('district').value;
+  const list = d ? await api(`/api/locations/wards?locationId=${l}&districtId=${d}`) : [];
+  fill($('ward'), list, v ?? list[0]?.id);
+}
+async function loadStreets(v) {
+  const l = $('location').value, d = $('district').value, w = $('ward').value;
+  fill($('street'), w ? await api(`/api/locations/streets?locationId=${l}&districtId=${d}&wardId=${w}`) : [], v, 'Chọn');
+}
+// Chưa đăng nhập: danh sách địa chỉ lấy từ SPF nên chưa tải được -> báo rõ + khóa ô
+function needLogin() {
+  for (const id of ['location', 'district', 'ward', 'street']) {
+    $(id).innerHTML = '<option value="">— Đăng nhập để tải danh sách —</option>';
+    $(id).disabled = true;
+  }
+  status('defStatus', 'Chưa tải được Tỉnh/TP, Quận/Phường, Đường: cần đăng nhập SPF trước (dán Access Token ở góc trên → Đăng nhập).', 'err');
+  showError('Tool chưa đăng nhập → dán Access Token vào ô "Dán Access Token…" ở góc trên rồi bấm Đăng nhập.\n'
+    + 'Lưu ý: đăng nhập trên trang SPF Web Admin (trình duyệt) KHÔNG dùng chung với tool – dán đúng token bạn dùng ở ô Token của trang SPF.');
+  $('token').focus();
+}
+async function initAddress() {
+  for (const id of ['location', 'district', 'ward', 'street']) $(id).disabled = false;
+  status('defStatus', 'Đang tải địa chỉ…');
+  const d = CFG.defaults;
+  try {
+    await loadProvinces(d.locationId); await loadDistricts(d.districtId); await loadWards(d.wardId); await loadStreets(d.streetId);
+    status('defStatus', '');
+  } catch (e) { status('defStatus', 'Chưa tải được địa chỉ: ' + e.message, 'err'); }
+}
+const addrStep = (fn) => async () => {
+  try { await fn(); status('defStatus', ''); } catch (e) { status('defStatus', 'Lỗi tải địa chỉ: ' + e.message, 'err'); }
+};
+$('location').onchange = addrStep(async () => { await loadDistricts(); await loadWards(); await loadStreets(); });
+$('district').onchange = addrStep(async () => { await loadWards(); await loadStreets(); });
+$('ward').onchange = addrStep(() => loadStreets());
+
+// ---------- load RefCode ----------
+function renderOrders(orders) {
+  if (!orders.length) return '<span class="muted">Không có đơn nào gắn RefCode này.</span>';
+  return `<div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>PĐK / HĐ</th><th>Tổng</th><th>Thanh toán</th><th>Ngày tạo</th><th></th></tr></thead><tbody>${orders.map((o) => `
+    <tr><td class="nowrap"><a href="${o.detailUrl}" target="_blank" rel="noopener">${esc(o.orderCode)}</a><div class="muted">${o.orderId}</div></td>
+    <td>${esc(o.regCode || '-')}<div class="muted">${esc(o.contract || '-')}</div></td>
+    <td class="nowrap">${esc(o.totalText)}</td><td>${esc(o.paymentStatus)}</td><td class="nowrap">${esc(o.createdDate)}</td>
+    <td class="nowrap">${o.canDisconnect ? `<button class="small ghost" onclick="disconnect(${o.orderId}, ${o.saleTeamId}, '${esc(o.orderCode)}')">Ngắt kết nối</button>` : ''}
+      ${o.canRetry ? '<span class="muted">được Thử lại</span>' : ''}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function renderPlan(plan) {
+  $('planBox').innerHTML = `<div class="plan ${plan.action}">${esc(plan.text)}</div>`;
+  $('disconnectOld').checked = false;
+}
+async function load() {
+  const refCode = $('refCode').value.trim();
+  if (!refCode) return status('loadStatus', 'Nhập RefCode', 'err');
+  status('loadStatus', 'Đang tra…');
+  $('btnLoad').disabled = true;
+  try {
+    const r = lastLoad = await api('/api/load', { source: source(), refCode });
+    status('loadStatus', '');
+    const e = r.ecom;
+    $('ecomBox').innerHTML = e.error ? `<div class="status show err">${esc(e.error)}</div>` : `<div class="box">
+      <div><b>${esc(e.status)}</b> · tạo ${esc(e.createTime)} · vận đơn ${esc(e.trackingNumber || '-')}</div>
+      ${e.items.map((i) => `<div class="item">${i.image ? `<img src="${esc(i.image)}" alt="" referrerpolicy="no-referrer">` : ''}<div><div>${esc(i.skuName)} <span class="muted">(${esc(i.sellerSku)})</span></div><div class="muted">${esc(i.productName)}</div></div></div>`).join('')}
+      <div style="margin-top:6px">Tổng: <span class="price">${esc(e.totalText)}</span></div>
+      <div class="muted">SĐT ${esc(e.phone)} · ${esc(e.address)}</div></div>`;
+    $('ecomPhone').textContent = e.phone ? `SĐT trên sàn: ${e.phone}` : '';
+    $('ordersBox').innerHTML = renderOrders(r.orders);
+    renderPlan(r.plan);
+  } catch (e) {
+    status('loadStatus', 'Load lỗi: ' + e.message, 'err');
+  } finally { $('btnLoad').disabled = false; }
+}
+$('btnLoad').onclick = load;
+$('refCode').onkeydown = (e) => { if (e.key === 'Enter') load(); };
+
+async function disconnect(orderId, saleTeamId, code) {
+  if (!confirm(`Ngắt kết nối đơn ${code} khỏi RefCode?`)) return;
+  try {
+    await api('/api/orders/disconnect', { orderId, saleTeamId });
+    status('loadStatus', `Đã ngắt kết nối ${code}`, 'ok');
+    setTimeout(load, 300);
+  } catch (e) { status('loadStatus', `Ngắt kết nối ${code} lỗi: ${e.message}`, 'err'); }
+}
+
+// ---------- tạo đơn ----------
+$('btnCreate').onclick = async () => {
+  const refCode = $('refCode').value.trim();
+  if (!refCode) return status('createStatus', 'Nhập RefCode ở bước 1', 'err');
+  const body = {
+    source: source(), refCode, phone: $('phone').value.trim(), disconnectOld: $('disconnectOld').checked,
+    address: { locationId: $('location').value, districtId: $('district').value, wardId: $('ward').value, streetId: $('street').value, addressNo: $('addressNo').value.trim() },
+  };
+  $('btnCreate').disabled = true;
+  $('stepsLog').innerHTML = '';
+  status('createStatus', 'Đang tạo đơn…');
+  try {
+    const r = await api('/api/orders', body);
+    $('stepsLog').innerHTML = r.steps.map((s) => `<li class="${s.ok ? '' : 'bad'}">${esc(s.text)}</li>`).join('');
+    status('createStatus', `Đã tạo đơn ${r.summary.orderCode} (OrderId ${r.summary.orderId})`, 'ok');
+    now.unshift(r.summary);
+    showView('now');
+    load();
+  } catch (e) {
+    status('createStatus', 'Tạo đơn lỗi: ' + e.message, 'err');
+    if (e.steps?.length) $('stepsLog').innerHTML = e.steps.map((s) => `<li class="${s.ok ? '' : 'bad'}">${esc(s.text)}</li>`).join('');
+    if (e.code === 'ORDER_EXISTS') { $('ordersBox').innerHTML = renderOrders(e.orders || []); $('disconnectOld').focus(); }
+  } finally { $('btnCreate').disabled = false; }
+};
+
+// ---------- kết quả ----------
+let statusMap = {};
+function renderResults(list) {
+  if (!list.length) return ($('results').innerHTML = '<tr><td colspan="11" class="muted">Chưa có đơn.</td></tr>');
+  $('results').innerHTML = list.map((s) => {
+    const st = statusMap[s.orderId]?.order;
+    return `<tr><td class="nowrap">${esc(new Date(s.time).toLocaleString('vi-VN'))}</td><td>${esc(s.source)}</td><td>${esc(s.refCode)}</td>
+      <td class="nowrap"><a href="${s.detailUrl}" target="_blank" rel="noopener">${esc(s.orderCode)}</a><div class="muted">${s.orderId}</div></td>
+      <td>${s.mode === 'retry' ? 'Thử lại' : 'Tạo mới'}</td>
+      <td>${esc(st?.regCode || s.regCode || '-')}<div class="muted">${esc(st?.contract || s.contract || '-')}</div></td>
+      <td>${esc(s.phone)}</td><td>${esc(s.sku)}</td><td class="nowrap">${esc(st?.totalText || s.total)}</td><td>${esc(st?.paymentStatus || s.paymentStatus || '-')}</td>
+      <td class="nowrap"><button class="small ghost" onclick="detail(${s.orderId}, '${esc(s.source)}')">Chi tiết</button>
+        <button class="small" onclick="settleDlg(${s.orderId}, '${esc(s.source)}', '${esc(s.orderCode)}')">Quyết toán</button></td></tr>`;
+  }).join('');
+}
+async function showView(v) {
+  view = v;
+  document.querySelectorAll('.rtabs [data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
+  if (v === 'history') {
+    try { renderResults((await api('/api/history')).map((x) => x.summary)); }
+    catch (e) { renderResults([]); showError('Không tải được Lịch sử: ' + e.message); }
+  }
+  else renderResults(now);
+}
+document.querySelectorAll('.rtabs [data-view]').forEach((b) => (b.onclick = () => showView(b.dataset.view)));
+$('btnRefresh').onclick = async () => {
+  const list = view === 'now' ? now : await api('/api/history').then((h) => h.map((x) => x.summary).slice(0, 20));
+  if (!list.length) return;
+  $('btnRefresh').disabled = true;
+  try {
+    for (const src of [...new Set(list.map((s) => s.source))]) {
+      const res = await api('/api/orders/status', { source: src, orderIds: list.filter((s) => s.source === src).map((s) => s.orderId) });
+      for (const r of res) statusMap[r.orderId] = r;
+    }
+    renderResults(list);
+    const bad = Object.values(statusMap).filter((r) => list.some((s) => s.orderId === r.orderId) && (r.error || r.errors?.length));
+    if (bad.length) showError('Cập nhật trạng thái lỗi:\n' + bad.map((r) => `${r.orderId}: ${r.error || r.errors.join('; ')}`).join('\n'));
+    else hideError();
+  } catch (e) { showError('Cập nhật trạng thái lỗi: ' + e.message); } finally { $('btnRefresh').disabled = false; }
+};
+// Tiến độ queue: task tạo đơn đã chạy + toàn bộ task quyết toán (kể cả đã đẩy, chờ chạy)
+function queueHtml(s, src) {
+  const settleAction = CFG.sources[src]?.settleAction;
+  const all = s.allTasks || s.tasks;
+  const settle = all.filter((t) => t.actionCode === settleAction).sort((a, b) => a.taskCode - b.taskCode);
+  const groups = {};
+  for (const t of s.tasks.filter((t) => t.actionCode !== settleAction)) (groups[t.actionCode || '-'] ||= []).push(t);
+  const table = (list) => `<table><tbody>${list.map(taskRow).join('')}</tbody></table>`;
+  return `${Object.entries(groups).map(([a, list]) => `<div class="muted" style="margin-top:6px"><b>${esc(a)}</b></div>${table(list)}`).join('') || '<p class="muted">Chưa có bước tạo đơn nào chạy.</p>'}
+    <div class="muted" style="margin-top:10px"><b>Quyết toán · ${esc(settleAction || '-')}</b></div>
+    ${settle.length ? table(settle) : '<p class="muted" style="margin:4px 0">Chưa quyết toán (bấm nút Quyết toán ở dòng đơn).</p>'}`;
+}
+async function detail(orderId, src) {
+  $('dlgTitle').textContent = `Đơn OrderId ${orderId}`;
+  $('dlgBody').innerHTML = '<span class="muted">Đang tải…</span>';
+  dlg.showModal();
+  try {
+    const [s] = await api('/api/orders/status', { source: src, orderIds: [orderId] });
+    statusMap[orderId] = s;
+    if (s.error) throw new Error(s.error);
+    const o = s.order;
+    $('dlgBody').innerHTML = `${(s.errors || []).map((x) => `<div class="status show err">${esc(x)}</div>`).join('')}${o ? `<p><b>${esc(o.orderCode)}</b> · ${esc(o.saleTeam)} · ${esc(o.orderType)}<br>PĐK <b>${esc(o.regCode || '-')}</b> · HĐ <b>${esc(o.contract || '-')}</b><br>
+      ${esc(o.totalText)} · ${esc(o.paymentStatus)} (${esc(o.paymentType)}) · tạo ${esc(o.createdDate)} bởi ${esc(o.createdBy)}</p>` : '<p class="muted">Không thấy đơn ở tab Cập nhật chính sách.</p>'}
+      <h3 style="font-size:13px">Tiến độ queue</h3>
+      ${queueHtml(s, src)}
+      <p><a href="${s.detailUrl}" target="_blank" rel="noopener">Mở chi tiết trên SPF Web Admin ↗</a></p>`;
+    if (view === 'now') renderResults(now);
+  } catch (e) { $('dlgBody').innerHTML = `<div class="status show err">${esc(e.message)}</div>`; }
+}
+
+
+// ---------- quyết toán (Queue → PushCustomTask: Tiktok_CompletedOrder / SPFShopeeCompletedOrder) ----------
+const taskState = (t) => t.done ? ['done', '✔', 'xong'] : t.failed ? ['bad', '✖', 'lỗi'] : t.queued ? ['wait', '…', 'đang chạy']
+  : t.taskStatus === 7 ? ['wait', '⏳', 'đã đẩy, chờ chạy'] : ['muted', '–', 'chưa chạy'];
+const taskRow = (t) => { const [c, i, txt] = taskState(t); return `<tr><td class="${c}">${i}</td><td><span class="muted">${esc(t.taskCode)}.</span> ${esc(t.name)}</td><td class="muted">${txt} · status ${esc(t.status ?? '-')} / ${esc(t.taskStatus ?? '-')}</td><td class="muted nowrap">${esc((t.doneTime || t.runTime || '').replace('T', ' ').slice(0, 19))}</td></tr>`; };
+async function settleDlg(orderId, src, code) {
+  $('dlgTitle').textContent = `Quyết toán ${code} (OrderId ${orderId})`;
+  $('dlgBody').innerHTML = '<span class="muted">Đang tải task…</span>';
+  dlg.showModal();
+  try {
+    const r = await api(`/api/settle/tasks?source=${encodeURIComponent(src)}`);
+    $('dlgBody').innerHTML = `<div class="muted">Queue → Push Custom Task · ReferType Order · ActionCode <b>${esc(r.actionCode)}</b> · Instance ${r.instance}</div>
+      <div class="tasks" id="stTasks">${r.tasks.map((t) => `<label class="${t.parentTaskCode ? 'child' : ''}" title="${esc(t.api)}">
+        <input type="checkbox" value="${t.taskCode}" data-parent="${t.parentTaskCode}" checked onchange="stTaskChange(this)">
+        <span class="code">${t.taskCode}</span> ${esc(t.name)}${t.parentTaskCode ? ` <span class="muted">(cha ${t.parentTaskCode})</span>` : ''}</label>`).join('')}</div>
+      <label class="opt" style="margin-top:10px"><input type="checkbox" id="stReplicate"> Bỏ qua check trùng (đẩy lại task đã chạy)</label>
+      <button class="accent full" id="btnSettle">Quyết toán</button>
+      <div class="status" id="stStatus"></div>
+      <h3 style="font-size:13px;display:flex;align-items:center;gap:8px">Tiến độ ${esc(r.actionCode)} <button class="small ghost" id="btnStRefresh" style="margin-left:auto">↻ Cập nhật</button></h3>
+      <div id="stProgress" class="muted">Đang tải…</div>`;
+    $('btnSettle').onclick = () => doSettle(orderId, src);
+    $('btnStRefresh').onclick = () => settleProgress(orderId, src);
+    settleProgress(orderId, src);
+  } catch (e) { $('dlgBody').innerHTML = `<div class="status show err">Không tải được task quyết toán: ${esc(e.message)}</div>`; }
+}
+function stTaskChange(el) {
+  const boxes = [...document.querySelectorAll('#stTasks input')];
+  const parent = Number(el.dataset.parent);
+  if (el.checked && parent && !boxes.find((b) => b.value === String(parent))?.checked) {
+    el.checked = false;
+    return status('stStatus', `Chọn task cha ${parent} trước`, 'err');
+  }
+  // Bỏ task cha -> bỏ luôn các task con
+  if (!el.checked) {
+    const drop = (code) => boxes.filter((b) => b.dataset.parent === String(code) && b.checked).forEach((b) => { b.checked = false; drop(b.value); });
+    drop(el.value);
+  }
+  status('stStatus', '');
+}
+async function doSettle(orderId, src) {
+  const taskCodes = [...document.querySelectorAll('#stTasks input:checked')].map((b) => Number(b.value));
+  if (!taskCodes.length) return status('stStatus', 'Chọn ít nhất 1 task', 'err');
+  $('btnSettle').disabled = true;
+  status('stStatus', 'Đang đẩy task…');
+  try {
+    const r = await api('/api/settle', { source: src, orderId, taskCodes, replicate: $('stReplicate').checked });
+    status('stStatus', `Đã đẩy ${r.summary.actionCode} task ${r.summary.taskCodes}. Queue chạy nền – bấm ↻ Cập nhật để xem tiến độ.`, 'ok');
+    setTimeout(() => settleProgress(orderId, src), 2000);
+  } catch (e) {
+    status('stStatus', 'Quyết toán lỗi: ' + e.message, 'err');
+  } finally { if ($('btnSettle')) $('btnSettle').disabled = false; }
+}
+async function settleProgress(orderId, src) {
+  const box = $('stProgress');
+  if (!box) return;
+  box.innerHTML = '<span class="muted">Đang tải…</span>';
+  try {
+    const s = await api('/api/settle/status', { source: src, orderId });
+    if (!$('stProgress')) return;
+    statusMap[orderId] = s;
+    $('stProgress').innerHTML = `${(s.errors || []).map((x) => `<div class="status show err">${esc(x)}</div>`).join('')}
+      <p style="margin:4px 0">Thanh toán: <b>${esc(s.order?.paymentStatus || '-')}</b></p>
+      ${s.tasks.length ? `<table><tbody>${s.tasks.map(taskRow).join('')}</tbody></table>` : '<p class="muted">Chưa có task quyết toán nào chạy cho đơn này.</p>'}`;
+    if (view === 'now') renderResults(now);
+  } catch (e) { $('stProgress').innerHTML = `<div class="status show err">Không tải được tiến độ: ${esc(e.message)}</div>`; }
+}
+
+// ---------- đăng nhập / mặc định ----------
+$('btnLogin').onclick = async () => {
+  const token = $('token').value.trim();
+  if (!token) return $('token').focus();
+  $('btnLogin').disabled = true;
+  try {
+    setSession(await api('/api/login', { token }));
+    $('token').value = '';
+    hideError();
+    await initAddress();
+  } catch (e) { showError(e.message); $('token').select(); } finally { $('btnLogin').disabled = false; }
+};
+$('token').onkeydown = (e) => { if (e.key === 'Enter') $('btnLogin').click(); };
+$('btnLogout').onclick = async () => {
+  try { setSession(await api('/api/logout', {})); needLogin(); } catch (e) { showError('Đăng xuất lỗi: ' + e.message); }
+};
+$('btnDefault').onclick = async () => {
+  try {
+    CFG.defaults = await api('/api/settings/defaults', {
+      source: source(), phone: $('phone').value.trim(), locationId: $('location').value, districtId: $('district').value,
+      wardId: $('ward').value, streetId: $('street').value, addressNo: $('addressNo').value.trim(),
+    });
+    status('defStatus', 'Đã lưu làm mặc định', 'ok');
+    setTimeout(() => status('defStatus', ''), 2500);
+  } catch (e) { status('defStatus', e.message, 'err'); }
+};
+
+(async () => {
+  try { CFG = await api('/api/config'); } catch (e) { return showError('Không mở được tool: ' + e.message); }
+  $('env').textContent = CFG.env;
+  $('siteLink').href = CFG.baseUrl + '/Ecomercial/OrderECPlatform';
+  $('siteLink').textContent = 'Mở trang SPF Web Admin ↗';
+  $('siteLink').title = 'Chỉ để xem đơn trên web. Đăng nhập trên trang này không đăng nhập cho tool.';
+  $('sources').innerHTML = Object.entries(CFG.sources).map(([k, s]) =>
+    `<label><input type="radio" name="source" value="${k}" ${k === CFG.defaults.source ? 'checked' : ''}> ${esc(s.label)}</label>`).join('');
+  document.querySelectorAll('input[name=source]').forEach((r) => (r.onchange = () => { if ($('refCode').value.trim()) load(); }));
+  $('phone').value = CFG.defaults.phone;
+  $('addressNo').value = CFG.defaults.addressNo;
+  setSession(CFG.session);
+  if (CFG.session.loggedIn || CFG.session.hasToken) initAddress();
+  else needLogin();
+})();
+</script>
+</body>
+</html>

@@ -16,6 +16,7 @@ Mỗi tool nằm trong 1 thư mục riêng, có README hướng dẫn chi tiết
 | **GH quầy Tool** | [`GH_quay/`](GH_quay/README.md) | Fox ERP stag + SCM UAT + GHTK lab | Nhập số HĐ → nhận xử lý phiếu, tạm ứng vật tư (Fox ERP) → phiếu nhập MAC, xác nhận tạm ứng (SCM) → GHTK, đóng hàng → đẩy trạng thái vận đơn (GHTK lab) | 3004 | v1.0.0 (đang thử nghiệm) |
 | **GH Vendor Tool** | [`GH_Vendor/`](GH_Vendor/README.md) | Fox ERP stag (Quản lý NCU) | Nhập mã đơn hàng FTEL → tab Quản lý phiếu giao hàng: Chưa giao hàng → Đang giao hàng (hoá đơn NCU, ngày, tệp HĐ điện tử) → Đã hoàn tất | 3005 | v1.0.0 (đang thử nghiệm) |
 | **Thanh toán Tool** | [`Thanh_toan/`](Thanh_toan/README.md) | staging.fpt.vn/pay + Foxpay stag | Nhập số HĐ → tích khoản thu → Thẻ Quốc Tế / Thẻ Nội địa → xác nhận SĐT → nhập thẻ test + OTP → "Thanh toán thành công" | 3006 | v1.0.0 (đang thử nghiệm) |
+| **Tạo đơn TMĐT Tool** | [`Don_TMDT/`](Don_TMDT/README.md) | SPF Web Admin stag (saleplatform-stag.fpt.net) | Đăng nhập Access Token → nhập RefCode TikTok / Shopee → tra đơn (tab Cập nhật chính sách) → Thử lại đơn lỗi / ngắt đơn cũ / tạo đơn mới với SĐT + địa chỉ (tab Cập nhật địa chỉ/SDT) → xem PĐK, HĐ, tiến độ queue → Quyết toán (đẩy task CompletedOrder) | 3009 | v1.1.0 (đang thử nghiệm) |
 
 > FPL và CRM cùng mặc định cổng **3002** – muốn chạy song song thì đổi `UI_PORT` trong `.env` của một tool.
 
