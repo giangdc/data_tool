@@ -1,0 +1,18 @@
+{
+  "name": "don-sop-order-tool",
+  "version": "0.1.0",
+  "description": "Tool hỗ trợ QC tạo nhanh đơn hàng test từ app Android (gọi thẳng API của app)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "ui": "node src/server.js",
+    "start": "node src/server.js",
+    "create": "node src/cli.js create",
+    "history": "node src/cli.js history"
+  },
+  "bin": {
+    "don-sop-order": "src/cli.js"
+  }
+}

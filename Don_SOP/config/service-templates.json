@@ -1,0 +1,2327 @@
+{
+ "FPT Play": {
+  "source": "Portal 2026-11-06 — đơn HCMUQ0026V4C / HĐ SGABP5846 (V.VIP 6T + FPT Play Box S550 Mới TIN/PNC)",
+  "phone": "0775335608",
+  "validateService": {
+   "path": "order-info/validate-fptplay-service-info",
+   "body": {
+    "OrderDetails": [
+     {
+      "Address": {
+       "LocationId": 8,
+       "DistrictId": 1000009764,
+       "WardId": 1000107464,
+       "StreetId": 1001003171,
+       "TypeHouse": 1,
+       "Position": 0,
+       "BuildingId": 0,
+       "CustomerLatLng": null,
+       "Floor": null,
+       "Room": null,
+       "Block": null,
+       "AddressNo": "55",
+       "NoteAddress": "",
+       "AddressType": 1
+      },
+      "Services": [
+       {
+        "ServiceId": 7,
+        "ServiceName": "FPT Play",
+        "ServiceDetail": [
+         {
+          "ServiceId": 7,
+          "ServiceName": "",
+          "SubServiceTypeId": 20,
+          "SubServiceTypeName": "FPT Play",
+          "SubServiceId": 72021,
+          "SubServiceName": "V.VIP",
+          "PrePaid": 6,
+          "PrePaidName": "Gói 6T (6T+0)",
+          "MonthUsed": 6,
+          "ProgramId": 0,
+          "DeployTypeId": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "DeployTypeName": "Không",
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "PrePaidPercent": 0,
+          "ItemType": 0,
+          "BillingTypeId": 0,
+          "Key": "6_6"
+         }
+        ]
+       }
+      ],
+      "Products": [
+       {
+        "ServiceId": 7,
+        "ServiceName": "FPT Play",
+        "ProductDetail": [
+         {
+          "ServiceId": 7,
+          "ServiceName": "FPT Play",
+          "SubServiceTypeId": 23,
+          "ItemType": 0,
+          "SubServiceTypeName": "Thiết bị Box chính",
+          "ParentName": "Vat tu FPT Play box",
+          "ParentNameVN": "Vat tu FPT Play box",
+          "GroupId": 0,
+          "ProgramId": 0,
+          "ApplySubServiceId": 72021,
+          "ApplyPrePaid": 6,
+          "SubServiceId": 2692,
+          "SubServiceName": "FPT Play Box S550",
+          "StatusId": 2,
+          "StatusName": "Mới",
+          "RevokeId": 0,
+          "RevokeName": "Không",
+          "DeployTypeId": 1,
+          "DeployTypeName": "TIN/PNC",
+          "UseId": null,
+          "UseName": null,
+          "LanWire": null,
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "Default": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "ApplySubServiceTypeId": 20,
+          "PrePaidPercent": 0
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "OrderRenewDetails": null
+   }
+  },
+  "priceQuotation": {
+   "LocationId": 8,
+   "DistrictId": 1000009764,
+   "WardId": 1000107464,
+   "BuildingId": 0,
+   "CusTypeId": 102,
+   "CusTypeL2Id": 132,
+   "ObjectTypeId": 138,
+   "POPCode": null,
+   "ServiceAvailable": null,
+   "Services": [
+    {
+     "ServiceId": 7,
+     "ServiceName": "FPT Play",
+     "ServiceDetail": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "SubServiceTypeId": 20,
+       "SubServiceTypeName": "FPT Play",
+       "SubServiceId": 72021,
+       "SubServiceName": "V.VIP",
+       "PrePaid": 6,
+       "PrePaidName": "Gói 6T (6T+0)",
+       "MonthUsed": 6,
+       "ProgramId": 0,
+       "DeployTypeId": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "DeployTypeName": "Không",
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "PrePaidPercent": 0,
+       "ItemType": 0,
+       "BillingTypeId": 0,
+       "Key": "6_6"
+      }
+     ]
+    }
+   ],
+   "Products": [
+    {
+     "ServiceId": 7,
+     "ServiceName": "FPT Play",
+     "ProductDetail": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "SubServiceTypeId": 23,
+       "ItemType": 0,
+       "SubServiceTypeName": "Thiết bị Box chính",
+       "ParentName": "Vat tu FPT Play box",
+       "ParentNameVN": "Vat tu FPT Play box",
+       "GroupId": 0,
+       "ProgramId": 0,
+       "ApplySubServiceId": 72021,
+       "ApplyPrePaid": 6,
+       "SubServiceId": 2692,
+       "SubServiceName": "FPT Play Box S550",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 1,
+       "DeployTypeName": "TIN/PNC",
+       "UseId": null,
+       "UseName": null,
+       "LanWire": null,
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "Default": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "ApplySubServiceTypeId": 20,
+       "PrePaidPercent": 0
+      }
+     ]
+    }
+   ],
+   "ExtendedInfo": [
+    {
+     "Key": "affiliate_contract",
+     "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+     "Value": "",
+     "TypeInput": "textbox"
+    },
+    {
+     "Key": "parent_contract",
+     "Name": "Hợp đồng Dự án (HD Cha)",
+     "Value": "",
+     "TypeInput": "textbox"
+    }
+   ]
+  },
+  "orderValidate": {
+   "CustomerInfoDuplicate": null,
+   "Confirm": 1,
+   "PolicyKey": "4aaf7b13a96c4d698eb73afb87b0aa1e",
+   "OrderInfo": {
+    "Id": 0,
+    "ServiceList": [
+     7
+    ],
+    "ServiceAvailable": null,
+    "PaymentType": 8,
+    "TotalVATOriginal": 1860000,
+    "TotalVAT": 1860000,
+    "Discount": 0,
+    "DiscountPayment": 0,
+    "RefId": 0,
+    "PrePaidPercentActived": 0,
+    "RefCode": "customer_e2e44e5f-1eb6-4255-a3b3-e52bdb82e44d",
+    "RefSource": 3,
+    "MinimumPayment": 0
+   },
+   "CustomerInfo": {
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "FullName": "qc test",
+    "IDCardType": 1,
+    "IDCard": null,
+    "DateOfIssue": null,
+    "PlaceOfIssue": null,
+    "IDAddress": null,
+    "DOB": null,
+    "CusRank": null,
+    "CusRankDesc": null,
+    "Email": "",
+    "CountryCode": null,
+    "BudgetRelationCode": null,
+    "RepresentativeFullName": null,
+    "RepresentativeDOB": null,
+    "RepresentativeIDCard": null,
+    "RepresentativeIDCardType": 0,
+    "RepresentativeDateOfIssue": null,
+    "RepresentativePlaceOfIssue": null,
+    "Bank": null,
+    "BankAccount": null,
+    "OfficePhone": null,
+    "PhoneSMS": "0775335608",
+    "Contact1": null,
+    "Phone1": null,
+    "EmployeeId": null,
+    "CompanyName": null,
+    "LocationIdMain": 8,
+    "DistrictIdMain": 1000009764,
+    "WardIdMain": 1000107464,
+    "StreetIdMain": 1001003171,
+    "TypeHouseMain": 1,
+    "PositionMain": 0,
+    "BuildingIdMain": 0,
+    "AddressNoMain": "55",
+    "CustomerLatLng": "",
+    "LocationIdChargeable": 0,
+    "DistrictIdChargeable": 0,
+    "WardIdChargeable": 0,
+    "StreetIdChargeable": 0,
+    "TypeHouseChargeable": 0,
+    "PositionChargeable": 0,
+    "BuildingIdChargeable": 0,
+    "LocationIdBilling": 0,
+    "DistrictIdBilling": 0,
+    "WardIdBilling": 0,
+    "StreetIdBilling": 0,
+    "TypeHouseBilling": 0,
+    "PositionBilling": 0,
+    "BuildingIdBilling": 0,
+    "NoteAddress": "",
+    "NoteDeploy": null,
+    "MarketingChannel": 0,
+    "Gender": 0,
+    "ImageIDCard": [
+     {
+      "Type": 5,
+      "ImageId": 55313,
+      "ImageKey": "0b5428500d6ebaec8d37bba105de55a16ce2b6d2c9a997c70345d70f9ae7b928"
+     },
+     {
+      "Type": 7,
+      "ImageId": 55314,
+      "ImageKey": "c5adfee8e8cb324fb9d3b0a721b8d001adc5f458152af0d9adc6e31de1b17abf"
+     }
+    ],
+    "ImageDocument": null,
+    "ImageOtherISP": null,
+    "ImageCustomer": null,
+    "ImageBilling": null,
+    "PayMonthlyCharges": 3,
+    "FoxpayAgree": 1,
+    "ExtendedInfo": [
+     {
+      "Key": "affiliate_contract",
+      "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+      "Value": "",
+      "TypeInput": "textbox"
+     },
+     {
+      "Key": "parent_contract",
+      "Name": "Hợp đồng Dự án (HD Cha)",
+      "Value": "",
+      "TypeInput": "textbox"
+     }
+    ]
+   },
+   "OrderDetails": [
+    {
+     "Address": {
+      "LocationId": 8,
+      "DistrictId": 1000009764,
+      "WardId": 1000107464,
+      "StreetId": 1001003171,
+      "TypeHouse": 1,
+      "Position": 0,
+      "BuildingId": 0,
+      "CustomerLatLng": null,
+      "Floor": null,
+      "Room": null,
+      "Block": null,
+      "AddressNo": "55",
+      "NoteAddress": "",
+      "AddressType": 1
+     },
+     "Services": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "ServiceDetail": [
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 20,
+         "SubServiceTypeName": "FPT Play",
+         "SubServiceId": 72021,
+         "SubServiceName": "V.VIP",
+         "PrePaid": 6,
+         "PrePaidName": "Gói 6T (6T+0)",
+         "MonthUsed": 6,
+         "ProgramId": 152687,
+         "DeployTypeId": 0,
+         "PsId": 4633799,
+         "PromotionId": 8408,
+         "DeployTypeName": "Không",
+         "Qty": 1,
+         "ServiceCode": 0,
+         "Total": 1111111,
+         "TotalVAT": 1200000,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T",
+          "660K/1 FPT Play Box S550 mới/SL1-1"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "PrePaidPercent": 0,
+         "ItemType": 0,
+         "BillingTypeId": 0,
+         "Key": "6_6"
+        },
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 20,
+         "SubServiceTypeName": "FPT Play",
+         "SubServiceId": 999999996,
+         "SubServiceName": "PLĐ FPL",
+         "PrePaid": 0,
+         "PrePaidName": "Gói 1T (Trả sau)",
+         "MonthUsed": 0,
+         "ProgramId": 152687,
+         "DeployTypeId": 0,
+         "PsId": 2731913,
+         "PromotionId": 0,
+         "DeployTypeName": "Không",
+         "Qty": 1,
+         "ServiceCode": 191,
+         "Total": 0,
+         "TotalVAT": 0,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "ApplySubServiceId": 72021,
+         "ApplySubServiceTypeId": 20,
+         "PrePaidPercent": 0,
+         "ItemType": 1,
+         "BillingTypeId": 0,
+         "Key": "0_0"
+        }
+       ]
+      }
+     ],
+     "Products": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "ProductDetail": [
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 23,
+         "ItemType": 0,
+         "SubServiceTypeName": "Thiết bị Box chính",
+         "ParentName": "Vat tu FPT Play box",
+         "ParentNameVN": "Vat tu FPT Play box",
+         "GroupId": 0,
+         "ProgramId": 152687,
+         "ApplySubServiceId": 72021,
+         "ApplyPrePaid": 6,
+         "SubServiceId": 2692,
+         "SubServiceName": "FPT Play Box S550",
+         "StatusId": 2,
+         "StatusName": "Mới",
+         "RevokeId": 0,
+         "RevokeName": "Không",
+         "DeployTypeId": 1,
+         "DeployTypeName": "TIN/PNC",
+         "UseId": null,
+         "UseName": null,
+         "LanWire": 0,
+         "Qty": 1,
+         "ServiceCode": 0,
+         "Total": 611111,
+         "TotalVAT": 660000,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T",
+          "660K/1 FPT Play Box S550 mới/SL1-1"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "Default": 0,
+         "PsId": 2285637,
+         "PromotionId": 5114,
+         "ApplySubServiceTypeId": 20,
+         "PrePaidPercent": 0
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "ExtendedProperties": {
+    "FPTPlay": {
+     "ActiveKPlus": 0,
+     "PhoneNumber": "0775335608"
+    }
+   },
+   "OrderRenewDetails": null
+  },
+  "options": {
+   "packages": {
+    "path": "fptplay/packages",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "devices": {
+    "path": "fptplay/device",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "IsBoxFirst": 1,
+     "ApplySubServiceId": 72021,
+     "ApplyPrePaid": 6,
+     "ObjId": 0
+    },
+    "dependsOnPkg": true
+   }
+  },
+  "default": {
+   "package": "V.VIP",
+   "prepaid": "Gói 6T (6T+0)",
+   "device": "FPT Play Box S550"
+  },
+  "totalVAT": 1860000
+ },
+ "_customer": {
+  "note": "Thông tin khách có ảnh giấy tờ (từ đơn Portal HCMUQ0026V4C) — dùng chung cho mọi nhóm",
+  "phone": "0775335608",
+  "orderValidate": {
+   "CustomerInfoDuplicate": null,
+   "Confirm": 1,
+   "PolicyKey": "4aaf7b13a96c4d698eb73afb87b0aa1e",
+   "OrderInfo": {
+    "Id": 0,
+    "ServiceList": [
+     7
+    ],
+    "ServiceAvailable": null,
+    "PaymentType": 8,
+    "TotalVATOriginal": 1860000,
+    "TotalVAT": 1860000,
+    "Discount": 0,
+    "DiscountPayment": 0,
+    "RefId": 0,
+    "PrePaidPercentActived": 0,
+    "RefCode": "customer_e2e44e5f-1eb6-4255-a3b3-e52bdb82e44d",
+    "RefSource": 3,
+    "MinimumPayment": 0
+   },
+   "CustomerInfo": {
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "FullName": "qc test",
+    "IDCardType": 1,
+    "IDCard": null,
+    "DateOfIssue": null,
+    "PlaceOfIssue": null,
+    "IDAddress": null,
+    "DOB": null,
+    "CusRank": null,
+    "CusRankDesc": null,
+    "Email": "",
+    "CountryCode": null,
+    "BudgetRelationCode": null,
+    "RepresentativeFullName": null,
+    "RepresentativeDOB": null,
+    "RepresentativeIDCard": null,
+    "RepresentativeIDCardType": 0,
+    "RepresentativeDateOfIssue": null,
+    "RepresentativePlaceOfIssue": null,
+    "Bank": null,
+    "BankAccount": null,
+    "OfficePhone": null,
+    "PhoneSMS": "0775335608",
+    "Contact1": null,
+    "Phone1": null,
+    "EmployeeId": null,
+    "CompanyName": null,
+    "LocationIdMain": 8,
+    "DistrictIdMain": 1000009764,
+    "WardIdMain": 1000107464,
+    "StreetIdMain": 1001003171,
+    "TypeHouseMain": 1,
+    "PositionMain": 0,
+    "BuildingIdMain": 0,
+    "AddressNoMain": "55",
+    "CustomerLatLng": "",
+    "LocationIdChargeable": 0,
+    "DistrictIdChargeable": 0,
+    "WardIdChargeable": 0,
+    "StreetIdChargeable": 0,
+    "TypeHouseChargeable": 0,
+    "PositionChargeable": 0,
+    "BuildingIdChargeable": 0,
+    "LocationIdBilling": 0,
+    "DistrictIdBilling": 0,
+    "WardIdBilling": 0,
+    "StreetIdBilling": 0,
+    "TypeHouseBilling": 0,
+    "PositionBilling": 0,
+    "BuildingIdBilling": 0,
+    "NoteAddress": "",
+    "NoteDeploy": null,
+    "MarketingChannel": 0,
+    "Gender": 0,
+    "ImageIDCard": [
+     {
+      "Type": 5,
+      "ImageId": 55313,
+      "ImageKey": "0b5428500d6ebaec8d37bba105de55a16ce2b6d2c9a997c70345d70f9ae7b928"
+     },
+     {
+      "Type": 7,
+      "ImageId": 55314,
+      "ImageKey": "c5adfee8e8cb324fb9d3b0a721b8d001adc5f458152af0d9adc6e31de1b17abf"
+     }
+    ],
+    "ImageDocument": null,
+    "ImageOtherISP": null,
+    "ImageCustomer": null,
+    "ImageBilling": null,
+    "PayMonthlyCharges": 3,
+    "FoxpayAgree": 1,
+    "ExtendedInfo": [
+     {
+      "Key": "affiliate_contract",
+      "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+      "Value": "",
+      "TypeInput": "textbox"
+     },
+     {
+      "Key": "parent_contract",
+      "Name": "Hợp đồng Dự án (HD Cha)",
+      "Value": "",
+      "TypeInput": "textbox"
+     }
+    ]
+   },
+   "OrderDetails": [
+    {
+     "Address": {
+      "LocationId": 8,
+      "DistrictId": 1000009764,
+      "WardId": 1000107464,
+      "StreetId": 1001003171,
+      "TypeHouse": 1,
+      "Position": 0,
+      "BuildingId": 0,
+      "CustomerLatLng": null,
+      "Floor": null,
+      "Room": null,
+      "Block": null,
+      "AddressNo": "55",
+      "NoteAddress": "",
+      "AddressType": 1
+     },
+     "Services": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "ServiceDetail": [
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 20,
+         "SubServiceTypeName": "FPT Play",
+         "SubServiceId": 72021,
+         "SubServiceName": "V.VIP",
+         "PrePaid": 6,
+         "PrePaidName": "Gói 6T (6T+0)",
+         "MonthUsed": 6,
+         "ProgramId": 152687,
+         "DeployTypeId": 0,
+         "PsId": 4633799,
+         "PromotionId": 8408,
+         "DeployTypeName": "Không",
+         "Qty": 1,
+         "ServiceCode": 0,
+         "Total": 1111111,
+         "TotalVAT": 1200000,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T",
+          "660K/1 FPT Play Box S550 mới/SL1-1"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "PrePaidPercent": 0,
+         "ItemType": 0,
+         "BillingTypeId": 0,
+         "Key": "6_6"
+        },
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 20,
+         "SubServiceTypeName": "FPT Play",
+         "SubServiceId": 999999996,
+         "SubServiceName": "PLĐ FPL",
+         "PrePaid": 0,
+         "PrePaidName": "Gói 1T (Trả sau)",
+         "MonthUsed": 0,
+         "ProgramId": 152687,
+         "DeployTypeId": 0,
+         "PsId": 2731913,
+         "PromotionId": 0,
+         "DeployTypeName": "Không",
+         "Qty": 1,
+         "ServiceCode": 191,
+         "Total": 0,
+         "TotalVAT": 0,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "ApplySubServiceId": 72021,
+         "ApplySubServiceTypeId": 20,
+         "PrePaidPercent": 0,
+         "ItemType": 1,
+         "BillingTypeId": 0,
+         "Key": "0_0"
+        }
+       ]
+      }
+     ],
+     "Products": [
+      {
+       "ServiceId": 7,
+       "ServiceName": "FPT Play",
+       "ProductDetail": [
+        {
+         "ServiceId": 7,
+         "ServiceName": "FPT Play",
+         "SubServiceTypeId": 23,
+         "ItemType": 0,
+         "SubServiceTypeName": "Thiết bị Box chính",
+         "ParentName": "Vat tu FPT Play box",
+         "ParentNameVN": "Vat tu FPT Play box",
+         "GroupId": 0,
+         "ProgramId": 152687,
+         "ApplySubServiceId": 72021,
+         "ApplyPrePaid": 6,
+         "SubServiceId": 2692,
+         "SubServiceName": "FPT Play Box S550",
+         "StatusId": 2,
+         "StatusName": "Mới",
+         "RevokeId": 0,
+         "RevokeName": "Không",
+         "DeployTypeId": 1,
+         "DeployTypeName": "TIN/PNC",
+         "UseId": null,
+         "UseName": null,
+         "LanWire": 0,
+         "Qty": 1,
+         "ServiceCode": 0,
+         "Total": 611111,
+         "TotalVAT": 660000,
+         "Discount": 0,
+         "DiscountVAT": 0,
+         "Title": [
+          "Basic FPT Play 6T 1200k/6T",
+          "660K/1 FPT Play Box S550 mới/SL1-1"
+         ],
+         "PolicyId": 18481,
+         "PolicyName": "FPL only- 05/12 - 09/02",
+         "PsGroup": 177871,
+         "PriceGroupId": "177871",
+         "Default": 0,
+         "PsId": 2285637,
+         "PromotionId": 5114,
+         "ApplySubServiceTypeId": 20,
+         "PrePaidPercent": 0
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "ExtendedProperties": {
+    "FPTPlay": {
+     "ActiveKPlus": 0,
+     "PhoneNumber": "0775335608"
+    }
+   },
+   "OrderRenewDetails": null
+  }
+ },
+ "FPT Camera": {
+  "source": "Portal 2026-11-06 — IQ3+ 3T + FPT Camera IQ 4S Mới TIN/PNC (bỏ mục Triển khai)",
+  "phone": "0868650892",
+  "validateService": {
+   "path": "order-info/validate-camera-bundle-service-info",
+   "body": {
+    "OrderDetails": [
+     {
+      "Address": {
+       "LocationId": 8,
+       "DistrictId": 1000009764,
+       "WardId": 1000107464,
+       "StreetId": 1001003171,
+       "TypeHouse": 1,
+       "Position": 0,
+       "BuildingId": 0,
+       "CustomerLatLng": null,
+       "Floor": null,
+       "Room": null,
+       "Block": null,
+       "AddressNo": "55",
+       "NoteAddress": "",
+       "AddressType": 1
+      },
+      "Services": [
+       {
+        "ServiceId": 4,
+        "ServiceName": "FPT Camera",
+        "ServiceDetail": [
+         {
+          "ServiceId": 4,
+          "ServiceName": "",
+          "SubServiceTypeId": 15,
+          "SubServiceTypeName": "Cloud",
+          "SubServiceId": 1523,
+          "SubServiceName": "IQ3+",
+          "PrePaid": 3,
+          "PrePaidName": "Gói 3T (3T+0)",
+          "MonthUsed": 3,
+          "ProgramId": 0,
+          "DeployTypeId": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "DeployTypeName": "Không",
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "PrePaidPercent": 0,
+          "ItemType": 0,
+          "BillingTypeId": 0,
+          "Key": "3_3"
+         }
+        ]
+       }
+      ],
+      "Products": [
+       {
+        "ServiceId": 4,
+        "ServiceName": "FPT Camera",
+        "ProductDetail": [
+         {
+          "ServiceId": 4,
+          "ServiceName": "FPT Camera",
+          "SubServiceTypeId": 14,
+          "ItemType": 0,
+          "SubServiceTypeName": "Thiết bị CMR Bundle",
+          "ParentName": "FPT Camera",
+          "ParentNameVN": "FPT Camera",
+          "GroupId": 4082677,
+          "ProgramId": 0,
+          "ApplySubServiceId": null,
+          "ApplyPrePaid": null,
+          "SubServiceId": 32416,
+          "SubServiceName": "FPT Camera IQ 4S",
+          "StatusId": 2,
+          "StatusName": "Mới",
+          "RevokeId": 0,
+          "RevokeName": "Không",
+          "DeployTypeId": 1,
+          "DeployTypeName": "TIN/PNC",
+          "UseId": null,
+          "UseName": "",
+          "LanWire": null,
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "Default": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "ApplySubServiceTypeId": null,
+          "PrePaidPercent": 0
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "OrderRenewDetails": null
+   }
+  },
+  "priceQuotation": {
+   "LocationId": 8,
+   "DistrictId": 1000009764,
+   "WardId": 1000107464,
+   "BuildingId": 0,
+   "CusTypeId": 102,
+   "CusTypeL2Id": 132,
+   "ObjectTypeId": 138,
+   "POPCode": null,
+   "ServiceAvailable": null,
+   "Services": [
+    {
+     "ServiceId": 4,
+     "ServiceName": "FPT Camera",
+     "ServiceDetail": [
+      {
+       "ServiceId": 4,
+       "ServiceName": "FPT Camera",
+       "SubServiceTypeId": 15,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 1523,
+       "SubServiceName": "IQ3+",
+       "PrePaid": 3,
+       "PrePaidName": "Gói 3T (3T+0)",
+       "MonthUsed": 3,
+       "ProgramId": 0,
+       "DeployTypeId": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "DeployTypeName": "Không",
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "PrePaidPercent": 0,
+       "ItemType": 0,
+       "BillingTypeId": 0,
+       "Key": "3_3"
+      }
+     ]
+    }
+   ],
+   "Products": [
+    {
+     "ServiceId": 4,
+     "ServiceName": "FPT Camera",
+     "ProductDetail": [
+      {
+       "ServiceId": 4,
+       "ServiceName": "FPT Camera",
+       "SubServiceTypeId": 14,
+       "ItemType": 0,
+       "SubServiceTypeName": "Thiết bị CMR Bundle",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 4082677,
+       "ProgramId": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "SubServiceId": 32416,
+       "SubServiceName": "FPT Camera IQ 4S",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 1,
+       "DeployTypeName": "TIN/PNC",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "Default": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "ApplySubServiceTypeId": null,
+       "PrePaidPercent": 0
+      }
+     ]
+    }
+   ],
+   "ExtendedInfo": [
+    {
+     "Key": "affiliate_contract",
+     "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+     "Value": "",
+     "TypeInput": "textbox"
+    },
+    {
+     "Key": "parent_contract",
+     "Name": "Hợp đồng Dự án (HD Cha)",
+     "Value": "",
+     "TypeInput": "textbox"
+    }
+   ]
+  },
+  "raw": {
+   "cloud": {
+    "path": "camera-bundle/cloud",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "device": {
+    "path": "camera-bundle/device",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "deploy": {
+    "path": "camera-bundle/deploy",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   }
+  },
+  "totalVAT": 470000,
+  "extKey": "FPTCameraBundle",
+  "options": {
+   "packages": {
+    "path": "camera-bundle/cloud",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "devices": {
+    "path": "camera-bundle/device",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   }
+  },
+  "default": {
+   "package": "IQ3+",
+   "prepaid": "Gói 3T (3T+0)",
+   "device": "FPT Camera IQ 4S"
+  }
+ },
+ "FPT Play Stand Alone": {
+  "source": "Portal 2026-11-06 — Gói V.VIP 1 1T + FPT Play Box 650 Mới TIN/PNC, nạp code Gửi SMS",
+  "phone": "0775335608",
+  "extKey": "FPTPlaySA",
+  "totalVAT": 340000,
+  "validateService": {
+   "path": "order-info/validate-fptplay-sa-service-info",
+   "body": {
+    "OrderDetails": [
+     {
+      "Address": {
+       "LocationId": 8,
+       "DistrictId": 1000009764,
+       "WardId": 1000107464,
+       "StreetId": 1001003171,
+       "TypeHouse": 1,
+       "Position": 0,
+       "BuildingId": 0,
+       "CustomerLatLng": null,
+       "Floor": null,
+       "Room": null,
+       "Block": null,
+       "AddressNo": "55",
+       "NoteAddress": "",
+       "AddressType": 1
+      },
+      "Services": [
+       {
+        "ServiceId": 5,
+        "ServiceName": "FPT Play Stand Alone",
+        "ServiceDetail": [
+         {
+          "ServiceId": 5,
+          "ServiceName": "FPT Play Stand Alone",
+          "SubServiceTypeId": 18,
+          "SubServiceTypeName": "Giải trí đa nền tảng",
+          "SubServiceId": 51821,
+          "SubServiceName": "Gói V.VIP 1",
+          "PrePaid": 1,
+          "PrePaidName": "Gói 1T (1T+0)",
+          "MonthUsed": 1,
+          "ProgramId": 0,
+          "DeployTypeId": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "DeployTypeName": "Không",
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "PrePaidPercent": 0,
+          "ItemType": 0,
+          "BillingTypeId": 0,
+          "Key": "1_1"
+         }
+        ]
+       }
+      ],
+      "Products": [
+       {
+        "ServiceId": 5,
+        "ServiceName": "FPT Play Stand Alone",
+        "ProductDetail": [
+         {
+          "ServiceId": 5,
+          "ServiceName": null,
+          "SubServiceTypeId": 17,
+          "ItemType": 0,
+          "SubServiceTypeName": "Thiết bị",
+          "ParentName": "Vat tu FPT Play box",
+          "ParentNameVN": "Vat tu FPT Play box",
+          "GroupId": 0,
+          "ProgramId": 0,
+          "ApplySubServiceId": null,
+          "ApplyPrePaid": null,
+          "SubServiceId": 4906,
+          "SubServiceName": "FPT Play Box 650",
+          "StatusId": 2,
+          "StatusName": "Mới",
+          "RevokeId": 0,
+          "RevokeName": "Không",
+          "DeployTypeId": 1,
+          "DeployTypeName": "TIN/PNC",
+          "UseId": null,
+          "UseName": null,
+          "LanWire": null,
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "Default": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "ApplySubServiceTypeId": null,
+          "PrePaidPercent": 0
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "ExtendedProperties": {
+     "FPTPlaySA": {
+      "ActivationCodeMethod": 1,
+      "ActivationCodeMethodName": "Gửi SMS"
+     }
+    },
+    "OrderRenewDetails": null
+   }
+  },
+  "priceQuotation": {
+   "LocationId": 8,
+   "DistrictId": 1000009764,
+   "WardId": 1000107464,
+   "BuildingId": 0,
+   "CusTypeId": 102,
+   "CusTypeL2Id": 132,
+   "ObjectTypeId": 138,
+   "POPCode": null,
+   "ServiceAvailable": null,
+   "Services": [
+    {
+     "ServiceId": 5,
+     "ServiceName": "FPT Play Stand Alone",
+     "ServiceDetail": [
+      {
+       "ServiceId": 5,
+       "ServiceName": "FPT Play Stand Alone",
+       "SubServiceTypeId": 18,
+       "SubServiceTypeName": "Giải trí đa nền tảng",
+       "SubServiceId": 51821,
+       "SubServiceName": "Gói V.VIP 1",
+       "PrePaid": 1,
+       "PrePaidName": "Gói 1T (1T+0)",
+       "MonthUsed": 1,
+       "ProgramId": 0,
+       "DeployTypeId": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "DeployTypeName": "Không",
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "PrePaidPercent": 0,
+       "ItemType": 0,
+       "BillingTypeId": 0,
+       "Key": "1_1"
+      }
+     ]
+    }
+   ],
+   "Products": [
+    {
+     "ServiceId": 5,
+     "ServiceName": "FPT Play Stand Alone",
+     "ProductDetail": [
+      {
+       "ServiceId": 5,
+       "ServiceName": "FPT Play Stand Alone",
+       "SubServiceTypeId": 17,
+       "ItemType": 0,
+       "SubServiceTypeName": "Thiết bị",
+       "ParentName": "Vat tu FPT Play box",
+       "ParentNameVN": "Vat tu FPT Play box",
+       "GroupId": 0,
+       "ProgramId": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "SubServiceId": 4906,
+       "SubServiceName": "FPT Play Box 650",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 1,
+       "DeployTypeName": "TIN/PNC",
+       "UseId": null,
+       "UseName": null,
+       "LanWire": null,
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "Default": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "ApplySubServiceTypeId": null,
+       "PrePaidPercent": 0
+      }
+     ]
+    }
+   ],
+   "ExtendedInfo": [
+    {
+     "Key": "affiliate_contract",
+     "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+     "Value": "",
+     "TypeInput": "textbox"
+    },
+    {
+     "Key": "parent_contract",
+     "Name": "Hợp đồng Dự án (HD Cha)",
+     "Value": "",
+     "TypeInput": "textbox"
+    }
+   ]
+  },
+  "raw": {
+   "device": {
+    "path": "fptplay-sa/device",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "extra": {
+    "path": "fptplay-sa/extra",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "activeCode": {
+    "path": "fptplay-sa/get-method-active-code",
+    "body": null
+   }
+  },
+  "options": {
+   "packages": {
+    "path": "fptplay-sa/extra",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   },
+   "devices": {
+    "path": "fptplay-sa/device",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0
+    }
+   }
+  },
+  "default": {
+   "package": "Gói V.VIP 1",
+   "prepaid": "Gói 1T (1T+0)",
+   "device": "FPT Play Box 650"
+  }
+ },
+ "_cameraOnlyRaw": {
+  "device": {
+   "path": "camera-ott/device",
+   "body": {
+    "LocationId": 8,
+    "DistrictId": 1000009764,
+    "WardId": 1000107464,
+    "BuildingId": 0,
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "ServiceAvailable": null,
+    "PackageId": 21766,
+    "Key": "59b0ace5801596f58e922866e85307324869d76a71fadc53f614270fa16124fa",
+    "ObjId": 0,
+    "ExtendedInfo": [
+     {
+      "Key": "affiliate_contract",
+      "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+      "Value": "",
+      "TypeInput": "textbox"
+     },
+     {
+      "Key": "parent_contract",
+      "Name": "Hợp đồng Dự án (HD Cha)",
+      "Value": "",
+      "TypeInput": "textbox"
+     }
+    ]
+   },
+   "res": {
+    "Code": 200,
+    "Message": {
+     "Title": "Thông báo",
+     "Message": "Thành công.",
+     "ExMessage": null,
+     "Popup": 0
+    },
+    "Data": {
+     "Result": [
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 32406,
+       "SubServiceName": "FPT Camera Play 4",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 0,
+       "DeployTypeName": "Không",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      },
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 32406,
+       "SubServiceName": "FPT Camera Play 4",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 3,
+       "DeployTypeName": "Quầy",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      },
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 32416,
+       "SubServiceName": "FPT Camera IQ 4S",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 0,
+       "DeployTypeName": "Không",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      },
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 32416,
+       "SubServiceName": "FPT Camera IQ 4S",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 3,
+       "DeployTypeName": "Quầy",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      },
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 512706,
+       "SubServiceName": "FCAM-Play 3",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 2,
+       "DeployTypeName": "Sale",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      },
+      {
+       "SubServiceTypeId": 10,
+       "SubServiceTypeName": "Thiết bị CMR OTT",
+       "ParentName": "FPT Camera",
+       "ParentNameVN": "FPT Camera",
+       "GroupId": 0,
+       "SubServiceId": 32406,
+       "SubServiceName": "FPT Camera Play 4",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 1,
+       "DeployTypeName": "TIN/PNC",
+       "UseId": null,
+       "UseName": "",
+       "LanWire": null,
+       "Default": 1,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "ApplyMonthUsed": null,
+       "QtyRange": null
+      }
+     ],
+     "Pagination": null
+    }
+   }
+  },
+  "cloud": {
+   "path": "camera-ott/cloud",
+   "body": {
+    "LocationId": 8,
+    "DistrictId": 1000009764,
+    "WardId": 1000107464,
+    "BuildingId": 0,
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "ServiceAvailable": null,
+    "PackageId": 21766,
+    "Key": "59b0ace5801596f58e922866e85307324869d76a71fadc53f614270fa16124fa",
+    "ObjId": 0,
+    "ExtendedInfo": [
+     {
+      "Key": "affiliate_contract",
+      "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+      "Value": "",
+      "TypeInput": "textbox"
+     },
+     {
+      "Key": "parent_contract",
+      "Name": "Hợp đồng Dự án (HD Cha)",
+      "Value": "",
+      "TypeInput": "textbox"
+     }
+    ]
+   },
+   "res": {
+    "Code": 200,
+    "Message": {
+     "Title": "Thông báo",
+     "Message": "Thành công.",
+     "ExMessage": null,
+     "Popup": 0
+    },
+    "Data": {
+     "Result": [
+      {
+       "SubServiceTypeId": 11,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 31132,
+       "SubServiceName": "An Tâm 15",
+       "PrePaid": [
+        {
+         "PrePaid": 3,
+         "MonthUsed": 3,
+         "Key": "3_3",
+         "Value": "Gói 3T (3T+0)"
+        },
+        {
+         "PrePaid": 6,
+         "MonthUsed": 6,
+         "Key": "6_6",
+         "Value": "Gói 6T (6T+0)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 0,
+         "DeployTypeName": "Không"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      },
+      {
+       "SubServiceTypeId": 11,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 31133,
+       "SubServiceName": "An Tâm 30",
+       "PrePaid": [
+        {
+         "PrePaid": 6,
+         "MonthUsed": 6,
+         "Key": "6_6",
+         "Value": "Gói 6T (6T+0)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 0,
+         "DeployTypeName": "Không"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      },
+      {
+       "SubServiceTypeId": 11,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 31131,
+       "SubServiceName": "An Tâm 7",
+       "PrePaid": [
+        {
+         "PrePaid": 0,
+         "MonthUsed": 1,
+         "Key": "0_1",
+         "Value": "Gói 1T (Trả sau)"
+        },
+        {
+         "PrePaid": 3,
+         "MonthUsed": 3,
+         "Key": "3_3",
+         "Value": "Gói 3T (3T+0)"
+        },
+        {
+         "PrePaid": 6,
+         "MonthUsed": 6,
+         "Key": "6_6",
+         "Value": "Gói 6T (6T+0)"
+        },
+        {
+         "PrePaid": 12,
+         "MonthUsed": 13,
+         "Key": "12_13",
+         "Value": "Gói 13T (12T+1)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 0,
+         "DeployTypeName": "Không"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      },
+      {
+       "SubServiceTypeId": 11,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 1123,
+       "SubServiceName": "IQ3+",
+       "PrePaid": [
+        {
+         "PrePaid": 3,
+         "MonthUsed": 3,
+         "Key": "3_3",
+         "Value": "Gói 3T (3T+0)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 0,
+         "DeployTypeName": "Không"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      },
+      {
+       "SubServiceTypeId": 11,
+       "SubServiceTypeName": "Cloud",
+       "SubServiceId": 1124,
+       "SubServiceName": "IQ7+",
+       "PrePaid": [
+        {
+         "PrePaid": 3,
+         "MonthUsed": 3,
+         "Key": "3_3",
+         "Value": "Gói 3T (3T+0)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 0,
+         "DeployTypeName": "Không"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      }
+     ],
+     "Pagination": null
+    }
+   }
+  },
+  "extra": {
+   "path": "camera-ott/extra",
+   "body": {
+    "LocationId": 8,
+    "DistrictId": 1000009764,
+    "WardId": 1000107464,
+    "BuildingId": 0,
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "ServiceAvailable": null,
+    "ObjId": 0
+   },
+   "res": {
+    "Code": -302,
+    "Message": {
+     "Title": "Cảnh báo!!!\n(0xb627416701)",
+     "Message": "Hiện tại không có thông tin chính sách dịch vụ.",
+     "ExMessage": "",
+     "Popup": 1
+    },
+    "Data": {
+     "Result": null,
+     "Pagination": null
+    }
+   }
+  },
+  "deploy": {
+   "path": "camera-ott/deploy",
+   "body": {
+    "LocationId": 8,
+    "DistrictId": 1000009764,
+    "WardId": 1000107464,
+    "BuildingId": 0,
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "ServiceAvailable": null,
+    "PackageId": 21766,
+    "Key": "59b0ace5801596f58e922866e85307324869d76a71fadc53f614270fa16124fa",
+    "ObjId": 0,
+    "ExtendedInfo": [
+     {
+      "Key": "affiliate_contract",
+      "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+      "Value": "",
+      "TypeInput": "textbox"
+     },
+     {
+      "Key": "parent_contract",
+      "Name": "Hợp đồng Dự án (HD Cha)",
+      "Value": "",
+      "TypeInput": "textbox"
+     }
+    ]
+   },
+   "res": {
+    "Code": 200,
+    "Message": {
+     "Title": "Thông báo",
+     "Message": "Thành công.",
+     "ExMessage": null,
+     "Popup": 0
+    },
+    "Data": {
+     "Result": [
+      {
+       "SubServiceTypeId": 13,
+       "SubServiceTypeName": "Triển khai CMR Only",
+       "SubServiceId": 131,
+       "SubServiceName": "TK theo thiết bị",
+       "PrePaid": [
+        {
+         "PrePaid": 0,
+         "MonthUsed": 0,
+         "Key": "0_0",
+         "Value": "Gói 1T (Trả sau)"
+        }
+       ],
+       "DeployTypes": [
+        {
+         "DeployTypeId": 1,
+         "DeployTypeName": "TIN/PNC"
+        }
+       ],
+       "ApplySubServiceId": null,
+       "MaxQty": 0
+      }
+     ],
+     "Pagination": null
+    }
+   }
+  }
+ },
+ "Sản phẩm khác": {
+  "source": "Portal 2026-11-06 — Modem · Access Point AX1800AZ Mới TIN/PNC, thu hồi Không",
+  "phone": "0868650892",
+  "totalVAT": 1100000,
+  "validateService": {
+   "path": "order-info/validate-retailequipment-info",
+   "body": {
+    "OrderDetails": [
+     {
+      "Address": {
+       "LocationId": 8,
+       "DistrictId": 1000009764,
+       "WardId": 1000107464,
+       "StreetId": 1001003171,
+       "TypeHouse": 1,
+       "Position": 0,
+       "BuildingId": 0,
+       "CustomerLatLng": null,
+       "Floor": null,
+       "Room": null,
+       "Block": null,
+       "AddressNo": "55",
+       "NoteAddress": "",
+       "AddressType": 1
+      },
+      "Products": [
+       {
+        "ServiceId": 6,
+        "ServiceName": "Sản phẩm khác",
+        "ProductDetail": [
+         {
+          "ServiceId": 6,
+          "ServiceName": null,
+          "SubServiceTypeId": 19,
+          "ItemType": 0,
+          "SubServiceTypeName": "Thiết bị lẻ",
+          "ParentName": "Modem",
+          "ParentNameVN": "Modem",
+          "GroupId": 0,
+          "ProgramId": 0,
+          "ApplySubServiceId": null,
+          "ApplyPrePaid": null,
+          "SubServiceId": 3902,
+          "SubServiceName": "Access Point AX1800AZ",
+          "StatusId": 2,
+          "StatusName": "Mới",
+          "RevokeId": 0,
+          "RevokeName": "Không",
+          "DeployTypeId": 1,
+          "DeployTypeName": "TIN/PNC",
+          "UseId": null,
+          "UseName": null,
+          "LanWire": null,
+          "Qty": 1,
+          "ServiceCode": 0,
+          "Total": 0,
+          "TotalVAT": 0,
+          "Discount": 0,
+          "DiscountVAT": 0,
+          "Title": [],
+          "PolicyId": 0,
+          "PolicyName": "",
+          "PsGroup": 0,
+          "PriceGroupId": "",
+          "Default": 0,
+          "PsId": 0,
+          "PromotionId": 0,
+          "ApplySubServiceTypeId": null,
+          "PrePaidPercent": 0
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "OrderRenewDetails": null
+   }
+  },
+  "priceQuotation": {
+   "LocationId": 8,
+   "DistrictId": 1000009764,
+   "WardId": 1000107464,
+   "BuildingId": 0,
+   "CusTypeId": 102,
+   "CusTypeL2Id": 132,
+   "ObjectTypeId": 138,
+   "POPCode": null,
+   "ServiceAvailable": null,
+   "Services": [],
+   "Products": [
+    {
+     "ServiceId": 6,
+     "ServiceName": "Sản phẩm khác",
+     "ProductDetail": [
+      {
+       "ServiceId": 6,
+       "ServiceName": "Sản phẩm khác",
+       "SubServiceTypeId": 19,
+       "ItemType": 0,
+       "SubServiceTypeName": "Thiết bị lẻ",
+       "ParentName": "Modem",
+       "ParentNameVN": "Modem",
+       "GroupId": 0,
+       "ProgramId": 0,
+       "ApplySubServiceId": null,
+       "ApplyPrePaid": null,
+       "SubServiceId": 3902,
+       "SubServiceName": "Access Point AX1800AZ",
+       "StatusId": 2,
+       "StatusName": "Mới",
+       "RevokeId": 0,
+       "RevokeName": "Không",
+       "DeployTypeId": 1,
+       "DeployTypeName": "TIN/PNC",
+       "UseId": null,
+       "UseName": null,
+       "LanWire": null,
+       "Qty": 1,
+       "ServiceCode": 0,
+       "Total": 0,
+       "TotalVAT": 0,
+       "Discount": 0,
+       "DiscountVAT": 0,
+       "Title": [],
+       "PolicyId": 0,
+       "PolicyName": "",
+       "PsGroup": 0,
+       "PriceGroupId": "",
+       "Default": 0,
+       "PsId": 0,
+       "PromotionId": 0,
+       "ApplySubServiceTypeId": null,
+       "PrePaidPercent": 0
+      }
+     ]
+    }
+   ],
+   "ExtendedInfo": [
+    {
+     "Key": "affiliate_contract",
+     "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+     "Value": "",
+     "TypeInput": "textbox"
+    },
+    {
+     "Key": "parent_contract",
+     "Name": "Hợp đồng Dự án (HD Cha)",
+     "Value": "",
+     "TypeInput": "textbox"
+    }
+   ]
+  },
+  "options": {
+   "kind": "retail",
+   "packages": {
+    "path": "retailequipment/list-type",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": null,
+     "ObjId": 0,
+     "ExtendedInfo": [
+      {
+       "Key": "affiliate_contract",
+       "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+       "Value": "",
+       "TypeInput": "textbox"
+      },
+      {
+       "Key": "parent_contract",
+       "Name": "Hợp đồng Dự án (HD Cha)",
+       "Value": "",
+       "TypeInput": "textbox"
+      }
+     ]
+    }
+   },
+   "devices": {
+    "path": "retailequipment/list",
+    "body": {
+     "LocationId": 8,
+     "DistrictId": 1000009764,
+     "WardId": 1000107464,
+     "BuildingId": 0,
+     "CusTypeId": 102,
+     "CusTypeL2Id": 132,
+     "SubServiceId": 3902,
+     "ObjectTypeId": 138,
+     "ServiceAvailable": [],
+     "ObjId": 0
+    }
+   },
+   "labels": {
+    "package": "Thiết bị",
+    "device": "Tình trạng / triển khai / thu hồi"
+   }
+  },
+  "default": {
+   "package": "Modem › Access Point AX1800AZ",
+   "device": "Access Point AX1800AZ"
+  }
+ },
+ "FPT Camera Only": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 3,
+   "name": "FPT Camera Only",
+   "validate": "order-info/validate-camera-ott-service-info",
+   "pkgs": [
+    {
+     "path": "camera-ott/cloud"
+    }
+   ],
+   "devs": [
+    {
+     "path": "camera-ott/device"
+    }
+   ],
+   "extKey": "FPTCameraOTT"
+  },
+  "default": {
+   "package": "An Tâm 15",
+   "prepaid": "Gói 3T (3T+0)",
+   "device": "FPT Camera Play 4"
+  }
+ },
+ "Tổng đài Oncall": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 8,
+   "name": "Tổng đài Oncall",
+   "validate": "order-info/validate-oncall-service-info",
+   "pkgs": [
+    {
+     "path": "oncall/oncall-packages"
+    }
+   ],
+   "devs": [],
+   "extProps": {
+    "Oncall": {
+     "Email": "qctest@example.com"
+    }
+   },
+   "email": "qctest@example.com"
+  },
+  "default": {
+   "package": "Oncall 1",
+   "prepaid": "Gói 14T (12T+2)"
+  }
+ },
+ "FPT Smart Home": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 9,
+   "name": "FPT Smart Home",
+   "validate": "order-info/validate-smarthome-service-info",
+   "pkgs": [],
+   "devs": [
+    {
+     "path": "smarthome/device",
+     "line": {
+      "path": "smarthome/property",
+      "idKey": "SubServiceId"
+     }
+    }
+   ]
+  },
+  "default": {
+   "package": "CTCU 1 chu nhat trang BLE SNBR011",
+   "device": "CTCU 1 chu nhat trang BLE SNBR011"
+  },
+  "labels": {
+   "package": "Thiết bị",
+   "device": "Tình trạng / triển khai / thu hồi"
+  }
+ },
+ "Ultra Fast Stand Alone": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 10,
+   "name": "Ultra Fast Stand Alone",
+   "validate": "order-info/validate-group-code-service",
+   "pkgs": [
+    {
+     "path": "group-code/packages",
+     "body": {
+      "ServiceId": 10,
+      "SubServiceTypeId": 34
+     }
+    }
+   ],
+   "devs": []
+  },
+  "default": {
+   "package": "Gói Ultra Fast SA",
+   "prepaid": "Gói 1T (1T+0)"
+  }
+ },
+ "FPro": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 11,
+   "name": "FPro",
+   "validate": "order-info/validate-fpro-service-info",
+   "pkgs": [
+    {
+     "path": "fpro/remote"
+    }
+   ],
+   "devs": []
+  },
+  "default": {
+   "package": "IT Remote hỗ trợ theo yêu cầu",
+   "prepaid": "Gói 1 lần"
+  },
+  "labels": {
+   "package": "Dịch vụ IT Remote"
+  }
+ },
+ "FSafe Go": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 12,
+   "name": "FSafe Go",
+   "validate": "order-info/validate-fsafe-go-service-info",
+   "pkgs": [
+    {
+     "path": "fsafe-go/packages"
+    }
+   ],
+   "devs": [],
+   "extKey": "FSafeGo"
+  },
+  "default": {
+   "package": "F-Safe Go - 1 device",
+   "prepaid": "Gói 1T (1T+0)"
+  }
+ },
+ "VioEdu Stand Alone": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 13,
+   "name": "VioEdu Stand Alone",
+   "validate": "order-info/validate-group-code-service",
+   "pkgs": [
+    {
+     "path": "group-code/packages",
+     "body": {
+      "ServiceId": 13,
+      "SubServiceTypeId": 40
+     }
+    }
+   ],
+   "devs": [],
+   "with": [
+    {
+     "id": 1,
+     "name": "Internet",
+     "pkgs": [
+      {
+       "path": "net/packages",
+       "name": "Sky",
+       "prepaid": "Gói 6T (6T+0)"
+      }
+     ],
+     "netDevice": true
+    }
+   ]
+  },
+  "default": {
+   "package": "Gói VioEdu Combo 3 môn",
+   "prepaid": "Gói 6T (6T+0)"
+  }
+ },
+ "VIP 247": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 15,
+   "name": "VIP 247",
+   "validate": "order-info/validate-group-code-service",
+   "pkgs": [
+    {
+     "path": "group-code/packages",
+     "body": {
+      "ServiceId": 15,
+      "SubServiceTypeId": 1501
+     }
+    }
+   ],
+   "devs": [],
+   "with": [
+    {
+     "template": "FPT Camera"
+    }
+   ]
+  },
+  "default": {
+   "package": "VIP 247S",
+   "prepaid": "Gói 6T (6T+0)"
+  }
+ },
+ "FPT Camera B2B": {
+  "source": "Dựng thẳng từ API Sale Platform (2026-11-10), địa chỉ 55 Huỳnh Tấn Phát, P. Phú Thuận",
+  "phone": "0868650892",
+  "gen": {
+   "id": 19,
+   "name": "FPT Camera B2B",
+   "validate": "order-info/validate-camera-b2b-service-info",
+   "pkgs": [
+    {
+     "path": "camera-b2b/license"
+    },
+    {
+     "path": "camera-b2b/cloud",
+     "name": "Gói lưu trữ Cloud IQ3+",
+     "prepaid": "Gói 6T (6T+0)"
+    }
+   ],
+   "devs": [
+    {
+     "path": "camera-b2b/device"
+    }
+   ],
+   "extKey": "FPTCameraB2B"
+  },
+  "default": {
+   "package": "VMS Standard - Max 100",
+   "prepaid": "Gói 6T (6T+0)",
+   "device": "1 core 1G SW"
+  },
+  "labels": {
+   "package": "License"
+  }
+ }
+}

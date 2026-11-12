@@ -1,0 +1,976 @@
+{
+  "validateNet": {
+    "OrderDetails": [
+      {
+        "Address": {
+          "LocationId": 8,
+          "DistrictId": 1000009764,
+          "WardId": 1000107464,
+          "StreetId": 1001003171,
+          "TypeHouse": 1,
+          "Position": 0,
+          "BuildingId": 0,
+          "CustomerLatLng": null,
+          "Floor": null,
+          "Room": null,
+          "Block": null,
+          "AddressNo": "55",
+          "NoteAddress": "",
+          "AddressType": 1
+        },
+        "Services": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ServiceDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 14,
+                "SubServiceName": "Giga",
+                "PrePaid": 6,
+                "PrePaidName": "Gói 6T (6T+0)",
+                "MonthUsed": 6,
+                "ProgramId": 0,
+                "DeployTypeId": 1,
+                "PsId": 0,
+                "PromotionId": 0,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 0,
+                "Total": 0,
+                "TotalVAT": 0,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [],
+                "PolicyId": 0,
+                "PolicyName": "",
+                "PsGroup": 0,
+                "PriceGroupId": "",
+                "PrePaidPercent": 0,
+                "ItemType": 0,
+                "BillingTypeId": 0,
+                "Key": "6_6"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "OrderRenewDetails": null
+  },
+  "getPermissionServices": {
+    "ServiceAvailable": []
+  },
+  "validateServiceInfo": {
+    "ObjId": 0,
+    "OrderId": 0,
+    "CustomerInfo": {
+      "CusTypeId": 102,
+      "CusTypeL2Id": 132,
+      "ObjectTypeId": 138,
+      "FullName": "qc test",
+      "IDCardType": 0,
+      "IDCard": null,
+      "DateOfIssue": null,
+      "PlaceOfIssue": null,
+      "IDAddress": null,
+      "DOB": null,
+      "CusRank": null,
+      "CusRankDesc": null,
+      "Email": "",
+      "CountryCode": null,
+      "BudgetRelationCode": null,
+      "RepresentativeFullName": null,
+      "RepresentativeDOB": null,
+      "RepresentativeIDCard": null,
+      "RepresentativeIDCardType": 0,
+      "RepresentativeDateOfIssue": null,
+      "RepresentativePlaceOfIssue": null,
+      "Bank": null,
+      "BankAccount": null,
+      "OfficePhone": null,
+      "PhoneSMS": "0868650892",
+      "Contact1": null,
+      "Phone1": null,
+      "EmployeeId": null,
+      "CompanyName": null,
+      "LocationIdMain": 8,
+      "DistrictIdMain": 1000009764,
+      "WardIdMain": 1000107464,
+      "StreetIdMain": 1001003171,
+      "TypeHouseMain": 1,
+      "PositionMain": 0,
+      "BuildingIdMain": 0,
+      "AddressNoMain": "55",
+      "CustomerLatLng": "",
+      "LocationIdChargeable": 0,
+      "DistrictIdChargeable": 0,
+      "WardIdChargeable": 0,
+      "StreetIdChargeable": 0,
+      "TypeHouseChargeable": 0,
+      "PositionChargeable": 0,
+      "BuildingIdChargeable": 0,
+      "LocationIdBilling": 0,
+      "DistrictIdBilling": 0,
+      "WardIdBilling": 0,
+      "StreetIdBilling": 0,
+      "TypeHouseBilling": 0,
+      "PositionBilling": 0,
+      "BuildingIdBilling": 0,
+      "NoteAddress": "",
+      "NoteDeploy": null,
+      "MarketingChannel": 0,
+      "Gender": 3,
+      "ImageIDCard": null,
+      "ImageDocument": null,
+      "ImageOtherISP": null,
+      "ImageCustomer": null,
+      "ImageBilling": null,
+      "PayMonthlyCharges": 0,
+      "FoxpayAgree": 0,
+      "ExtendedInfo": [
+        {
+          "Key": "affiliate_contract",
+          "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+          "Value": "",
+          "TypeInput": "textbox"
+        },
+        {
+          "Key": "parent_contract",
+          "Name": "Hợp đồng Dự án (HD Cha)",
+          "Value": "",
+          "TypeInput": "textbox"
+        }
+      ]
+    },
+    "OrderDetails": [
+      {
+        "Address": {
+          "LocationId": 8,
+          "DistrictId": 1000009764,
+          "WardId": 1000107464,
+          "StreetId": 1001003171,
+          "TypeHouse": 1,
+          "Position": 0,
+          "BuildingId": 0,
+          "CustomerLatLng": null,
+          "Floor": null,
+          "Room": null,
+          "Block": null,
+          "AddressNo": "55",
+          "NoteAddress": "",
+          "AddressType": 1
+        },
+        "Services": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ServiceDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 14,
+                "SubServiceName": "Giga",
+                "PrePaid": 6,
+                "PrePaidName": "Gói 6T (6T+0)",
+                "MonthUsed": 6,
+                "ProgramId": 0,
+                "DeployTypeId": 1,
+                "PsId": 0,
+                "PromotionId": 0,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 0,
+                "Total": 0,
+                "TotalVAT": 0,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [],
+                "PolicyId": 0,
+                "PolicyName": "",
+                "PsGroup": 0,
+                "PriceGroupId": "",
+                "PrePaidPercent": 0,
+                "ItemType": 0,
+                "BillingTypeId": 0,
+                "Key": "6_6"
+              }
+            ]
+          }
+        ],
+        "Products": []
+      }
+    ],
+    "OrderRenewDetails": null
+  },
+  "priceQuotation": {
+    "LocationId": 8,
+    "DistrictId": 1000009764,
+    "WardId": 1000107464,
+    "BuildingId": 0,
+    "CusTypeId": 102,
+    "CusTypeL2Id": 132,
+    "ObjectTypeId": 138,
+    "POPCode": "HCMP109",
+    "ServiceAvailable": null,
+    "Services": [
+      {
+        "ServiceId": 1,
+        "ServiceName": "Internet",
+        "ServiceDetail": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "SubServiceTypeId": 1,
+            "SubServiceTypeName": "Net",
+            "SubServiceId": 14,
+            "SubServiceName": "Giga",
+            "PrePaid": 6,
+            "PrePaidName": "Gói 6T (6T+0)",
+            "MonthUsed": 6,
+            "ProgramId": 0,
+            "DeployTypeId": 1,
+            "PsId": 0,
+            "PromotionId": 0,
+            "DeployTypeName": "TIN/PNC",
+            "Qty": 1,
+            "ServiceCode": 0,
+            "Total": 0,
+            "TotalVAT": 0,
+            "Discount": 0,
+            "DiscountVAT": 0,
+            "Title": [],
+            "PolicyId": 0,
+            "PolicyName": "",
+            "PsGroup": 0,
+            "PriceGroupId": "",
+            "PrePaidPercent": 0,
+            "ItemType": 0,
+            "BillingTypeId": 0,
+            "Key": "6_6"
+          }
+        ]
+      }
+    ],
+    "Products": [],
+    "ExtendedInfo": [
+      {
+        "Key": "affiliate_contract",
+        "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+        "Value": "",
+        "TypeInput": "textbox"
+      },
+      {
+        "Key": "parent_contract",
+        "Name": "Hợp đồng Dự án (HD Cha)",
+        "Value": "",
+        "TypeInput": "textbox"
+      }
+    ]
+  },
+  "orderValidate": {
+    "PolicyKey": "db2d853824124f36a8e5069fefda4027",
+    "OrderInfo": {
+      "Id": 0,
+      "ServiceList": [
+        1
+      ],
+      "ServiceAvailable": null,
+      "PaymentType": 8,
+      "TotalVATOriginal": 1439000,
+      "TotalVAT": 1439000,
+      "Discount": 0,
+      "DiscountPayment": 0,
+      "RefId": 0,
+      "PrePaidPercentActived": 0,
+      "RefCode": "customer_e2e44e5f-1eb6-4255-a3b3-e52bdb82e44d",
+      "RefSource": 3,
+      "MinimumPayment": 0
+    },
+    "CustomerInfo": {
+      "CusTypeId": 102,
+      "CusTypeL2Id": 132,
+      "ObjectTypeId": 138,
+      "FullName": "qc test",
+      "IDCardType": 1,
+      "IDCard": null,
+      "DateOfIssue": null,
+      "PlaceOfIssue": null,
+      "IDAddress": null,
+      "DOB": null,
+      "CusRank": null,
+      "CusRankDesc": null,
+      "Email": "",
+      "CountryCode": null,
+      "BudgetRelationCode": null,
+      "RepresentativeFullName": null,
+      "RepresentativeDOB": null,
+      "RepresentativeIDCard": null,
+      "RepresentativeIDCardType": 0,
+      "RepresentativeDateOfIssue": null,
+      "RepresentativePlaceOfIssue": null,
+      "Bank": null,
+      "BankAccount": null,
+      "OfficePhone": null,
+      "PhoneSMS": "0868650892",
+      "Contact1": null,
+      "Phone1": null,
+      "EmployeeId": null,
+      "CompanyName": null,
+      "LocationIdMain": 8,
+      "DistrictIdMain": 1000009764,
+      "WardIdMain": 1000107464,
+      "StreetIdMain": 1001003171,
+      "TypeHouseMain": 1,
+      "PositionMain": 0,
+      "BuildingIdMain": 0,
+      "AddressNoMain": "55",
+      "CustomerLatLng": "",
+      "LocationIdChargeable": 0,
+      "DistrictIdChargeable": 0,
+      "WardIdChargeable": 0,
+      "StreetIdChargeable": 0,
+      "TypeHouseChargeable": 0,
+      "PositionChargeable": 0,
+      "BuildingIdChargeable": 0,
+      "LocationIdBilling": 0,
+      "DistrictIdBilling": 0,
+      "WardIdBilling": 0,
+      "StreetIdBilling": 0,
+      "TypeHouseBilling": 0,
+      "PositionBilling": 0,
+      "BuildingIdBilling": 0,
+      "NoteAddress": "",
+      "NoteDeploy": null,
+      "MarketingChannel": 0,
+      "Gender": 0,
+      "ImageIDCard": [
+        {
+          "Type": 5,
+          "ImageId": 55306,
+          "ImageKey": "f2e589943048d18dacca432630ace7696a6bae4709f555cd7b3ea071d1e3f798"
+        },
+        {
+          "Type": 7,
+          "ImageId": 55305,
+          "ImageKey": "88bd587555ec33232361bf44d74dbeac918fb508b8248c40681a421986385d01"
+        }
+      ],
+      "ImageDocument": null,
+      "ImageOtherISP": null,
+      "ImageCustomer": null,
+      "ImageBilling": null,
+      "PayMonthlyCharges": 3,
+      "FoxpayAgree": 1,
+      "ExtendedInfo": [
+        {
+          "Key": "affiliate_contract",
+          "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+          "Value": "",
+          "TypeInput": "textbox"
+        },
+        {
+          "Key": "parent_contract",
+          "Name": "Hợp đồng Dự án (HD Cha)",
+          "Value": "",
+          "TypeInput": "textbox"
+        }
+      ]
+    },
+    "OrderDetails": [
+      {
+        "Address": {
+          "LocationId": 8,
+          "DistrictId": 1000009764,
+          "WardId": 1000107464,
+          "StreetId": 1001003171,
+          "TypeHouse": 1,
+          "Position": 0,
+          "BuildingId": 0,
+          "CustomerLatLng": null,
+          "Floor": null,
+          "Room": null,
+          "Block": null,
+          "AddressNo": "55",
+          "NoteAddress": "",
+          "AddressType": 1
+        },
+        "Services": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ServiceDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 14,
+                "SubServiceName": "Giga",
+                "PrePaid": 6,
+                "PrePaidName": "Gói 6T (6T+0)",
+                "MonthUsed": 6,
+                "ProgramId": 150576,
+                "DeployTypeId": 1,
+                "PsId": 4614859,
+                "PromotionId": 927288,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 0,
+                "Total": 1036364,
+                "TotalVAT": 1140000,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175396,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "PrePaidPercent": 0,
+                "ItemType": 0,
+                "BillingTypeId": 0,
+                "Key": "6_6"
+              },
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 999999999,
+                "SubServiceName": "PLĐ Net",
+                "PrePaid": 0,
+                "PrePaidName": "Gói 1T (Trả sau)",
+                "MonthUsed": 0,
+                "ProgramId": 150576,
+                "DeployTypeId": 1,
+                "PsId": 2720467,
+                "PromotionId": 0,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 58,
+                "Total": 271818,
+                "TotalVAT": 299000,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175396,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "ApplySubServiceId": 14,
+                "ApplySubServiceTypeId": 1,
+                "PrePaidPercent": 0,
+                "ItemType": 1,
+                "BillingTypeId": 0,
+                "Key": "0_0"
+              }
+            ]
+          }
+        ],
+        "Products": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ProductDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 4,
+                "ItemType": 2,
+                "SubServiceTypeName": "Thiết bị Net",
+                "ParentName": "Converter",
+                "ParentNameVN": "Converter",
+                "GroupId": 0,
+                "ProgramId": 150576,
+                "ApplySubServiceId": 14,
+                "ApplyPrePaid": 6,
+                "SubServiceId": 712,
+                "SubServiceName": "ONT 1 port 1G",
+                "StatusId": 2,
+                "StatusName": "Mới",
+                "RevokeId": 0,
+                "RevokeName": "Không",
+                "DeployTypeId": 1,
+                "DeployTypeName": "TIN/PNC",
+                "UseId": null,
+                "UseName": null,
+                "LanWire": 0,
+                "Qty": 1,
+                "ServiceCode": 58,
+                "Total": 0,
+                "TotalVAT": 0,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "0K/1 ONT 1 port 1G mới/SL1-1"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175355,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "Default": 1,
+                "PsId": 2277296,
+                "PromotionId": 0,
+                "ApplySubServiceTypeId": 1,
+                "PrePaidPercent": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "BookPort": {
+      "BookportType": 0,
+      "BookportCode": null,
+      "ODCCableType": null,
+      "EoC": 0,
+      "GroupPoint": null,
+      "Port": "0",
+      "PopCode": "HCMP109",
+      "LatLng": null,
+      "LatlngMarker": null,
+      "LatlngDevice": null,
+      "OutDType": 0,
+      "OutDoor": 0,
+      "InDType": 0,
+      "InDoor": 0,
+      "Technology": null,
+      "TypeInfrastructure": 0,
+      "INFName": null
+    },
+    "OrderRenewDetails": null
+  },
+  "orderUpdate": {
+    "CustomerInfoDuplicate": null,
+    "Confirm": 1,
+    "PolicyKey": "db2d853824124f36a8e5069fefda4027",
+    "ValidateKey": "5b9e24b795589276e5420e5366780df3e8afedeaaf86348e36085fd3a570ac57",
+    "OrderInfo": {
+      "Id": 0,
+      "ServiceList": [
+        1
+      ],
+      "ServiceAvailable": null,
+      "PaymentType": 8,
+      "TotalVATOriginal": 1439000,
+      "TotalVAT": 1439000,
+      "Discount": 0,
+      "DiscountPayment": 0,
+      "RefId": 0,
+      "PrePaidPercentActived": 0,
+      "RefCode": "customer_e2e44e5f-1eb6-4255-a3b3-e52bdb82e44d",
+      "RefSource": 3,
+      "MinimumPayment": 0
+    },
+    "CustomerInfo": {
+      "CusTypeId": 102,
+      "CusTypeL2Id": 132,
+      "ObjectTypeId": 138,
+      "FullName": "qc test",
+      "IDCardType": 1,
+      "IDCard": null,
+      "DateOfIssue": null,
+      "PlaceOfIssue": null,
+      "IDAddress": null,
+      "DOB": null,
+      "CusRank": null,
+      "CusRankDesc": null,
+      "Email": "",
+      "CountryCode": null,
+      "BudgetRelationCode": null,
+      "RepresentativeFullName": null,
+      "RepresentativeDOB": null,
+      "RepresentativeIDCard": null,
+      "RepresentativeIDCardType": 0,
+      "RepresentativeDateOfIssue": null,
+      "RepresentativePlaceOfIssue": null,
+      "Bank": null,
+      "BankAccount": null,
+      "OfficePhone": null,
+      "PhoneSMS": "0868650892",
+      "Contact1": null,
+      "Phone1": null,
+      "EmployeeId": null,
+      "CompanyName": null,
+      "LocationIdMain": 8,
+      "DistrictIdMain": 1000009764,
+      "WardIdMain": 1000107464,
+      "StreetIdMain": 1001003171,
+      "TypeHouseMain": 1,
+      "PositionMain": 0,
+      "BuildingIdMain": 0,
+      "AddressNoMain": "55",
+      "CustomerLatLng": "",
+      "LocationIdChargeable": 0,
+      "DistrictIdChargeable": 0,
+      "WardIdChargeable": 0,
+      "StreetIdChargeable": 0,
+      "TypeHouseChargeable": 0,
+      "PositionChargeable": 0,
+      "BuildingIdChargeable": 0,
+      "LocationIdBilling": 0,
+      "DistrictIdBilling": 0,
+      "WardIdBilling": 0,
+      "StreetIdBilling": 0,
+      "TypeHouseBilling": 0,
+      "PositionBilling": 0,
+      "BuildingIdBilling": 0,
+      "NoteAddress": "",
+      "NoteDeploy": null,
+      "MarketingChannel": 0,
+      "Gender": 0,
+      "ImageIDCard": [
+        {
+          "Type": 5,
+          "ImageId": 55306,
+          "ImageKey": "f2e589943048d18dacca432630ace7696a6bae4709f555cd7b3ea071d1e3f798"
+        },
+        {
+          "Type": 7,
+          "ImageId": 55305,
+          "ImageKey": "88bd587555ec33232361bf44d74dbeac918fb508b8248c40681a421986385d01"
+        }
+      ],
+      "ImageDocument": null,
+      "ImageOtherISP": null,
+      "ImageCustomer": null,
+      "ImageBilling": null,
+      "PayMonthlyCharges": 3,
+      "FoxpayAgree": 1,
+      "ExtendedInfo": [
+        {
+          "Key": "affiliate_contract",
+          "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+          "Value": "",
+          "TypeInput": "textbox"
+        },
+        {
+          "Key": "parent_contract",
+          "Name": "Hợp đồng Dự án (HD Cha)",
+          "Value": "",
+          "TypeInput": "textbox"
+        }
+      ]
+    },
+    "OrderDetails": [
+      {
+        "Address": {
+          "LocationId": 8,
+          "DistrictId": 1000009764,
+          "WardId": 1000107464,
+          "StreetId": 1001003171,
+          "TypeHouse": 1,
+          "Position": 0,
+          "BuildingId": 0,
+          "CustomerLatLng": null,
+          "Floor": null,
+          "Room": null,
+          "Block": null,
+          "AddressNo": "55",
+          "NoteAddress": "",
+          "AddressType": 1
+        },
+        "Services": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ServiceDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 14,
+                "SubServiceName": "Giga",
+                "PrePaid": 6,
+                "PrePaidName": "Gói 6T (6T+0)",
+                "MonthUsed": 6,
+                "ProgramId": 150576,
+                "DeployTypeId": 1,
+                "PsId": 4614859,
+                "PromotionId": 927288,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 0,
+                "Total": 1036364,
+                "TotalVAT": 1140000,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175396,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "PrePaidPercent": 0,
+                "ItemType": 0,
+                "BillingTypeId": 0,
+                "Key": "6_6"
+              },
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 1,
+                "SubServiceTypeName": "Net",
+                "SubServiceId": 999999999,
+                "SubServiceName": "PLĐ Net",
+                "PrePaid": 0,
+                "PrePaidName": "Gói 1T (Trả sau)",
+                "MonthUsed": 0,
+                "ProgramId": 150576,
+                "DeployTypeId": 1,
+                "PsId": 2720467,
+                "PromotionId": 0,
+                "DeployTypeName": "TIN/PNC",
+                "Qty": 1,
+                "ServiceCode": 58,
+                "Total": 271818,
+                "TotalVAT": 299000,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175396,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "ApplySubServiceId": 14,
+                "ApplySubServiceTypeId": 1,
+                "PrePaidPercent": 0,
+                "ItemType": 1,
+                "BillingTypeId": 0,
+                "Key": "0_0"
+              }
+            ]
+          }
+        ],
+        "Products": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "ProductDetail": [
+              {
+                "ServiceId": 1,
+                "ServiceName": "Internet",
+                "SubServiceTypeId": 4,
+                "ItemType": 2,
+                "SubServiceTypeName": "Thiết bị Net",
+                "ParentName": "Converter",
+                "ParentNameVN": "Converter",
+                "GroupId": 0,
+                "ProgramId": 150576,
+                "ApplySubServiceId": 14,
+                "ApplyPrePaid": 6,
+                "SubServiceId": 712,
+                "SubServiceName": "ONT 1 port 1G",
+                "StatusId": 2,
+                "StatusName": "Mới",
+                "RevokeId": 0,
+                "RevokeName": "Không",
+                "DeployTypeId": 1,
+                "DeployTypeName": "TIN/PNC",
+                "UseId": null,
+                "UseName": null,
+                "LanWire": 0,
+                "Qty": 1,
+                "ServiceCode": 58,
+                "Total": 0,
+                "TotalVAT": 0,
+                "Discount": 0,
+                "DiscountVAT": 0,
+                "Title": [
+                  "0K/1 ONT 1 port 1G mới/SL1-1"
+                ],
+                "PolicyId": 17064,
+                "PolicyName": "CS Net Only - 17/07 - 12/08",
+                "PsGroup": 175355,
+                "PriceGroupId": "175396_175397_176461_178834",
+                "Default": 1,
+                "PsId": 2277296,
+                "PromotionId": 0,
+                "ApplySubServiceTypeId": 1,
+                "PrePaidPercent": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "BookPort": {
+      "BookportType": 0,
+      "BookportCode": null,
+      "ODCCableType": null,
+      "EoC": 0,
+      "GroupPoint": null,
+      "Port": "0",
+      "PopCode": "HCMP109",
+      "LatLng": null,
+      "LatlngMarker": null,
+      "LatlngDevice": null,
+      "OutDType": 0,
+      "OutDoor": 0,
+      "InDType": 0,
+      "InDoor": 0,
+      "Technology": null,
+      "TypeInfrastructure": 0,
+      "INFName": null
+    },
+    "OrderRenewDetails": null
+  },
+  "orderTotal": {
+    "PaymentTypeId": 8,
+    "ObjId": 0,
+    "Services": [
+      {
+        "ServiceId": 1,
+        "ServiceName": "Internet",
+        "ServiceDetail": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "SubServiceTypeId": 1,
+            "SubServiceTypeName": "Net",
+            "SubServiceId": 14,
+            "SubServiceName": "Giga",
+            "PrePaid": 6,
+            "PrePaidName": "Gói 6T (6T+0)",
+            "MonthUsed": 6,
+            "ProgramId": 150576,
+            "DeployTypeId": 1,
+            "PsId": 4614859,
+            "PromotionId": 927288,
+            "DeployTypeName": "TIN/PNC",
+            "Qty": 1,
+            "ServiceCode": 0,
+            "Total": 1036364,
+            "TotalVAT": 1140000,
+            "Discount": 0,
+            "DiscountVAT": 0,
+            "Title": [
+              "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+            ],
+            "PolicyId": 17064,
+            "PolicyName": "CS Net Only - 17/07 - 12/08",
+            "PsGroup": 175396,
+            "PriceGroupId": "175396_175397_176461_178834",
+            "PrePaidPercent": 0,
+            "ItemType": 0,
+            "BillingTypeId": 0,
+            "Key": "6_6"
+          },
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "SubServiceTypeId": 1,
+            "SubServiceTypeName": "Net",
+            "SubServiceId": 999999999,
+            "SubServiceName": "PLĐ Net",
+            "PrePaid": 0,
+            "PrePaidName": "Gói 1T (Trả sau)",
+            "MonthUsed": 0,
+            "ProgramId": 150576,
+            "DeployTypeId": 1,
+            "PsId": 2720467,
+            "PromotionId": 0,
+            "DeployTypeName": "TIN/PNC",
+            "Qty": 1,
+            "ServiceCode": 58,
+            "Total": 271818,
+            "TotalVAT": 299000,
+            "Discount": 0,
+            "DiscountVAT": 0,
+            "Title": [
+              "Basic Net 6T 1140k/6T/SL1-1, 299k PHM"
+            ],
+            "PolicyId": 17064,
+            "PolicyName": "CS Net Only - 17/07 - 12/08",
+            "PsGroup": 175396,
+            "PriceGroupId": "175396_175397_176461_178834",
+            "ApplySubServiceId": 14,
+            "ApplySubServiceTypeId": 1,
+            "PrePaidPercent": 0,
+            "ItemType": 1,
+            "BillingTypeId": 0,
+            "Key": "0_0"
+          }
+        ]
+      }
+    ],
+    "Products": [
+      {
+        "ServiceId": 1,
+        "ServiceName": "Internet",
+        "ProductDetail": [
+          {
+            "ServiceId": 1,
+            "ServiceName": "Internet",
+            "SubServiceTypeId": 4,
+            "ItemType": 2,
+            "SubServiceTypeName": "Thiết bị Net",
+            "ParentName": "Converter",
+            "ParentNameVN": "Converter",
+            "GroupId": 0,
+            "ProgramId": 150576,
+            "ApplySubServiceId": 14,
+            "ApplyPrePaid": 6,
+            "SubServiceId": 712,
+            "SubServiceName": "ONT 1 port 1G",
+            "StatusId": 2,
+            "StatusName": "Mới",
+            "RevokeId": 0,
+            "RevokeName": "Không",
+            "DeployTypeId": 1,
+            "DeployTypeName": "TIN/PNC",
+            "UseId": null,
+            "UseName": null,
+            "LanWire": 0,
+            "Qty": 1,
+            "ServiceCode": 58,
+            "Total": 0,
+            "TotalVAT": 0,
+            "Discount": 0,
+            "DiscountVAT": 0,
+            "Title": [
+              "0K/1 ONT 1 port 1G mới/SL1-1"
+            ],
+            "PolicyId": 17064,
+            "PolicyName": "CS Net Only - 17/07 - 12/08",
+            "PsGroup": 175355,
+            "PriceGroupId": "175396_175397_176461_178834",
+            "Default": 1,
+            "PsId": 2277296,
+            "PromotionId": 0,
+            "ApplySubServiceTypeId": 1,
+            "PrePaidPercent": 0
+          }
+        ]
+      }
+    ],
+    "Vouchers": [],
+    "ExtendedInfo": [
+      {
+        "Key": "affiliate_contract",
+        "Name": "Số hợp đồng liên kết Dịch vụ Camera - VMS",
+        "Value": "",
+        "TypeInput": "textbox"
+      },
+      {
+        "Key": "parent_contract",
+        "Name": "Hợp đồng Dự án (HD Cha)",
+        "Value": "",
+        "TypeInput": "textbox"
+      }
+    ]
+  }
+}

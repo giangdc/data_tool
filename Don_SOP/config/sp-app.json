@@ -1,0 +1,8 @@
+{
+  "ClientApp": "sdk-desktopapp",
+  "Platform": "Desktop",
+  "Device": "Desktop",
+  "Bundle": "1:749060201862:web:5b1ffe0e84fd1da52b6007",
+  "CurrentVersion": "4.18.1.0",
+  "OldVersion": "4.17.1.1"
+}

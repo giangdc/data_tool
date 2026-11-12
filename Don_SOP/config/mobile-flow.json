@@ -1,0 +1,260 @@
+{
+  "_note": "Macro điều khiển app SOP. Mỗi bước tìm nút THEO CHỮ qua uiautomator (app lộ text/content-desc) và kiểm tra màn hình; chỉ vài ô không có chữ dùng toạ độ trong 'taps' (base [1080,2460], máy GHI Redmi 2404ARN45A). 'picks' không còn dùng (chọn gói theo tên).",
+  "base": [
+    1080,
+    2460
+  ],
+  "pkgActivity": "vn.fpt.ftel.sop.stg/.MainActivity",
+  "package": "vn.fpt.ftel.sop.stg",
+  "taps": {
+    "homeOrderTile": [
+      158,
+      1540
+    ],
+    "newOrderFab": [
+      960,
+      2210
+    ],
+    "addressSearchIcon": [
+      990,
+      348
+    ],
+    "tabNhapDiaChi": [
+      810,
+      322
+    ],
+    "wardDropdown": [
+      540,
+      818
+    ],
+    "listSearchBox": [
+      540,
+      481
+    ],
+    "listFirstResult": [
+      400,
+      635
+    ],
+    "soNhaField": [
+      540,
+      1285
+    ],
+    "addrConfirm": [
+      540,
+      2235
+    ],
+    "internetCombo": [
+      163,
+      1965
+    ],
+    "goiDichVuDropdown": [
+      280,
+      573
+    ],
+    "goiTinhCuocDropdown": [
+      790,
+      573
+    ],
+    "internetSheetConfirm": [
+      540,
+      2217
+    ],
+    "cartOpen": [
+      790,
+      2218
+    ],
+    "cartConfirm": [
+      540,
+      2235
+    ],
+    "custUpdate": [
+      540,
+      1168
+    ],
+    "custName": [
+      540,
+      1100
+    ],
+    "custPhone": [
+      540,
+      1337
+    ],
+    "custSave": [
+      540,
+      2237
+    ],
+    "taoBaoGia": [
+      790,
+      2208
+    ],
+    "dupConfirm": [
+      748,
+      1703
+    ],
+    "taoHopDong": [
+      540,
+      2218
+    ],
+    "hoanTat": [
+      540,
+      2228
+    ],
+    "dongResult": [
+      540,
+      2228
+    ]
+  },
+  "picks": {
+    "goiDichVu": {
+      "Giga": [
+        300,
+        1640
+      ],
+      "Giga F1": [
+        300,
+        1800
+      ],
+      "Giga F2": [
+        300,
+        1960
+      ]
+    },
+    "goiTinhCuoc": {
+      "6T (6T+0)": [
+        230,
+        1627
+      ],
+      "1T (Tra sau)": [
+        230,
+        462
+      ],
+      "3T (3T+0)": [
+        230,
+        1130
+      ],
+      "12T": [
+        230,
+        1627
+      ]
+    }
+  },
+  "identityAnswers": {
+    "soTang_1": [
+      110,
+      467
+    ],
+    "nhaRieng": [
+      110,
+      1352
+    ],
+    "khongChiaPhong": [
+      110,
+      1725
+    ]
+  },
+  "defaults": {
+    "loaiNha": "Nhà phố",
+    "ward": "Phường Phú Thuận",
+    "street": "Huỳnh Tấn Phát",
+    "soNha": "55",
+    "service": "Internet",
+    "goiDichVu": "Giga",
+    "goiTinhCuoc": "Gói 6T (6T+0)",
+    "name": "QC test",
+    "phone": "0868650892",
+    "email": "qctest@example.com"
+  },
+  "servicePresets": {
+    "FPT Play": {
+      "gói dịch vụ": "V.VIP",
+      "gói tính cước": "Gói 6T (6T+0)",
+      "loại thiết bị": "Vat tu FPT Play box",
+      "thiết bị": "FPT Play Box S550",
+      "tình trạng thiết bị": "Mới",
+      "tình trạng thu hồi": "Không",
+      "triển khai": "TIN/PNC"
+    },
+    "FPT Camera": {
+      "gói dịch vụ": "IQ3+",
+      "gói tính cước": "3T",
+      "loại thiết bị": "FPT Camera",
+      "thiết bị": "FCAM-Play 3",
+      "tình trạng thiết bị": "Mới",
+      "triển khai": "TIN/PNC",
+      "tình trạng thu hồi": "Không"
+    },
+    "FPT Camera Only": {
+      "gói dịch vụ": "An Tâm 7",
+      "gói tính cước": "6T",
+      "đơn vị triển khai": "Không",
+      "loại thiết bị": "FPT Camera",
+      "thiết bị": "FPT Camera IQ 4S",
+      "tình trạng thiết bị": "Mới",
+      "triển khai": "Quầy",
+      "tình trạng thu hồi": "Không"
+    },
+    "FPT Play Stand Alone": {
+      "gói dịch vụ": "V.VIP 1",
+      "hình thức nạp code": "Gửi SMS"
+    },
+    "Sản phẩm khác": {
+      "loại thiết bị": "Modem",
+      "thiết bị": "Access Point AX1800AZ",
+      "tình trạng thiết bị": "Mới",
+      "triển khai": "TIN/PNC",
+      "tình trạng thu hồi": "Không"
+    },
+    "Tổng đài Oncall": {},
+    "FPT Smart Home": {},
+    "Ultra Fast Stand Alone": {},
+    "FPro": {},
+    "FSafe Go": {},
+    "VIP 247": {},
+    "FPT Camera B2B": {}
+  },
+  "_servicePresetsNote": "Lựa chọn mặc định cho sheet từng nhóm dịch vụ. Key = tên ô (tiêu đề danh sách khi mở dropdown, bỏ 'Chọn'/'Lựa chọn'), value = chữ trên app (khớp gần đúng: '3T' -> 'Gói 3T (3T+0)'). Ô không có trong preset -> chọn mục đầu tiên. Bỏ qua Thiết bị Box 2 / Extra / Gói triển khai. Tổng đài Oncall: bỏ mục Voice (số đẹp) + Thiết bị IP Phone cho giống đơn Desktop (chỉ Oncall + PHM Call).",
+  "servicePhones": {
+    "FPT Play": "0775335608",
+    "FPT Play Stand Alone": "0775335608"
+  },
+  "skipSections": [
+    "Triển khai",
+    "Gói triển khai",
+    "Extra",
+    "Thiết bị Box 2",
+    "Voice",
+    "Thiết bị IP Phone",
+    "IT Outsource"
+  ],
+  "removeSections": [
+    "Triển khai",
+    "Voice",
+    "Thiết bị IP Phone",
+    "IT Outsource"
+  ],
+  "confirmFirst": [
+    "FPT Camera Only"
+  ],
+  "addSections": {
+    "FPro": [
+      "IT Remote"
+    ]
+  },
+  "_addSectionsNote": "Mục thu gọn cần bấm nút + trước khi chọn (theo nhóm). FPro: gói Desktop nằm ở mục IT Remote; mục IT Outsource mở sẵn bị bỏ.",
+  "mobileDefaults": {
+    "FPT Camera B2B": {
+      "device": "FCAM-Play 4"
+    },
+    "FPT Camera": {
+      "device": "FCAM-Play 3"
+    }
+  },
+  "_mobileDefaultsNote": "Mặc định riêng tab Mobile (ghi đè mặc định Desktop). FPT Camera B2B: mục \"Triển khai theo thiết bị\" cần thiết bị là camera -> chọn camera, không chọn Converter. FPT Camera: kênh app không có chính sách giá cho FPT Camera IQ 4S -> dùng FCAM-Play 3.",
+  "mobileWith": {
+    "VIP 247": "FPT Camera"
+  },
+  "_mobileWithNote": "Dịch vụ phải mua kèm trong cùng đơn (thêm vào giỏ TRƯỚC). VIP 247 cần Internet/FPT Play/Camera -> thêm FPT Camera theo preset.",
+  "emailServices": [
+    "Tổng đài Oncall"
+  ]
+}

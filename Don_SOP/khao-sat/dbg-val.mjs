@@ -1,0 +1,23 @@
+import { session } from '../src/app/order.js';
+import fs from 'node:fs';
+const T = JSON.parse(fs.readFileSync(new URL('../config/order-template.json', import.meta.url)));
+const clone=(o)=>JSON.parse(JSON.stringify(o));
+const ctx = await session(); const v = ctx.instanceVer;
+const A=T.orderUpdate.OrderDetails[0].Address, C=T.orderUpdate.CustomerInfo;
+const pr = await ctx.api(`gateway/sale/${v}/api/net/packages`,{LocationId:A.LocationId,DistrictId:A.DistrictId,WardId:A.WardId,BuildingId:0,CusTypeId:C.CusTypeId,CusTypeL2Id:C.CusTypeL2Id,ObjectTypeId:C.ObjectTypeId,ServiceAvailable:null,ObjId:0});
+const meta=pr.data.Data.Result.find((x)=>x.SubServiceName==='Meta');
+const pp=meta.PrePaid.find((x)=>x.Key==='6_6')||meta.PrePaid.find((x)=>x.MonthUsed>1);
+const base=clone(T.priceQuotation.Services[0].ServiceDetail[0]);
+Object.assign(base,{SubServiceId:meta.SubServiceId,SubServiceName:'Meta',PrePaid:pp.MonthUsed,MonthUsed:pp.MonthUsed,Key:pp.Key,PrePaidName:pp.Value,ProgramId:0,PromotionId:0,PsId:0,PolicyId:0,PolicyName:'',PsGroup:0,PriceGroupId:'',Title:[],Total:0,TotalVAT:0});
+const prc=clone(T.priceQuotation); prc.Services[0].ServiceDetail=[base];
+const pres=await ctx.api(`gateway/sale/${v}/api/order-info/get-price-quotation`,prc);
+const pd=pres.data.Data.Result.Services[0].ServiceDetail;
+console.log('priced Meta: TotalVAT=',pd.map(d=>d.TotalVAT),'PolicyId=',pd.map(d=>d.PolicyId),'Key=',pd.map(d=>d.Key));
+const total=pd.reduce((s,d)=>s+(d.TotalVAT||0),0);
+// validate
+const val=clone(T.orderValidate); val.Confirm=1; val.PolicyKey=pres.data.Data.Result.Key;
+for(const d of val.OrderDetails) for(const s of d.Services) s.ServiceDetail=pd;
+val.OrderInfo.TotalVAT=val.OrderInfo.TotalVATOriginal=total;
+const vr=await ctx.api(`gateway/sale/${v}/api/order/validate`,val);
+console.log('VALIDATE Code',vr.data.Code,'ExMsg',JSON.stringify(vr.data.Message?.ExMessage||vr.data.Message?.Message).slice(0,300));
+console.log('Result',JSON.stringify(vr.data.Data?.Result).slice(0,200));

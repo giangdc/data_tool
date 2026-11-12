@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tạo đơn hàng SOP</title>
+<style>
+  :root { --fpt:#f37021; --fpt2:#e85d10; --bg:#f4f6f9; --line:#e3e8ef; --ink:#1f2d3d; --muted:#667085; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:linear-gradient(90deg,var(--fpt),var(--fpt2)); color:#fff; padding:16px 22px; }
+  header h1 { margin:0; font-size:19px; } header p { margin:4px 0 0; font-size:13px; opacity:.9; }
+  main { max-width:900px; margin:22px auto; padding:0 16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(16,24,40,.05); }
+  .card h2 { margin:0 0 14px; font-size:15px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  input,select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; } .row > div { flex:1; min-width:180px; }
+  .addr { background:#fff7f0; border:1px dashed var(--fpt); border-radius:8px; padding:10px 12px; font-size:13px; color:#8a4b1e; margin-top:8px; }
+  button { background:var(--fpt); color:#fff; border:0; padding:12px 22px; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; margin-top:16px; }
+  button:disabled { opacity:.55; cursor:default; }
+  table { width:100%; border-collapse:collapse; font-size:13px; } th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; } td a { color:var(--fpt); }
+  .msg { margin-top:14px; padding:12px 14px; border-radius:8px; font-size:14px; display:none; }
+  .msg.ok { background:#eafaf0; color:#157347; display:block; } .msg.err { background:#fdecec; color:#c0392b; display:block; }
+  .code { font-family:ui-monospace,monospace; font-weight:600; }
+  .muted { color:var(--muted); font-size:12px; }
+  button.mini { margin:0; padding:5px 11px; font-size:12px; }
+  .dev { display:inline-block; font-size:12px; padding:3px 10px; border-radius:20px; background:#eee; color:#555; margin-left:8px; font-weight:500; }
+  .tabs { display:flex; gap:10px; margin-bottom:16px; }
+  .tab { flex:1; margin:0; background:#fff; color:var(--ink); border:2px solid var(--line); text-align:left; padding:12px 16px; }
+  .tab b { display:block; font-size:15px; } .tab span { font-size:12px; color:var(--muted); font-weight:400; }
+  .tab.on { border-color:var(--fpt); background:#fff7f0; color:var(--fpt2); }
+  .pane { display:none; } .pane.on { display:block; }
+  .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .tag.d { background:#e8f0fe; color:#1a56db; } .tag.m { background:#fff0e6; color:#c2410c; }
+  .dev.on { background:#eafaf0; color:#157347; } .dev.off { background:#fdecec; color:#c0392b; }
+  .btn2 { background:#fff; color:var(--fpt); border:1px solid var(--fpt); margin-right:8px; }
+  .apperr { display:none; margin-top:14px; border:1px solid #f5c2c0; background:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.08); overflow:hidden; }
+  .apperr .t { background:#fdecec; color:#c0392b; font-weight:700; padding:10px 14px; }
+  .apperr .m { padding:12px 14px; font-size:14px; line-height:1.5; }
+  .logs { margin-top:12px; background:#0f172a; color:#cbd5e1; border-radius:8px; padding:10px 12px; font:12px/1.6 ui-monospace,monospace; max-height:240px; overflow:auto; display:none; white-space:pre-wrap; }
+  .policy { margin-top:10px; font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tạo đơn hàng SOP</h1>
+  <p>Tạo đơn (báo giá) + hợp đồng test trên SOP staging — Desktop (Portal qua API) hoặc Mobile (app SOP trên máy Android).</p>
+</header>
+<main>
+  <div class="tabs">
+    <button class="tab" id="tab_d" onclick="showTab('d')"><b>🖥 Desktop</b><span>Portal SOP qua API — không cần điện thoại</span></button>
+    <button class="tab" id="tab_m" onclick="showTab('m')"><b>📱 Mobile</b><span>Điều khiển app SOP trên máy Android cắm USB</span></button>
+  </div>
+  <div class="card pane" id="pane_d">
+    <h2>🖥 Desktop — Tạo đơn trên Portal (API)</h2>
+    <div class="row">
+      <div style="max-width:260px"><label>Loại đơn</label><select id="d_mode" onchange="dMode()"><option value="new">Bán mới</option><option value="xs">Bán thêm</option></select></div>
+    </div>
+    <div id="d_xsf" style="display:none">
+      <div class="row">
+        <div style="max-width:260px"><label>Chọn hợp đồng</label><select id="x_mode" onchange="xMode()"><option value="random">Ngẫu nhiên theo SĐT</option><option value="contract">Nhập số hợp đồng</option></select></div>
+        <div id="x_phone_w"><label>SĐT lấy hợp đồng ngẫu nhiên</label><input id="x_phone" placeholder="0775335608" oninput="dClear()" /></div>
+        <div id="x_hd_w" style="display:none"><label>Số hợp đồng</label><input id="x_hd" placeholder="SGABP5868" oninput="dClear()" onchange="xInfo()" onkeydown="if(event.key==='Enter')xInfo()" /></div>
+      </div>
+      <div class="addr" id="x_info" style="display:none"></div>
+    </div>
+    <div id="d_newf">
+    <div class="row">
+      <div><label>Họ tên khách</label><input id="name" placeholder="QC test" /></div>
+      <div><label>Số điện thoại</label><input id="phone" placeholder="0868650892" /></div>
+      <div><label>Số nhà</label><input id="addressNo" placeholder="1283" /></div>
+    </div>
+    </div>
+    <div class="row">
+      <div><label>Nhóm dịch vụ</label><select id="d_svc" onchange="dChangeSvc()"></select></div>
+      <div class="d_net"><label>Gói dịch vụ</label><select id="d_goi" onchange="dFillPrepaid()"><option>Đang tải gói…</option></select></div>
+      <div class="d_net"><label>Gói tính cước</label><select id="d_cuoc" onchange="dClear()"><option>—</option></select></div>
+    </div>
+    <div class="row d_opt" style="display:none">
+      <div><label id="s_goi_l">Gói dịch vụ</label><select id="s_goi" onchange="sFillPrepaid()"></select></div>
+      <div id="s_cuoc_w"><label>Gói tính cước</label><select id="s_cuoc" onchange="sLoadDevices()"></select></div>
+      <div><label id="s_dev_l">Thiết bị</label><select id="s_dev" onchange="dClear()"></select></div>
+    </div>
+    <div class="addr" id="d_svcinfo" style="display:none"></div>
+    <div class="row" id="x_qty_w" style="display:none"><div style="max-width:140px"><label>Số lượng</label><input id="x_qty" type="number" min="1" value="1" oninput="dClear()" /></div></div>
+    <div class="addr" id="addr">Địa chỉ: (mặc định theo cấu hình)</div>
+    <label style="display:flex;gap:6px;align-items:center;margin:6px 0"><input type="checkbox" id="d_contract" checked style="width:auto" /> <span id="d_contract_l">Tạo hợp đồng sau khi tạo đơn</span></label>
+    <div class="muted" style="margin-top:6px">Desktop tạo đơn qua API Portal. Internet: chọn gói/gói tính cước từ hệ thống. Nhóm khác: dùng gói mẫu đã ghi từ Portal (nhóm chưa có mẫu thì dùng tab 📱 Mobile). Thanh toán: VNPay-QR.</div>
+    <div class="policy" id="d_policy"></div>
+    <button class="btn2" id="d_check" onclick="dCheck()">Kiểm tra chính sách</button>
+    <button id="create" onclick="createOrder()">Tạo đơn hàng</button>
+    <div class="apperr" id="d_err"><div class="t">Thông báo</div><div class="m" id="d_errmsg"></div></div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="card pane" id="pane_m">
+    <h2>📱 Mobile — Tạo đơn trên app SOP<span class="dev" id="dev">đang kiểm tra máy…</span></h2>
+    <div class="row">
+      <div><label>Loại nhà</label><select id="m_loai"></select></div>
+      <div><label>Xã/Phường</label><select id="m_ward" onchange="loadStreets()"><option>Đang tải…</option></select></div>
+      <div><label>Đường</label><select id="m_street" onchange="loadPackages()"><option>—</option></select></div>
+      <div style="max-width:140px"><label>Số nhà</label><input id="m_no" /></div>
+    </div>
+    <div class="row">
+      <div><label>Nhóm dịch vụ</label><select id="m_svc" onchange="changeService()"></select></div>
+    </div>
+    <div class="row" id="m_netrow">
+      <div><label>Gói dịch vụ (Internet)</label><select id="m_goi" onchange="fillPrepaid()"><option>—</option></select></div>
+      <div><label>Gói tính cước</label><select id="m_cuoc" onchange="clearPolicy()"><option>—</option></select></div>
+    </div>
+    <div id="m_srow" style="display:none">
+      <div class="row">
+        <div><label id="m_s_goi_l">Gói dịch vụ</label><select id="m_s_goi" onchange="msFillPrepaid()"></select></div>
+        <div id="m_s_cuoc_w"><label>Gói tính cước</label><select id="m_s_cuoc" onchange="msLoadDevices()"></select></div>
+        <div><label id="m_s_dev_l">Thiết bị</label><select id="m_s_dev" onchange="clearPolicy()"></select></div>
+        <div id="m_s_qty_w" style="max-width:110px;display:none"><label>Số lượng</label><input id="m_s_qty" type="number" min="1" value="1" /></div>
+      </div>
+      <div class="muted" style="margin:2px 0 6px">Danh sách lấy từ hệ thống (như tab Desktop). Máy sẽ chọn đúng các mục này trên sheet dịch vụ của app.</div>
+    </div>
+    <div id="m_fields" style="display:none">
+      <div class="muted" style="margin:4px 0 6px" id="m_fnote"></div>
+      <button class="btn2" id="m_explore" onclick="exploreService()" style="margin-bottom:8px">Đọc danh sách từ app</button>
+      <div class="row" id="m_fgrid" style="flex-wrap:wrap"></div>
+    </div>
+    <div class="row">
+      <div><label>Họ tên khách</label><input id="m_name" /></div>
+      <div><label>Số điện thoại</label><input id="m_phone" /></div>
+    </div>
+    <label style="display:flex;gap:6px;align-items:center;margin:6px 0"><input type="checkbox" id="m_contract" checked style="width:auto" /> Tạo hợp đồng sau khi tạo đơn</label>
+    <div class="policy" id="m_policy"></div>
+    <button class="btn2" id="m_check" onclick="checkPolicy()">Kiểm tra chính sách</button>
+    <button id="m_run" onclick="runMobile()">Chạy trên máy</button>
+    <div class="apperr" id="m_err"><div class="t">Thông báo</div><div class="m" id="m_errmsg"></div></div>
+    <div class="msg" id="m_msg"></div>
+    <div class="logs" id="m_logs"></div>
+  </div>
+  <div class="card">
+    <h2>Kết quả <span id="rtab"></span> (<span id="count">0</span>)</h2>
+    <table><thead><tr><th>Nguồn</th><th>Thời gian</th><th>Mã đơn</th><th>Khách</th><th>SĐT</th><th>Tiền</th><th>Báo giá</th><th>Hợp đồng</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="8" class="muted">Chưa có đơn nào.</td></tr></tbody></table>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const money = (n) => (n||0).toLocaleString('vi-VN') + ' đ';
+const fmt = (t) => { try { return new Date(t).toLocaleString('vi-VN'); } catch { return t; } };
+
+async function loadDefaults() {
+  const d = await (await fetch('/api/defaults')).json();
+  if (d.phone) $('phone').placeholder = d.phone;
+  if (d.name) $('name').placeholder = d.name;
+  if (d.address) $('addr').textContent = 'Địa chỉ: ' + d.address;
+}
+async function loadHistory() {
+  const tab = (() => { try { return localStorage.getItem('sopTab') || 'm'; } catch { return 'm'; } })();
+  const list = (await (await fetch('/api/history')).json()).filter((o) => (o.source === 'mobile') === (tab === 'm'));
+  $('rtab').textContent = tab === 'm' ? '📱 Mobile' : '🖥 Desktop';
+  $('count').textContent = list.length;
+  $('rows').innerHTML = list.length ? list.map((o) => `<tr>
+    <td>${o.source === 'mobile' ? '<span class="tag m">Mobile</span>' : '<span class="tag d">Desktop</span>'}</td><td>${fmt(o.createdAt)}</td><td class="code">${o.orderCode||''}</td><td>${o.name||''}</td>
+    <td>${o.phone||''}</td><td>${money(o.totalVAT)}</td>
+    <td>${o.quotationUrl?`<a href="${o.quotationUrl}" target="_blank">Mở ↗</a>`:''}</td>
+    <td>${o.contractCode?`<b class="code">${o.contractCode}</b>`:(o.orderId?`<button class="mini" onclick="makeContract(${o.orderId},this)">Tạo HĐ</button>`:'')}</td></tr>`).join('')
+    : '<tr><td colspan="8" class="muted">Chưa có đơn nào.</td></tr>';
+}
+async function makeContract(orderId, btn) {
+  btn.disabled = true; btn.textContent = 'Đang tạo…';
+  const msg = $('msg');
+  try {
+    const r = await (await fetch('/api/contract', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ orderId }) })).json();
+    if (r.ok) { msg.className='msg ok'; msg.innerHTML = `✅ Tạo hợp đồng: <b class="code">${r.contract.contractCode}</b> (đơn ${r.contract.orderCode})`; await loadHistory(); }
+    else { msg.className='msg err'; msg.textContent = '❌ ' + r.error; btn.disabled=false; btn.textContent='Tạo HĐ'; }
+  } catch (e) { msg.className='msg err'; msg.textContent='❌ '+e.message; btn.disabled=false; btn.textContent='Tạo HĐ'; }
+}
+async function createOrder() {
+  if (XS()) return xCreate();
+  const btn = $('create'), msg = $('msg');
+  btn.disabled = true; btn.textContent = 'Đang tạo đơn…'; msg.className = 'msg';
+  dClear();
+  const net = $('d_svc').value === 'Internet';
+  const svcSel = !net && SPKGS.length ? { package: $('s_goi').value, prepaid: $('s_cuoc_w').style.display === 'none' ? undefined : $('s_cuoc').value, device: $('s_dev').value || undefined } : {};
+  const body = { name: $('name').value || undefined, phone: $('phone').value || undefined, contract: $('d_contract').checked, service: $('d_svc').value,
+    ...svcSel, ...(net ? { addressNo: $('addressNo').value || undefined, package: $('d_goi').value || undefined, prepaidLabel: $('d_cuoc').value || undefined } : {}) };
+  try {
+    const r = await (await fetch('/api/create', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })).json();
+    if (r.ok) { msg.className = 'msg ok'; msg.innerHTML = `✅ Tạo đơn thành công: <b class="code">${r.order.orderCode}</b>${r.order.package ? ' · ' + r.order.package : ''} · ${money(r.order.totalVAT)} — <a href="${r.order.quotationUrl}" target="_blank">mở báo giá ↗</a>` + (r.order.contractCode ? `<br>✅ Hợp đồng: <b class="code">${r.order.contractCode}</b>` : ''); if (r.order.contractError) dErr('Tạo hợp đồng lỗi — ' + r.order.contractError); await loadHistory(); }
+    else dErr(r.error);
+  } catch (e) { msg.className = 'msg err'; msg.textContent = '❌ ' + e.message; }
+  btn.disabled = false; btn.textContent = 'Tạo đơn hàng';
+}
+// ---------- Desktop: nhóm dịch vụ / gói ----------
+let DPKGS = [], DSVC = {}, SPKGS = [];
+async function sLoadPackages(s, info) {
+  $('s_goi').innerHTML = '<option>Đang tải gói…</option>';
+  const r = await (await fetch('/api/desktop/svc-packages?service=' + encodeURIComponent(s))).json();
+  if ($('d_svc').value !== s) return;
+  if (!r.ok) { dErr(r.error); return; }
+  SPKGS = r.list || [];
+  if (!SPKGS.length) return;
+  document.querySelectorAll('.d_opt').forEach((e) => (e.style.display = ''));
+  const def = info.default || {}, lb = info.labels || {};
+  $('s_goi_l').textContent = lb.package || 'Gói dịch vụ'; $('s_dev_l').textContent = lb.device || 'Thiết bị';
+  $('s_goi').innerHTML = SPKGS.map((p) => `<option ${p.name === def.package ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  sFillPrepaid(def.prepaid, def.device);
+}
+function sFillPrepaid(want, dev) {
+  dClear();
+  const p = SPKGS.find((x) => x.name === $('s_goi').value) || SPKGS[0];
+  const w = typeof want === 'string' ? want : $('s_cuoc').value;
+  $('s_cuoc_w').style.display = p.prepaids.length ? '' : 'none';
+  $('s_cuoc').innerHTML = p.prepaids.map((x) => `<option value="${esc(x.label)}" data-pp="${x.prepaid}" ${x.label === w ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
+  sLoadDevices(typeof dev === 'string' ? dev : $('s_dev').value);
+}
+async function sLoadDevices(want) {
+  dClear();
+  const p = SPKGS.find((x) => x.name === $('s_goi').value); const o = $('s_cuoc').selectedOptions[0];
+  if (!p || (p.prepaids.length && !o)) return;
+  const retail = !p.prepaids.length;
+  const keep = typeof want === 'string' ? want : $('s_dev').value;
+  $('s_dev').innerHTML = '<option>Đang tải thiết bị…</option>';
+  const r = await (await fetch(`/api/desktop/svc-devices?service=${encodeURIComponent($('d_svc').value)}&pkg=${p.id}&prepaid=${o ? o.dataset.pp : ''}`)).json();
+  if (!r.ok) { dErr(r.error); return; }
+  const cur = r.list.find((l) => l === keep) || r.list.find((l) => keep && l.startsWith(keep + ' (Mới + TIN/PNC')) || r.list.find((l) => keep && l.startsWith(keep + ' (Mới')) || r.list.find((l) => keep && l.startsWith(keep)) || (retail ? (r.list.find((l) => /\(Mới \+ TIN\/PNC, thu hồi Không\)/.test(l)) || r.list[0]) : '') || '';
+  $('s_dev').innerHTML = (retail ? '' : `<option value="">(không lấy thiết bị)</option>`) + r.list.map((l) => `<option ${l === cur ? 'selected' : ''}>${esc(l)}</option>`).join('');
+}
+function dChangeSvc() {
+  dClear();
+  const s = $('d_svc').value, net = s === 'Internet';
+  document.querySelectorAll('.d_net').forEach((e) => (e.style.display = net ? '' : 'none'));
+  $('addr').style.display = net ? '' : 'none';
+  document.querySelectorAll('.d_opt').forEach((e) => (e.style.display = 'none')); SPKGS = [];
+  const info = DSVC[s];
+  $('d_svcinfo').style.display = net ? 'none' : '';
+  if (info) {
+    $('d_svcinfo').innerHTML = `<b>${s}</b> — mặc định ${info.gen ? '(dựng từ API)' : 'theo mẫu đã ghi từ Portal'}: ${info.items.join(' · ')}${info.totalVAT != null ? ` — <b>${money(info.totalVAT)}</b>` : ''}<br><span class="muted">Địa chỉ 55 Huỳnh Tấn Phát, Phường Phú Thuận · ${info.source}</span>`;
+    $('phone').value = info.phone || '';
+    sLoadPackages(s, info);
+  } else if (net) $('phone').value = '';
+  if (typeof xAfterSvc === 'function') xAfterSvc();
+}
+function dErr(m) { $('d_errmsg').textContent = String(m).replace(/^(Lấy báo giá lỗi|App báo):\s*/, ''); $('d_err').style.display = 'block'; }
+function dClear() { $('d_err').style.display = 'none'; $('d_policy').innerHTML = ''; }
+async function initDesktop() {
+  const o = await (await fetch('/api/mobile/options')).json();
+  const ds = await (await fetch('/api/desktop/services')).json();
+  DSVC = Object.fromEntries((ds.list || []).map((x) => [x.service, x]));
+  const svcs = [...new Set([...(o.services || ['Internet']), ...Object.keys(DSVC)])];
+  $('d_svc').innerHTML = svcs.map((x) => { const okS = x === 'Internet' || DSVC[x]; return `<option value="${x}" ${x === 'Internet' ? 'selected' : ''} ${okS ? '' : 'disabled'}>${x}${okS ? '' : ' — chưa có mẫu, dùng tab Mobile'}</option>`; }).join('');
+  const r = await (await fetch('/api/mobile/packages')).json();
+  if (!r.ok) { $('d_goi').innerHTML = '<option value="">—</option>'; dErr(r.error); return; }
+  DPKGS = r.list;
+  const def = (o.defaults || {});
+  $('d_goi').innerHTML = DPKGS.map((p) => `<option ${p.name === (def.goiDichVu || 'Giga') ? 'selected' : ''}>${p.name}</option>`).join('');
+  dFillPrepaid(def.goiTinhCuoc || 'Gói 6T (6T+0)');
+}
+function dFillPrepaid(want) {
+  dClear();
+  const p = DPKGS.find((x) => x.name === $('d_goi').value) || DPKGS[0];
+  if (!p) return;
+  const w = typeof want === 'string' ? want : $('d_cuoc').value;
+  $('d_cuoc').innerHTML = p.prepaids.map((x) => `<option ${x === w ? 'selected' : ''}>${x}</option>`).join('');
+}
+async function dCheck() {
+  if (XS()) return xCheck();
+  dClear(); const b = $('d_check'); b.disabled = true; b.textContent = 'Đang kiểm tra…';
+  if ($('d_svc').value !== 'Internet') {
+    try {
+      const r = await (await fetch('/api/desktop/svc-check', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ service: $('d_svc').value, phone: $('phone').value || undefined, package: $('s_goi').value, prepaid: $('s_cuoc_w').style.display === 'none' ? undefined : $('s_cuoc').value, device: $('s_dev').value || undefined }) })).json();
+      if (r.ok) $('d_policy').innerHTML = `✅ Có chính sách: <b>${money(r.totalVAT)}</b> · ${r.policyName}${r.title ? ' · ' + r.title : ''}<br><span class="muted">${r.items.join(' · ')}</span>`;
+      else dErr(r.error);
+    } catch (e) { dErr(e.message); }
+    b.disabled = false; b.textContent = 'Kiểm tra chính sách'; return;
+  }
+  try {
+    const r = await (await fetch('/api/desktop/check', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ goiDichVu: $('d_goi').value, goiTinhCuoc: $('d_cuoc').value, soNha: $('addressNo').value || undefined }) })).json();
+    if (r.ok) $('d_policy').innerHTML = `✅ Có chính sách: <b>${money(r.totalVAT)}</b> · ${r.policyName}${r.title ? ' · ' + r.title : ''}`;
+    else dErr(r.error);
+  } catch (e) { dErr(e.message); }
+  b.disabled = false; b.textContent = 'Kiểm tra chính sách';
+}
+initDesktop().then(() => { try { if (localStorage.getItem('sopMode') === 'xs') { $('d_mode').value = 'xs'; dMode(); } } catch {} });
+
+// ===== Bán thêm (cross-selling) vào hợp đồng có sẵn =====
+// Dùng chung ô Nhóm dịch vụ / Gói / Gói tính cước / Thiết bị với Bán mới. Hợp đồng: ngẫu nhiên theo SĐT hoặc nhập số HĐ.
+const XS = () => $('d_mode').value === 'xs';
+let XSVC = {};
+async function xLoadServices() {
+  if (Object.keys(XSVC).length) return;
+  const r = await (await fetch('/api/cross/services')).json();
+  XSVC = Object.fromEntries((r.list || []).map((x) => [x.service, x.phone]));
+}
+async function dMode() {
+  const xs = XS();
+  if (xs) await xLoadServices();
+  $('d_xsf').style.display = xs ? '' : 'none'; $('d_newf').style.display = xs ? 'none' : '';
+  $('d_contract_l').textContent = xs ? 'Cập nhật đơn bán thêm vào hợp đồng (sinh phiếu đăng ký)' : 'Tạo hợp đồng sau khi tạo đơn';
+  // Bán thêm chỉ cho các nhóm có khuôn (không có Internet)
+  for (const op of $('d_svc').options) {
+    if (op.dataset.dis == null) op.dataset.dis = op.disabled ? '1' : '';
+    op.disabled = xs ? !(op.value in XSVC) : op.dataset.dis === '1';
+    op.textContent = op.value + (xs ? (op.value === 'Sản phẩm khác' ? ' (Thiết bị lẻ)' : '') + (op.value in XSVC ? '' : ' — chưa hỗ trợ bán thêm') : (op.dataset.dis === '1' ? ' — chưa có mẫu, dùng tab Mobile' : ''));
+  }
+  if (xs && !( $('d_svc').value in XSVC)) $('d_svc').value = 'FPT Play';
+  dChangeSvc();
+  $('msg').textContent = '';
+  try { localStorage.setItem('sopMode', $('d_mode').value); } catch {}
+}
+function xAfterSvc() { // gọi cuối dChangeSvc
+  const xs = XS(), s = $('d_svc').value;
+  $('x_qty_w').style.display = xs && s === 'Sản phẩm khác' ? '' : 'none';
+  if (!xs) return;
+  $('d_svcinfo').style.display = 'none'; $('addr').style.display = 'none';
+  $('x_phone').value = XSVC[s] || '';
+}
+function xMode() {
+  dClear(); const r = $('x_mode').value === 'random';
+  $('x_phone_w').style.display = r ? '' : 'none'; $('x_hd_w').style.display = r ? 'none' : ''; $('x_info').style.display = 'none';
+  try { localStorage.setItem('sopXsMode', $('x_mode').value); } catch {}
+}
+async function xInfo() {
+  const c = $('x_hd').value.trim(); if (!c) return;
+  $('x_info').style.display = ''; $('x_info').textContent = 'Đang kiểm tra hợp đồng…';
+  const r = await (await fetch('/api/cross/info?contract=' + encodeURIComponent(c))).json();
+  if ($('x_hd').value.trim() !== c) return;
+  if (!r.ok) { $('x_info').innerHTML = '❌ ' + esc(r.error); return; }
+  const i = r.info;
+  $('x_info').innerHTML = `<b>${esc(i.contract)}</b> · ${esc(i.name)} · ${esc(i.phone || '')}<br>${esc(i.address || '')}` + (i.warning ? `<br>⚠️ ${esc(i.warning)}` : '');
+}
+function xBody() {
+  const random = $('x_mode').value === 'random';
+  const o = $('s_cuoc').selectedOptions[0], net = $('d_svc').value === 'Internet';
+  const sel = net ? { package: $('d_goi').value || undefined, prepaid: $('d_cuoc').value || undefined }
+    : { package: $('s_goi').value || undefined, prepaid: $('s_cuoc_w').style.display === 'none' ? undefined : (o ? o.value : undefined), device: $('s_dev').value || undefined };
+  return { service: $('d_svc').value, mode: random ? 'random' : 'contract', phone: random ? ($('x_phone').value.trim() || undefined) : undefined,
+    contract: random ? undefined : $('x_hd').value.trim(), ...sel, qty: Number($('x_qty').value) || 1 };
+}
+const xTried = (r) => (r.tried && r.tried.length ? `<br><span class="muted">Đã bỏ qua: ${r.tried.map(esc).join(' · ')}</span>` : '');
+async function xCheck() {
+  dClear(); const b = xBody();
+  if (b.mode === 'contract' && !b.contract) return dErr('Nhập số hợp đồng');
+  const btn = $('d_check'); btn.disabled = true; btn.textContent = b.mode === 'random' ? 'Đang tìm hợp đồng + kiểm tra…' : 'Đang kiểm tra…';
+  try {
+    const r = await (await fetch('/api/cross/check', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(b) })).json();
+    if (r.ok) $('d_policy').innerHTML = `✅ Có chính sách: <b>${money(r.totalVAT)}</b> · ${esc(r.policyName)}${r.title ? ' · ' + esc(r.title) : ''}<br><span class="muted">Bán thêm vào <b>${esc(r.contract)}</b>: ${r.items.map(esc).join(' · ')}</span>` + (r.warning ? `<br>⚠️ ${esc(r.warning)}` : '') + xTried(r);
+    else dErr(r.error);
+  } catch (e) { dErr(e.message); }
+  btn.disabled = false; btn.textContent = 'Kiểm tra chính sách';
+}
+async function xCreate() {
+  const b = xBody();
+  if (b.mode === 'contract' && !b.contract) return dErr('Nhập số hợp đồng');
+  const btn = $('create'), msg = $('msg');
+  btn.disabled = true; btn.textContent = 'Đang tạo đơn bán thêm…'; msg.className = 'msg'; msg.textContent = ''; dClear();
+  try {
+    const r = await (await fetch('/api/cross/create', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ ...b, contractAfter: $('d_contract').checked }) })).json();
+    if (r.ok) {
+      const o = r.order; msg.className = 'msg ok';
+      msg.innerHTML = `✅ Tạo đơn bán thêm thành công: <b class="code">${o.orderCode}</b> · ${esc(o.package)} · ${money(o.totalVAT)}` + (o.quotationUrl ? ` — <a href="${o.quotationUrl}" target="_blank">mở báo giá ↗</a>` : '') + (o.contractCode ? `<br>✅ Đã cập nhật vào hợp đồng: <b class="code">${o.contractCode}</b>${o.regCode ? ` · phiếu đăng ký <b class="code">${o.regCode}</b>` : ''}` : '') + xTried(o);
+      if (o.contractError) dErr('Cập nhật hợp đồng lỗi — ' + o.contractError);
+      await loadHistory();
+    } else dErr(r.error);
+  } catch (e) { msg.className = 'msg err'; msg.textContent = '❌ ' + e.message; }
+  btn.disabled = false; btn.textContent = 'Tạo đơn hàng';
+}
+try { const m = localStorage.getItem('sopXsMode'); if (m) { $('x_mode').value = m; xMode(); } } catch {}
+function showTab(t) {
+  for (const k of ['d', 'm']) { $('tab_' + k).classList.toggle('on', k === t); $('pane_' + k).classList.toggle('on', k === t); }
+  try { localStorage.setItem('sopTab', t); } catch {}
+  if (typeof loadHistory === 'function' && $('rows')) loadHistory();
+}
+showTab(new URLSearchParams(location.search).get('tab') || (() => { try { return localStorage.getItem('sopTab') || 'm'; } catch { return 'm'; } })());
+loadDefaults();
+// ---------- Mobile ----------
+let PKGS = [];
+const opt = (v, sel) => `<option ${sel ? 'selected' : ''}>${v}</option>`;
+const nrm = (s) => String(s||'').toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const mVal = () => ({ loaiNha: $('m_loai').value, ward: $('m_ward').value, street: $('m_street').value, soNha: $('m_no').value.trim(),
+  goiDichVu: $('m_goi').value, goiTinhCuoc: $('m_cuoc').value, name: $('m_name').value.trim(), phone: $('m_phone').value.trim(),
+  service: $('m_svc').value, contract: $('m_contract').checked, fields: isNet() ? undefined : svcFields() });
+const isNet = () => !$('m_svc').value || $('m_svc').value === 'Internet';
+function svcFields() {
+  const f = {};
+  if (MS.on) return msFields();
+  document.querySelectorAll('#m_fgrid [data-k]').forEach((i) => { if (i.value.trim()) f[i.dataset.k] = i.value.trim(); });
+  return f;
+}
+// ---- Mobile: gói / gói tính cước / thiết bị lấy từ API như Desktop ----
+const MS = { on: false, pkgs: [], devs: [] };
+async function msLoad(svc) {
+  MS.on = false; MS.pkgs = []; MS.devs = [];
+  $('m_srow').style.display = 'none';
+  if (isNet()) return;
+  $('m_s_goi').innerHTML = '<option>Đang tải gói…</option>'; $('m_srow').style.display = '';
+  const r = await (await fetch('/api/desktop/svc-packages?service=' + encodeURIComponent(svc))).json();
+  if ($('m_svc').value !== svc) return;
+  if (!r.ok || !(r.list || []).length) { $('m_srow').style.display = 'none'; return; } // không có danh sách API -> dùng ô cũ
+  MS.on = true; MS.pkgs = r.list; MS.retail = !r.list.some((p) => p.prepaids.length);
+  $('m_fields').style.display = 'none';
+  const pre = (OPT.servicePresets || {})[svc] || {};
+  const info = (typeof DSVC !== 'undefined' && DSVC[svc]) || {};
+  const def = { ...(info.default || {}), ...((OPT.mobileDefaults || {})[svc] || {}) }, lb = info.labels || {};
+  $('m_s_goi_l').textContent = MS.retail ? 'Thiết bị' : (lb.package || 'Gói dịch vụ');
+  $('m_s_dev_l').textContent = MS.retail ? 'Biến thể' : (lb.device || 'Thiết bị');
+  $('m_s_qty_w').style.display = MS.retail ? '' : 'none';
+  const want = def.package || presetFor(pre, 'gói dịch vụ') || (MS.retail ? presetFor(pre, 'thiết bị') : '');
+  const cur = MS.pkgs.find((p) => p.name === want) || MS.pkgs.find((p) => want && alnum(p.name).endsWith(alnum(want))) || MS.pkgs[0];
+  $('m_s_goi').innerHTML = MS.pkgs.map((p) => `<option ${p === cur ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  msFillPrepaid(def.prepaid || presetFor(pre, 'gói tính cước'), def.device || presetFor(pre, 'thiết bị'));
+}
+function msFillPrepaid(want, dev) {
+  clearPolicy();
+  const p = MS.pkgs.find((x) => x.name === $('m_s_goi').value) || MS.pkgs[0]; if (!p) return;
+  const w = typeof want === 'string' ? want : $('m_s_cuoc').value;
+  $('m_s_cuoc_w').style.display = p.prepaids.length ? '' : 'none';
+  const cur = p.prepaids.find((x) => x.label === w) || p.prepaids.find((x) => w && alnum(x.label).includes(alnum(w))) || p.prepaids[0];
+  $('m_s_cuoc').innerHTML = p.prepaids.map((x) => `<option value="${esc(x.label)}" data-pp="${x.prepaid}" ${x === cur ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
+  msLoadDevices(typeof dev === 'string' ? dev : '');
+}
+async function msLoadDevices(want) {
+  clearPolicy();
+  const p = MS.pkgs.find((x) => x.name === $('m_s_goi').value); const o = $('m_s_cuoc').selectedOptions[0];
+  if (!p || (p.prepaids.length && !o)) return;
+  const svc = $('m_svc').value;
+  $('m_s_dev').innerHTML = '<option>Đang tải thiết bị…</option>';
+  const r = await (await fetch(`/api/desktop/svc-devices?full=1&service=${encodeURIComponent(svc)}&pkg=${p.id}&prepaid=${o ? o.dataset.pp : ''}`)).json();
+  if ($('m_svc').value !== svc) return;
+  if (!r.ok) { appError(r.error); MS.devs = []; $('m_s_dev').innerHTML = ''; return; }
+  MS.devs = r.list;
+  const w = typeof want === 'string' ? want : '';
+  const pref = (l) => /\(Mới \+ TIN\/PNC/.test(l.label) && !/thu hồi Có/.test(l.label);
+  const cur = MS.devs.find((d) => w && d.SubServiceName === w && pref(d)) || MS.devs.find((d) => w && d.SubServiceName === w) || (MS.retail ? (MS.devs.find(pref) || MS.devs[0]) : null);
+  $('m_s_dev').innerHTML = (MS.retail ? '' : '<option value="">(không lấy thiết bị)</option>') + MS.devs.map((d, i) => `<option value="${i}" ${d === cur ? 'selected' : ''}>${esc(d.label)}</option>`).join('');
+}
+// Chuyển lựa chọn thành các ô của sheet dịch vụ trên app (giữ các ô khác theo mặc định cấu hình)
+function msFields() {
+  const svc = $('m_svc').value, pre = { ...((OPT.servicePresets || {})[svc] || {}) };
+  for (const k of ['gói dịch vụ', 'gói tính cước', 'loại thiết bị', 'thiết bị', 'tình trạng thiết bị', 'tình trạng thu hồi', 'triển khai']) delete pre[k];
+  const f = { ...pre };
+  const p = MS.pkgs.find((x) => x.name === $('m_s_goi').value);
+  if (p && !MS.retail) f['gói dịch vụ'] = p.name;
+  if (p && p.prepaids.length && $('m_s_cuoc').value) f['gói tính cước'] = $('m_s_cuoc').value;
+  const d = MS.devs[Number($('m_s_dev').value)];
+  if ($('m_s_dev').value !== '' && d) {
+    if (d.ParentName) f['loại thiết bị'] = d.ParentName;
+    f['thiết bị'] = d.SubServiceName;
+    if (d.StatusName) f['tình trạng thiết bị'] = d.StatusName;
+    if (d.RevokeName) f['tình trạng thu hồi'] = d.RevokeName;
+    if (d.DeployTypeName) f['triển khai'] = d.DeployTypeName;
+  }
+  if (MS.retail) f['số lượng'] = String(Number($('m_s_qty').value) || 1);
+  return f;
+}
+const fkey = (t) => nrm(t).replace(/^(lua chon|chon)\s+/, '');
+const alnum = (t) => nrm(t).replace(/[^a-z0-9]/g, '');
+function presetFor(pre, title) { const e = Object.entries(pre).find(([k]) => fkey(k) === fkey(title)); return e ? e[1] : ''; }
+function bestOption(options, want) {
+  if (!want) return '';
+  return options.find((o) => nrm(o) === nrm(want)) || options.find((o) => alnum(o).includes(alnum(want))) || '';
+}
+const esc = (v) => String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+function changeService() {
+  clearPolicy();
+  const svc = $('m_svc').value, net = isNet();
+  $('m_netrow').style.display = net ? '' : 'none'; $('m_check').style.display = net ? '' : 'none';
+  $('m_fields').style.display = net ? 'none' : '';
+  const pre = (OPT.servicePresets || {})[svc] || {};
+  $('m_phone').value = (OPT.servicePhones || {})[svc] || DEF.phone || '';
+  msLoad(svc);
+  if (net) return;
+  const textGrid = () => {
+    $('m_fnote').textContent = 'Chưa có danh sách lựa chọn của nhóm này. Bấm "Đọc danh sách từ app" (máy mở sheet dịch vụ, đọc từng ô, không tạo đơn, khoảng 1–3 phút) để chọn từ danh sách. Hoặc sửa trực tiếp bên dưới (gõ gần đúng, vd "3T" → "Gói 3T (3T+0)").';
+    $('m_fgrid').innerHTML = Object.entries(pre).map(([k, v]) => `<div style="min-width:200px;flex:1 1 30%"><label>${cap(k)}</label><input data-k="${esc(k)}" value="${esc(v)}" /></div>`).join('') || '<div class="muted">Không có mặc định — app tự chọn giá trị đầu tiên.</div>';
+  };
+  textGrid();
+  fetch('/api/mobile/service-options?service=' + encodeURIComponent(svc)).then((r) => r.json()).then((c) => {
+    if ($('m_svc').value !== svc || !c.fields || !c.fields.length) return;
+    $('m_fnote').textContent = `Danh sách lấy từ app lúc ${fmt(c.at)}. Mặc định theo gói, đổi được. Lưu ý: danh sách Thiết bị phụ thuộc Loại thiết bị đã chọn lúc đọc — đổi Loại thiết bị thì bấm đọc lại. Gói không có chính sách thì app báo lỗi khi chạy.`;
+    $('m_fgrid').innerHTML = c.fields.map((f) => {
+      const opts = f.options && f.options.length ? f.options : [f.value];
+      const cur = bestOption(opts, presetFor(pre, f.title)) || f.value;
+      return `<div style="min-width:200px;flex:1 1 30%"><label>${esc(f.section)} › ${esc(f.title)}</label><select data-k="${esc(f.section + ' / ' + f.title)}">`
+        + `<option value="">(app tự chọn mục đầu)</option>` + opts.map((o) => `<option ${o === cur ? 'selected' : ''} value="${esc(o)}">${esc(o)}</option>`).join('') + `</select></div>`;
+    }).join('');
+  });
+}
+async function exploreService() {
+  clearPolicy(); $('m_msg').className = 'msg';
+  const v = mVal(); v.fields = svcFields();
+  const r = await (await fetch('/api/mobile/explore', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(v) })).json();
+  if (!r.ok) { appError(r.error); return; }
+  pollMobile();
+}
+function appError(msg) { $('m_errmsg').textContent = String(msg).replace(/^(Lấy báo giá lỗi|App báo):\s*/, ''); $('m_err').style.display = 'block'; }
+function clearPolicy() { $('m_err').style.display = 'none'; $('m_policy').innerHTML = ''; }
+let DEF = {}, OPT = {};
+async function initMobile() {
+  const o = await (await fetch('/api/mobile/options')).json();
+  DEF = o.defaults || {}; OPT = o;
+  $('m_svc').innerHTML = (o.services || ['Internet']).map((x) => opt(x, x === (DEF.service || 'Internet'))).join('');
+  $('m_loai').innerHTML = o.houseTypes.map((h) => opt(h, h === DEF.loaiNha)).join('');
+  $('m_no').value = DEF.soNha || ''; $('m_name').value = DEF.name || ''; $('m_phone').value = DEF.phone || '';
+  fetch('/api/mobile/device').then((r) => r.json()).then((d) => { const e = $('dev'); e.className = 'dev ' + (d.ok ? 'on' : 'off'); e.textContent = d.ok ? '● Máy ' + d.serial : '● Chưa thấy máy (cắm cáp + mở khoá + cho phép USB debugging)'; });
+  const w = await (await fetch('/api/mobile/wards')).json();
+  if (!w.ok) { appError(w.error); return; }
+  $('m_ward').innerHTML = w.list.map((x) => opt(x, nrm(x) === nrm(DEF.ward))).join('');
+  changeService();
+  await loadStreets(true);
+  if (o.busy) pollMobile();
+}
+async function loadStreets(first) {
+  clearPolicy(); $('m_street').innerHTML = opt('Đang tải…');
+  const r = await (await fetch('/api/mobile/streets?ward=' + encodeURIComponent($('m_ward').value))).json();
+  if (!r.ok) { appError(r.error); return; }
+  $('m_street').innerHTML = r.list.map((x) => opt(x, first && nrm(x) === nrm(DEF.street))).join('');
+  await loadPackages(first);
+}
+async function loadPackages(first) {
+  clearPolicy(); const keepG = $('m_goi').value, keepC = $('m_cuoc').value;
+  $('m_goi').innerHTML = opt('Đang tải gói từ app…');
+  const r = await (await fetch(`/api/mobile/packages?ward=${encodeURIComponent($('m_ward').value)}&street=${encodeURIComponent($('m_street').value)}`)).json();
+  if (!r.ok) { appError(r.error); return; }
+  PKGS = r.list;
+  const g = first ? DEF.goiDichVu : keepG;
+  $('m_goi').innerHTML = PKGS.map((p) => opt(p.name, p.name === g)).join('');
+  fillPrepaid(first ? DEF.goiTinhCuoc : keepC);
+}
+function fillPrepaid(want) {
+  clearPolicy();
+  const p = PKGS.find((x) => x.name === $('m_goi').value) || PKGS[0];
+  if (!p) return;
+  const w = typeof want === 'string' ? want : $('m_cuoc').value;
+  $('m_cuoc').innerHTML = p.prepaids.map((x) => opt(x, x === w)).join('');
+}
+async function checkPolicy() {
+  clearPolicy(); const b = $('m_check'); b.disabled = true; b.textContent = 'Đang kiểm tra…';
+  try {
+    const r = await (await fetch('/api/mobile/check', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(mVal()) })).json();
+    if (r.ok) $('m_policy').innerHTML = `✅ Có chính sách: <b>${money(r.totalVAT)}</b> · ${r.policyName}${r.title ? ' · ' + r.title : ''}`;
+    else appError(r.error);
+  } catch (e) { appError(e.message); }
+  b.disabled = false; b.textContent = 'Kiểm tra chính sách';
+}
+async function runMobile() {
+  clearPolicy(); $('m_msg').className = 'msg';
+  const v = mVal();
+  if (!v.phone || !v.name) { appError('Nhập Họ tên và Số điện thoại khách hàng.'); return; }
+  if (v.loaiNha !== 'Nhà không số' && !v.soNha) { appError('Nhập Số nhà.'); return; }
+  $('m_run').disabled = true; $('m_run').textContent = isNet() ? 'Đang kiểm tra chính sách…' : 'Đang gửi…';
+  const r = await (await fetch('/api/mobile/create', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(v) })).json();
+  if (!r.ok) { appError(r.error); $('m_run').disabled = false; $('m_run').textContent = 'Chạy trên máy'; return; }
+  pollMobile();
+}
+async function pollMobile() {
+  $('m_run').disabled = true; $('m_explore').disabled = true; $('m_run').textContent = 'Máy đang chạy…'; $('m_logs').style.display = 'block';
+  const s = await (await fetch('/api/mobile/status')).json();
+  $('m_logs').textContent = s.logs.map((l) => '• ' + l).join('\n'); $('m_logs').scrollTop = 1e9;
+  if (s.running) return setTimeout(pollMobile, 1500);
+  $('m_run').disabled = false; $('m_explore').disabled = false; $('m_run').textContent = 'Chạy trên máy';
+  if (s.result && s.result.explored) {
+    $('m_msg').className = 'msg ok'; $('m_msg').textContent = `✅ Đã đọc danh sách lựa chọn của ${s.result.service} từ app.`;
+    if ($('m_svc').value !== s.result.service) $('m_svc').value = s.result.service;
+    changeService();
+  } else if (s.result) {
+    const o = s.result; $('m_msg').className = 'msg ok';
+    $('m_msg').innerHTML = `✅ Tạo đơn trên app thành công: <b class="code">${o.orderCode}</b> · ${o.package} · ${money(o.totalVAT)}` + (o.quotationUrl ? ` — <a href="${o.quotationUrl}" target="_blank">mở báo giá ↗</a>` : '')
+      + (o.contractCode ? `<br>✅ Hợp đồng: <b class="code">${o.contractCode}</b>` : '');
+    if (o.contractError) appError('Tạo hợp đồng lỗi — ' + o.contractError);
+    loadHistory();
+  } else if (s.error) {
+    if (s.appError || /^Không thấy .* trong danh sách/.test(s.error)) appError(s.error); else { $('m_msg').className = 'msg err'; $('m_msg').textContent = '❌ ' + s.error; }
+  }
+}
+initMobile();
+</script>
+</body>
+</html>
